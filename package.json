@@ -1,0 +1,19 @@
+{
+  "name": "specbridge",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.34.9",
+  "engines": {
+    "node": ">=22.22.3 <23"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter ./apps/web dev",
+    "dev:api": "PORT=4000 pnpm --filter ./apps/api start:dev",
+    "build": "pnpm -r --if-present build",
+    "lint": "pnpm -r --if-present lint",
+    "test": "pnpm -r --if-present test",
+    "db:up": "docker compose --env-file .env -f infra/compose.dev.yml up -d",
+    "db:down": "docker compose --env-file .env -f infra/compose.dev.yml down",
+    "db:logs": "docker compose --env-file .env -f infra/compose.dev.yml logs -f db"
+  }
+}

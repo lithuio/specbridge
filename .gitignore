@@ -1,0 +1,24 @@
+
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+dist/
+build/
+coverage/
+.turbo/
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Testing
+playwright-report/
+test-results/
+
+# Local files
+.DS_Store
+*.log
