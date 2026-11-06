@@ -1,0 +1,126 @@
+# SpecBridge 数据模型与约束（Data Model）
+
+> v0.2 已确认业务基线；待实现；不是现存数据库迁移。PostgreSQL 17 + Drizzle ORM；所有主键 UUID；时间存 `timestamptz`（UTC），展示时本地化；字段遵循 `snake_case`。
+
+## 1. ER 图（核心关系）
+
+```mermaid
+erDiagram
+  USERS ||--o{ SESSIONS : has
+  USERS ||--o{ WORKSPACE_MEMBERS : belongs
+  WORKSPACES ||--o{ WORKSPACE_MEMBERS : has
+  WORKSPACES ||--o{ PROJECTS : owns
+  PROJECTS ||--o{ PROJECT_MEMBERS : has
+  USERS ||--o{ PROJECT_MEMBERS : joins
+  PROJECTS ||--o{ REQUIREMENTS : holds
+  REQUIREMENTS ||--o{ CLARIFICATIONS : asks
+  REQUIREMENTS ||--o{ REQUIREMENT_REVISIONS : versions
+  REQUIREMENTS ||--o{ CHANGE_REQUESTS : triggers
+  REQUIREMENT_REVISIONS ||--o{ CHANGE_REQUEST_VERSIONS : referenced_by
+  CHANGE_REQUESTS ||--o{ CHANGE_REQUEST_VERSIONS : versions
+  CHANGE_REQUEST_VERSIONS ||--o{ APPROVALS : decisions
+  CHANGE_REQUEST_VERSIONS ||--o{ DELIVERIES : shipped_as
+  DELIVERIES ||--o| DELIVERY_REVIEWS : reviewed
+  PROJECTS ||--o{ AUDIT_EVENTS : records
+```
+
+## 2. 表和字段（P0）
+
+以下 `created_at` 默认 `now()`；`updated_at` 仅用于可变实体；非必要重复字段尽量由关系推导。`NOT NULL` 默认应用于主键、外键、状态和核心内容。
+
+### 身份与组织
+
+| 表 | 主字段 | 约束 / 索引 |
+|---|---|---|
+| `users` | `id uuid PK`, `email citext`, `display_name text`, `password_hash text`, `created_at` | `unique(lower(email))`（实现择一）；密码哈希不外发 |
+| `sessions` | `id uuid PK`, `user_id FK`, `token_hash char(64)`, `expires_at`, `revoked_at nullable`, `created_at` | `unique(token_hash)`，索引 `(user_id, expires_at)`；仅存哈希 |
+| `workspaces` | `id uuid PK`, `name`, `owner_id FK users`, `created_at` | Owner 必须有效，工作空间主键是租户边界 |
+| `workspace_members` | `id uuid PK`, `workspace_id FK`, `user_id FK`, `role enum OWNER/DEVELOPER`, `created_at` | 唯一 `(workspace_id,user_id)`；创建时在同一事务写入唯一 Owner 成员，`workspaces.owner_id` 与 Owner 成员必须一致 |
+
+### 项目与需求
+
+| 表 | 主字段 | 约束 / 索引 |
+|---|---|---|
+| `projects` | `id uuid PK`, `workspace_id FK`, `name`, `baseline_scope text NOT NULL`, `status enum ACTIVE/ARCHIVED`, `created_at` | index `(workspace_id,status)`；trim 后非空；仅 INSERT 时设置 baseline_scope，v1 无修改路径 |
+| `project_members` | `id uuid PK`, `project_id FK`, `user_id FK`, `role enum DEVELOPER/CLIENT`, `created_at` | 唯一 `(project_id,user_id)`；`CLIENT` 在同项目最多一人（部分唯一索引）；首个正式提交前可空，之后不得替换 |
+| `requirements` | `id uuid PK`, `project_id FK`, `created_by FK`, `title`, `original_text`, `status enum DRAFT/CLARIFYING/READY`, `latest_revision_id nullable`, `created_at`, `updated_at` | index `(project_id,status)`；外键/校验保证 `latest_revision_id` 属于本 Requirement |
+| `clarifications` | `id uuid PK`, `requirement_id FK`, `author_id FK`, `parent_id nullable`, `kind enum QUESTION/ANSWER`, `body text`, `created_at` | index `(requirement_id,created_at)`；父项须同 Requirement |
+| `requirement_revisions` | `id uuid PK`, `requirement_id FK`, `revision_no int`, `content text`, `acceptance_criteria jsonb`, `created_by FK`, `created_at` | 唯一 `(requirement_id,revision_no)`；不可更新/删除的应用约束与测试 |
+
+### 变更、审批、交付
+
+| 表 | 主字段 | 约束 / 索引 |
+|---|---|---|
+| `change_requests` | `id uuid PK`, `requirement_id FK`, `status enum DRAFT/SUBMITTED/VENDOR_APPROVED/APPROVED/REJECTED`, `lock_version int`, `active_version_id nullable`, `draft_requirement_revision_id FK`, `draft_scope_summary text`, `draft_estimate_hours numeric(8,2)`, `draft_cost_delta_minor bigint`, `draft_currency char(3)`, `draft_schedule_delta_days int`, `draft_acceptance_criteria jsonb`, `created_by FK`, `created_at`, `updated_at` | index `(requirement_id,status)`；`lock_version>=0`；草稿字段仅 DRAFT 可改，Submit 复制到不可变 Version |
+| `change_request_versions` | `id uuid PK`, `change_request_id FK`, `version_no int`, `requirement_revision_id FK`, `scope_snapshot text`, `estimate_hours numeric(8,2)`, `cost_delta_minor bigint`, `currency char(3)`, `schedule_delta_days int`, `acceptance_criteria jsonb`, `submitted_at`, `submitted_by FK` | unique `(change_request_id,version_no)`；工时≥0、金额可正负、币种 ISO 代码；不可改快照 |
+| `approvals` | `id uuid PK`, `change_request_version_id FK`, `step enum VENDOR/CLIENT`, `actor_id FK`, `decision enum APPROVED/REJECTED`, `comment nullable`, `created_at` | 唯一 `(change_request_version_id,step)`；不允许同阶段重复决策；权限由服务端校验 |
+| `deliveries` | `id uuid PK`, `change_request_version_id FK`, `delivery_no int`, `artifact_url text`, `summary text`, `evidence_links jsonb`, `status enum SUBMITTED/CHANGES_REQUESTED/ACCEPTED`, `created_by FK`, `created_at` | unique `(change_request_version_id,delivery_no)`；`artifact_url`/证据链接 HTTPS；同 CR 版本最多 1 条 SUBMITTED，ACCEPTED 后禁止继续交付 |
+| `delivery_reviews` | `id uuid PK`, `delivery_id FK UNIQUE`, `reviewer_id FK`, `decision enum ACCEPTED/CHANGES_REQUESTED`, `comment nullable`, `created_at` | 每次 Delivery 仅一条最终审查结果，退回后新建 Delivery |
+| `audit_events` | `id uuid PK`, `workspace_id FK`, `project_id FK nullable`, `actor_id FK nullable`, `event_type`, `entity_type`, `entity_id`, `entity_version nullable`, `metadata jsonb`, `created_at` | index `(project_id,created_at desc)`；元信息最小化，不存密钥 |
+
+> 重要：`latest_revision_id` 与 `active_version_id` 是缓存式快捷引用，必须在事务中保证归属与版本一致。若实施复杂，MVP 可不存它们，通过 `(revision_no/version_no) DESC` 查最新版本，降低跨表不变量数量。
+
+## 3. 数据完整性与安全边界
+
+1. 所有服务端查询先检查**当前用户是否有权访问所属 workspace/project**；对动态 URL 资源不只校验角色名称。
+2. 客户账号只能通过 `project_members(role=CLIENT)` 访问其项目。每项目唯一客户审批人通过部分唯一索引确保，例如 `UNIQUE(project_id) WHERE role='CLIENT'`。
+3. Workspace Owner 管理自己 Workspace 项目；Developer 需要同时满足供应方身份与项目分配；Client 不自动成为 Workspace Member。
+4. `change_request_versions` 的 `requirement_revision_id` 必须属于该 ChangeRequest 的 Requirement，应用服务在同一事务校验。
+5. `deliveries` 的 CR 版本必须确实 Approved，数据库条件写 + 服务端事务校验。Client 只能对自己项目的 Delivery 审查。
+6. 审批/交付审查仅 INSERT，不覆盖历史；变更版本冻结后不可 UPDATE。建议对高风险写入在 repository 层建立禁止更新入口，并写集成测试；数据库触发器属于可选强化项。
+7. 采用 `ON DELETE RESTRICT` 或软归档，避免删除项目时级联抹掉审计证据；不提供普通用户物理删除审批/审计的操作。
+8. 数据库连接使用最小权限凭据；生产迁移用户可与运行时用户分开（条件允许时）。
+
+## 4. 事务/并发方案
+
+### 提交审批示例（伪 SQL）
+
+```sql
+BEGIN;
+UPDATE change_requests
+SET status = 'VENDOR_APPROVED', lock_version = lock_version + 1
+WHERE id = :id AND status = 'SUBMITTED' AND lock_version = :expected_lock_version;
+-- 必须恰好影响 1 行；否则 ROLLBACK -> 409
+INSERT INTO approvals(change_request_version_id, step, actor_id, decision, ...)
+VALUES (:frozen_version_id, 'VENDOR', :owner_id, 'APPROVED', ...);
+INSERT INTO audit_events(...) VALUES (...);
+COMMIT;
+```
+
+真实实现需先检查角色、Project 归属和版本有效性；数据库 unique 防止重复插入。重复调用默认返回 409（或使用幂等键返回已确定结果；两周 MVP 选择前者）。
+
+### 重新提交
+
+旧 Version 被拒绝后可编辑 ChangeRequest 草稿；重新提交时创建 `version_no + 1`，状态重设 `SUBMITTED`。旧版本 `approvals` 继续保留，但新版本需要重新完成 VENDOR/CLIENT 审批。
+
+## 5. Schema 迁移策略
+
+- 先 Schema Review，再通过 `drizzle-kit generate` 生成 SQL；审查 SQL 后 `migrate`，迁移文件与 schema 一起提交。
+- 不使用生产环境的 `push` 自动重建或删表；迁移前备份，升级时保留版本与可恢复计划。
+- 本地演示 Seed 数据使用独立脚本，显著标记 `demo`，不含真实客户资料、真实密码或 API Key。
+
+## 6. P1 增量实体
+
+- `ai_analysis_runs`：`id`, `requirement_id`, `requested_by`, `status`, `model`, `input_revision_id`, `output_json`, `error_code`, `created_at`，不存明文密钥；可以在 P1 实施时增加。
+- `api_tokens`：`id`, `user_id`, `project_id`, `token_hash`, `scopes`, `expires_at`, `revoked_at`；仅 MCP 只读 Token，支持撤销与审计。
+- `external_links`：已批准版本与 GitHub Issue URL 对应，**不自动抓取 URL**。
+
+## 7. 未定与简化方案
+
+- `baseline_scope` 已确认只作创建时固定的参考快照，不提供双方初始签认；如需要 ProjectScopeVersion/Approval，将作为后续版本的独立需求处理。
+- 是否允许负数费用变更：默认可正/负/零以支持范围缩减；若产品希望只记录新增费用可改限制。
+- 多币种按变更记录单一币种；不做自动汇率换算。
+
+## 8. v0.2 强制的额外数据约束
+
+1. **Client：0→1 时点**：创建项目可为 0，首次 Submit 必须为 1；部分唯一索引保证不能超过 1。禁止在发生正式 Submit 后更换，不能依赖前端隐藏按钮。
+2. **供应方/客户职责分离**：项目 Client 账号不可同时作为同一 Workspace 的 Owner/Developer；项目 Developer 必须是该 Workspace 的 Owner 或 Developer 成员。
+3. **Draft→Version 映射**：`change_requests.draft_*` 是可编辑字段，`change_request_versions` 是 Submit 时复制的不可变字段；在事务中校验完整性、最新 Ready Revision 和唯一 Client。
+4. **Revision 审批冲突**：同一 Requirement 存在任一 `SUBMITTED`/`VENDOR_APPROVED` 的 ChangeRequest 时禁止新增 Revision；已完成/拒绝后可新增，不改变旧 Approval/Delivery。
+5. **交付串行性**：`deliveries` 增加部分唯一索引 `UNIQUE (change_request_version_id) WHERE status='SUBMITTED'`；同一 CRVersion 已有 Accepted 交付时不能再创建；`delivery_no` 在事务内递增。
+6. **字段可见性**：正式商业快照里的范围、工时、费用、工期、验收标准均对本项目唯一 Client 可见；v1 不含额外“内部备注”业务字段。
+7. **不可变性实现**：历史 Revision/CRVersion/Approval/DeliveryReview 仅创建/读取，无公开更新/删除服务；必要时用受限数据库角色或触发器补强，至少有集成测试防回写。
+8. **所有权一致性**：`workspaces.owner_id` 与 `workspace_members(role=OWNER)` 在同一事务创建并保持一致；禁止转移 Owner（v1）。
+9. **唯一性和并发**：至少数据库唯一键保证一个项目同一时点只有一位 Client；事务中的状态条件更新防止两个审查/提交并发绕过约束。
+
+> 约束 #1、#2、#4、#6 需要跨表验证，不能仅靠 CHECK 完成；依赖事务和集成测试，或明确的触发器。

@@ -1,0 +1,37 @@
+name: Feature / Engineering Task
+description: 可交付的功能、工程配置或测试任务
+title: "[Feature] "
+body:
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景与目标
+      description: 描述真实需求或工程问题
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope / Out of scope
+      description: 明确做什么、不做什么，以及受影响的模块
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收条件
+      description: 用可验证的检查点表述，而不是“页面好看”
+      placeholder: "- [ ] API 返回正确状态及响应
+- [ ] 关键失败路径有测试"
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: 设计文档 / 依赖
+      description: PRD / API / DATA_MODEL / STATE_MACHINES / SECURITY / ADR；关联 Issue
+  - type: textarea
+    id: testing
+    attributes:
+      label: 测试策略
+      description: 单测、集成、E2E、手动验证、CI 要求

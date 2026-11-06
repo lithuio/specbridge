@@ -1,0 +1,22 @@
+name: Bug Report
+description: 记录可复现的功能或安全缺陷
+title: "[Bug] "
+body:
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为与实际行为
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 不要粘贴密码、API Key 或敏感真实客户数据
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: 影响 / 严重程度 / 相关日志
+      description: 说明影响范围和脱敏日志

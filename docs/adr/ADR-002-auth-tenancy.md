@@ -1,0 +1,30 @@
+# ADR-002：服务端 Session、Workspace/Project 作用域授权
+
+- **状态**：Accepted（产品负责人已确认身份与角色业务边界；技术实现待审）
+- **日期**：2026-11-01
+
+## 背景
+
+v1 主要是浏览器协作系统，存在同一个用户加入不同项目、不同 Workspace 的情况。最重要的风险是项目对象越权访问。
+
+## 决策
+
+采用数据库持久化随机 Session Token（库内仅存 Token 哈希）+ HttpOnly/Secure/SameSite Cookie；服务端基于 Workspace 和 Project 关系进行访问控制。Owner 可管理自己 Workspace 全部项目；Developer 只管理被分配项目；Client 只访问被绑定项目。项目创建时可以无 Client，但首个正式提交前必须唯一 Client；首次 Submit 后不允许在 v1 替换该账号。
+
+## 备选
+
+1. localStorage JWT：前端管理简单，但撤销和浏览器 Token 暴露风险更高。
+2. 只用全局 RBAC：不能表达“同用户可看 A 不能看 B”的对象级授权。
+3. 外部 Auth SaaS：可减少一些认证工作，但引入供应商依赖、回调配置与额外流程，当前不优先。
+
+## 代价与风险
+
+需要维护 Session 生命周期、CSRF 策略、对象级 Policy 和账号管理。可复用框架成熟模块，不自行设计加密算法。
+
+## 验证
+
+独立两个 Client 账号互相访问项目不可成功；Session 撤销生效；Owner/Developer/Client 权限矩阵测试通过。
+
+## v0.2 限制
+
+Client 不加入 Workspace 内部成员；同一账号不得兼任同一 Workspace 的供应方成员和项目 Client。客户绑定使用独立 Owner-only 端点，先注册后分配，无邮件邀请。
