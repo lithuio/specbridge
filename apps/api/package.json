@@ -19,7 +19,14 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
-    "test:e2e": "vitest run --config ./vitest.config.e2e.ts"
+    "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:check": "drizzle-kit check",
+    "db:migrate": "node --experimental-strip-types scripts/migrate.mjs --development",
+    "db:migrate:test": "node --experimental-strip-types scripts/migrate.mjs --test",
+    "db:migrate:verify": "node --experimental-strip-types scripts/migrate.mjs --verify-development",
+    "test:integration": "vitest run --config ./vitest.config.integration.ts",
+    "typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

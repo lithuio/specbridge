@@ -32,3 +32,45 @@ jobs:
 
       - name: Test
         run: pnpm run test
+
+      - name: API typecheck (including tests and Drizzle configuration)
+        run: pnpm --filter specbridge-api typecheck
+
+      - name: API route regression
+        run: pnpm --filter specbridge-api test:e2e
+
+      - name: Migration metadata check
+        run: pnpm --filter specbridge-api db:check
+
+  database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: specbridge_test
+          POSTGRES_PASSWORD: local_test_only
+          POSTGRES_DB: specbridge_test
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U specbridge_test -d specbridge_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    env:
+      TEST_DATABASE_URL: postgresql://specbridge_test:local_test_only@127.0.0.1:5434/specbridge_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      # Apply only committed, human-reviewed SQL; never generate/push schema in CI.
+      - name: PostgreSQL migrations and integration tests
+        run: pnpm --filter specbridge-api test:integration
