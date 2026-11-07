@@ -6,7 +6,7 @@
 - [ ] 审核 `docs/product/DECISIONS.md` 与 v0.2 设计文件是否一致。
 - [ ] 检查本地 Git 工作区、远程 origin、现有 CI 与测试脚本。
 - [ ] 审核根目录 AGENTS.md、文档索引及 GitHub 模板。
-- [ ] 审核第一个示范 Issue、PR 和 CI 的真实验证结果。
+- [ ] H-01：审核 [Health Check Issue #1](https://github.com/lithuio/specbridge/issues/1) 的本地 diff 和 `STATE.md` 验证证据；状态：待人工 Review，不阻塞本地实现。后续提交、推送与合并需要负责人授权，建议审查通过后再进入 PR / CI 流程；当前尚无此次变更的 PR / CI 结果。
 
 ## 后续开发
 - [ ] 确认 ERD 与数据库 Migration SQL，尤其租户/审批约束。
