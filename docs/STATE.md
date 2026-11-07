@@ -1,6 +1,6 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-03；此文件是当前工作记录，执行任务后应核对并更新。
+> 更新时间：2026-11-07；此文件是当前工作记录，执行任务后应核对并更新。
 
 ## 当前里程碑
 M1 — Repository Governance & Engineering Baseline（进行中）
@@ -13,7 +13,16 @@ M1 — Repository Governance & Engineering Baseline（进行中）
 - v0.2 文档是否已合入项目仓库。
 - 根目录 `AGENTS.md`、PR/Issue 模板是否已配置。
 - 当前 CI 是否通过最新分支与 PR；实际脚本以仓库为准。
-- `GET /api/v1/health` 与 Web Rewrite 是否已实现（需检查代码）。
+
+## 当前任务：Health Check & API Proxy
+- [Issue #1](https://github.com/lithuio/specbridge/issues/1)：本地实现与验证完成，尚未提交、推送或合并；远程 CI / PR Review 未运行。
+- 已新增公开 `GET /api/v1/health`，仅返回 `{"data":{"status":"ok"}}`；不依赖 DB/AI，不代表业务就绪。保留原 API `/`，未引入全局前缀。
+- Web 将 `/api/v1/:path*` 代理至 `http://127.0.0.1:4000/api/v1/:path*`；代理地址目前固定为本地开发端口。
+- PASS：`pnpm run test`（现有 API 单元测试）、`pnpm --filter specbridge-api test:e2e`（2 项）、`pnpm run lint`、`pnpm run build`（API + Web）。Web 尚无独立自动测试脚本。
+- 执行记录：E2E 首次因沙箱端口监听 `EPERM` 失败，获准在沙箱外重跑通过；Build 首次同样失败，沙箱外重跑仍报错，移走 `.next` 缓存后在沙箱外完整构建通过。
+- PASS：启动 `pnpm run dev:api` / `pnpm run dev:web`，使用 `curl --noproxy '*' --max-time 10 -i` 分别请求 `http://localhost:4000/api/v1/health`、`http://localhost:3000/api/v1/health`，均为 200、JSON 完全一致；原 API `/` 为 200 + `Hello World!`，Web `/` 为 200。
+- PASS：停止本次 API 后代理返回 500，无虚假健康成功；本次启动的两个服务均已停止。复现步骤见 `engineering/DEVELOPMENT.md`。
+- 下一步：人工审查 diff；获得后续授权后再进入提交、PR、CI 和合并流程。当前 CI 不包含 API E2E，不能标记 Issue 全流程验收完成。
 
 ## 当前建议任务
 - 将 v0.2 设计文件与项目工作规范合入，不覆盖现有脚手架配置。

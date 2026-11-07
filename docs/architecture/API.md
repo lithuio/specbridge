@@ -1,6 +1,6 @@
 # SpecBridge REST API 契约（设计基线）
 
-> v0.2（P0 需求基线已确认）｜Base Path：`/api/v1`｜尚未实现。后续 NestJS 生成 OpenAPI，必须与本文保持一致。
+> v0.2（P0 需求基线已确认）｜Base Path：`/api/v1`｜API-32 健康检查已实现，业务接口仍为设计基线。后续 NestJS 生成 OpenAPI，必须与本文保持一致。
 
 ## 1. 统一约定
 
@@ -58,6 +58,8 @@
 | API-30 | `POST /deliveries/{deliveryId}/review` | 项目 Client | decision ACCEPTED/CHANGES_REQUESTED、comment |
 | API-31 | `GET /projects/{projectId}/audit-events` | Project viewer | 分页、按角色过滤能看到的事件 |
 | API-32 | `GET /health` | Public | liveness（不要泄露系统信息/密钥） |
+
+API-32 实际完整路径为 `GET /api/v1/health`，无需认证，返回 HTTP 200、`application/json` 和 `{"data":{"status":"ok"}}`。仅表示 API 进程可响应，不查询数据库或外部服务，不返回环境变量、版本、主机或凭据。当前使用显式 Controller 路径，未设置全局前缀；现有脚手架 `/` 接口保留。
 
 ### 重要边界
 
