@@ -32,7 +32,7 @@ erDiagram
 
 | 表 | 主字段 | 约束 / 索引 |
 |---|---|---|
-| `users` | `id uuid PK`, `email citext`, `display_name text`, `password_hash text`, `created_at` | `unique(lower(email))`（实现择一）；密码哈希不外发 |
+| `users` | `id uuid PK`, `email text`, `display_name text`, `password_hash text`, `created_at` | `unique(lower(email))`（R01 选择，无需 citext 扩展）；密码哈希不外发 |
 | `sessions` | `id uuid PK`, `user_id FK`, `token_hash char(64)`, `expires_at`, `revoked_at nullable`, `created_at` | `unique(token_hash)`，索引 `(user_id, expires_at)`；仅存哈希 |
 | `workspaces` | `id uuid PK`, `name`, `owner_id FK users`, `created_at` | Owner 必须有效，工作空间主键是租户边界 |
 | `workspace_members` | `id uuid PK`, `workspace_id FK`, `user_id FK`, `role enum OWNER/DEVELOPER`, `created_at` | 唯一 `(workspace_id,user_id)`；创建时在同一事务写入唯一 Owner 成员，`workspaces.owner_id` 与 Owner 成员必须一致 |
@@ -45,7 +45,7 @@ erDiagram
 | `project_members` | `id uuid PK`, `project_id FK`, `user_id FK`, `role enum DEVELOPER/CLIENT`, `created_at` | 唯一 `(project_id,user_id)`；`CLIENT` 在同项目最多一人（部分唯一索引）；首个正式提交前可空，之后不得替换 |
 | `requirements` | `id uuid PK`, `project_id FK`, `created_by FK`, `title`, `original_text`, `status enum DRAFT/CLARIFYING/READY`, `latest_revision_id nullable`, `created_at`, `updated_at` | index `(project_id,status)`；外键/校验保证 `latest_revision_id` 属于本 Requirement |
 | `clarifications` | `id uuid PK`, `requirement_id FK`, `author_id FK`, `parent_id nullable`, `kind enum QUESTION/ANSWER`, `body text`, `created_at` | index `(requirement_id,created_at)`；父项须同 Requirement |
-| `requirement_revisions` | `id uuid PK`, `requirement_id FK`, `revision_no int`, `content text`, `acceptance_criteria jsonb`, `created_by FK`, `created_at` | 唯一 `(requirement_id,revision_no)`；不可更新/删除的应用约束与测试 |
+| `requirement_revisions` | `id uuid PK`, `requirement_id FK`, `revision_no int`, `content text`, `acceptance_criteria jsonb`, `created_by FK`, `created_at` | 唯一 `(requirement_id,revision_no)`；R01 采用数据库触发器拒绝 UPDATE/DELETE，已在 R01 隔离 PostgreSQL 集成测试验证 |
 
 ### 变更、审批、交付
 
@@ -59,6 +59,8 @@ erDiagram
 | `audit_events` | `id uuid PK`, `workspace_id FK`, `project_id FK nullable`, `actor_id FK nullable`, `event_type`, `entity_type`, `entity_id`, `entity_version nullable`, `metadata jsonb`, `created_at` | index `(project_id,created_at desc)`；元信息最小化，不存密钥 |
 
 > 重要：`latest_revision_id` 与 `active_version_id` 是缓存式快捷引用，必须在事务中保证归属与版本一致。若实施复杂，MVP 可不存它们，通过 `(revision_no/version_no) DESC` 查最新版本，降低跨表不变量数量。
+
+> R01 已确认澄清：`draft_requirement_revision_id` 必填，其余商业评估 `draft_*` 字段允许 NULL，表示尚未填写。不得用默认 0/空字符串冒充已评估。Submit 必须在领域事务内检查完整性，`change_request_versions` 的对应字段全部必填。此澄清与 API-21/23 先创建 Draft 再填写评估的流程一致。
 
 ## 3. 数据完整性与安全边界
 
@@ -124,3 +126,33 @@ COMMIT;
 9. **唯一性和并发**：至少数据库唯一键保证一个项目同一时点只有一位 Client；事务中的状态条件更新防止两个审查/提交并发绕过约束。
 
 > 约束 #1、#2、#4、#6 需要跨表验证，不能仅靠 CHECK 完成；依赖事务和集成测试，或明确的触发器。
+
+## 9. R01 实现选择与验证边界
+
+2026-11-08：负责人已批准两份 SQL；在隔离 PostgreSQL 17.11 上完成空库/重复迁移与 10 项集成测试。生产与现有开发库未迁移；本机网络绕行方式、运行证据及远程 CI 状态以 `../STATE.md` 为准。
+
+- 保留 latest/active 缓存指针，通过复合外键保证父对象归属；澄清父项同 Requirement、审计 Project 同 Workspace 也用复合外键。缓存是否为最新版本仍须领域事务保证。
+- 全部外键采用 `ON DELETE RESTRICT`；UUID 默认生成，时间为 `timestamptz`。`updated_at` 由可变实体写入操作显式更新。
+- 部分唯一索引限制每项目最多一名 Client、每 Workspace 最多一名 Owner 成员、每 CRVersion 最多一条 SUBMITTED Delivery。它们不保证存在性、角色分离或合法状态迁移。
+- Revision/CRVersion/Approval/DeliveryReview 的 UPDATE/DELETE 由自定义迁移触发器拒绝；初始范围只在值实际变化时拒绝更新。触发器不在 Drizzle snapshot 内，必须连同自定义 SQL 审核；数据库管理员仍可禁用触发器，不作为管理员防篡改机制。
+- `numeric(8,2)` 在应用内保留精确字符串，`bigint` 使用 JS bigint。未来 HTTP 层需明确安全整数边界/序列化，不能直接将 bigint 放入 JSON 响应。
+- DB 对币种检查三位大写格式，对链接检查 HTTPS 基本形态；完整 ISO 币种和 URL 解析属于后续输入校验。JSON 验收标准为字符串数组；Revision 可以为空数组，READY 必须非空由服务验证；冻结 Version 必须非空数组。
+- R01 不实现认证、业务 API、RLS、生产角色配置或自动迁移。不能把结构约束测试当作授权/审批流程验收。
+
+### 后续事务责任
+
+| 规则 | 必须统一协调的入口 |
+|---|---|
+| `owner_id` 与唯一 Owner 成员一致、供应方/Client 职责分离 | Workspace 创建、所有成员分配/身份变化；锁 Workspace 后校验 |
+| Submit 时存在 Client，首次提交后不可更换 | Submit 与 Client 分配均锁 Project；通过历史 Version 判断是否曾提交 |
+| READY/最新 Revision、Pending 审批阻止新 Revision | Submit 与 Revision 创建均锁 Requirement；检查所有待审批 CR |
+| CR 的 Revision 归属、两阶段审批、active Version 匹配 | CR 领域服务验证父链和身份，条件更新 lock_version，与 Approval/Audit 同事务 |
+| Approved 后交付、Accepted 后禁止新交付 | 创建/审查统一锁关联 CR，检查精确 Version，事务内分配 delivery_no |
+| 业务记录和审计一致 | 同一 transaction 对象内写入；任何失败整体回滚 |
+
+锁顺序统一为 Workspace → Project → Requirement → CR，仅取得操作需要的锁；禁止另一个入口采用相反顺序。真实业务并发/越权测试在对应 Issue 实现。
+
+### 已识别、经负责人确认延后的契约缺口
+
+- API-16 的 `expectedVersion` 和响应示例 `draftVersion` 尚无对应 Requirement 并发字段：在 Requirement 功能任务中明确，不在 R01 擅自添加。
+- Session 空闲失效的活动时间存储尚未明确：在 Auth/Session 任务中明确，当前 `expires_at` 不代表完整空闲失效能力。

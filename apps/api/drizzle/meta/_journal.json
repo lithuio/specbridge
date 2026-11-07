@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794021614735,
+      "tag": "0000_database_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794021615319,
+      "tag": "0001_immutable_history",
+      "breakpoints": true
+    }
+  ]
+}

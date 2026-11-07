@@ -14,6 +14,12 @@
     "test": "pnpm -r --if-present test",
     "db:up": "docker compose --env-file .env -f infra/compose.dev.yml up -d",
     "db:down": "docker compose --env-file .env -f infra/compose.dev.yml down",
-    "db:logs": "docker compose --env-file .env -f infra/compose.dev.yml logs -f db"
+    "db:logs": "docker compose --env-file .env -f infra/compose.dev.yml logs -f db",
+    "db:generate": "pnpm --filter specbridge-api db:generate",
+    "db:check": "pnpm --filter specbridge-api db:check",
+    "db:migrate": "pnpm --filter specbridge-api db:migrate",
+    "db:test:up": "docker compose -f infra/compose.test.yml up -d --wait",
+    "db:test:down": "docker compose -f infra/compose.test.yml down",
+    "test:integration": "pnpm --filter specbridge-api test:integration"
   }
 }

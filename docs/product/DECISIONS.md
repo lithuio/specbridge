@@ -9,11 +9,11 @@
 | D-03 | **Accepted** | Workspace Owner 先批准，项目 Client 再批准同一冻结版本 | 状态机、Approval 唯一约束、事务 |
 | D-04 | **Accepted** | 初始范围创建时固定；后续变化走 ChangeRequest；仅链接与说明交付 | Project、版本审批、Delivery |
 
-## 尚未确认（不阻断 M1）
-- D-05：界面首发中文，默认示例币种 CNY（建议）。
-- D-06：DeepSeek / MCP 属于 P1，不阻断核心 P0 发布（建议）。
-- D-07：v1 不接支付；访谈真实用户以验证商业价值（建议）。
-- D-08：生产用 Linux VPS + Compose + HTTPS 或经审批的托管替代（建议）。
+## 已确认（不阻断 M1）
+- D-05：界面首发中文，默认示例币种 CNY。
+- D-06：DeepSeek / MCP 属于 P1，不阻断核心 P0 发布。
+- D-07：v1 不接支付；访谈真实用户以验证商业价值。
+- D-08：生产用 Linux VPS + Compose + HTTPS 或经审批的托管替代。
 
 ## 设计派生约束（需要代码测试）
 - 项目初始可无 Client，但一旦开始正式审批，Client 绑定按 v0.2 规则锁定。
