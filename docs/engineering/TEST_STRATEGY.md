@@ -47,3 +47,16 @@ CI 本身成功不等于端到端业务全部通过；从未运行的测试不�
 `test:e2e:auth` 内的 compiled-proxy 套件保持 `AUTH_TRUSTED_PROXIES=loopback`，使用实际编译 API 和 Next Rewrite。每个场景启动独立进程获得新的内存限流窗口，不修改阈值或 mock 限流器。对 Next 入口和 API 直连各覆盖注册第 6 次、同邮箱登录第 6 次、变化邮箱登录第 31 次，全部轮换伪造 XFF/X-Real-IP/Forwarded；断言 429、RATE_LIMITED、Retry-After，注册被阻止时无新增用户，同邮箱限流不误判为总 IP 桶耗尽。原 Cookie/CSRF/login/logout smoke 保留。
 
 修复前 HEAD `44d371c` 上先增加测试，实际结果 6 FAIL / 10 PASS；注册超限收到 201，两个登录超限收到 401，证实原限流被绕过。再将两个限流入口改为 Socket IP；最终结果和命令见 STATE.md。
+
+## R03 Workspace / Project RBAC 验证
+
+- 单元新增 DTO 规范化/长度/分页/身份注入边界及错误码状态白名单；沿用全部认证单元测试。
+- `test:integration` 新增 9 项领域数据库测试：Owner 原子创建/唯一性，业务与审计失败回滚，双向角色分配竞态，同/异 Client 并发，历史锁定及未来 Submit 锁协议，异常关系默认拒绝与 baseline 防回写。
+- 并发关键用例用独立真实连接、事务屏障和 pg_blocking_pids 确认发生行锁等待；两条角色竞争顺序均测试，不用顺序调用假装并发。
+- 新增 `TEST_DATABASE_URL=<隔离测试库> pnpm --filter specbridge-api test:e2e:rbac`：先编译 API，再运行 8 项真实 HTTP 矩阵测试及 1 项编译 API + Next dev Rewrite 测试。覆盖所有 9 个端点、列表先过滤后分页、403/404 分离、Client 更正与锁定、未知邮箱、同账号不同空间角色、并发重复分配、输入/CSRF/Session 回归。
+- HTTP 大矩阵以真实数据库 Session fixture 隔离身份，不 mock Guard/授权；代理用例通过真实注册/登录取得 Cookie。R02 的 16 项 HTTP/代理测试独立保留，包括 6 项转发头限流回归。
+- 用例仅操作 5434 测试库，结构历史 fixture 明确不代表真实 Submit 工作流；不禁用 immutable trigger、不清空 public、不影响开发库。R03 fixture 随专用 tmpfs 测试容器回收。
+- CI PostgreSQL job 顺序执行集成、认证 E2E、RBAC E2E；代理测试端口 3000/4000 被占用时明确失败，不接管既有服务。子进程不继承开发 DB/Observe 凭据。
+- AC-03/04/05/16/23/24/26 获得本阶段 API/DB 证据；AC-15 只覆盖审计写入/原子性，审计查询待后续；AC-22 Submit 前 Client 必填及完整审批流程不在 R03。无浏览器、生产 HTTPS、外部安全审计或远程 CI 通过声明。
+
+实际命令、数量、环境故障及修复结果见 STATE.md。

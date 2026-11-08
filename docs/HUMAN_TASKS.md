@@ -3,6 +3,8 @@
 仅列必须由项目负责人决定或亲自核验的事项；Agent 不得把本表当作自动执行指令。
 
 ## 现在
+- [x] R03 范围/契约决策：负责人确认 Client 使用独立项目列表、workspaceId 可选、/me 仅用户、Owner 不额外分配为 Developer、提交前 Client 串行更正/锁定后同账号无副作用重试，以及本阶段不增加 Web 页面。
+- [ ] H-04：R03 人工安全与 PR Review。原因：Issue #7 DoD 要求人工评审；重点核对双向角色冲突、列表隔离、锁序、审计原子性和未来 Submit 协议。建议按 STATE 的 87 项本地测试证据审阅 diff。状态：待审核，不阻塞已完成的本地实现；远程 CI、提交/推送/合并需后续授权。R03 无新增 SQL，不新增迁移审批任务。
 - [ ] 审核 `docs/product/DECISIONS.md` 与 v0.2 设计文件是否一致。
 - [ ] 检查本地 Git 工作区、远程 origin、现有 CI 与测试脚本。
 - [ ] 审核根目录 AGENTS.md、文档索引及 GitHub 模板。

@@ -34,3 +34,11 @@ Client 不加入 Workspace 内部成员；同一账号不得兼任同一 Workspa
 负责人确认采用：256-bit 随机 Cookie Session、SHA-256 摘要存库、7 天绝对期、24 小时空闲期；新增 last_activity_at 增量迁移，不修改 R01 SQL。认证默认保护，@Public() 显式开放。JSON 写接口采用严格 Origin + 自定义请求头 + Fetch Metadata 校验，包含注册/登录。
 
 本阶段 /me 只返回用户，不实现组织/项目授权；重复注册以通用 409 返回，接受有限邮箱枚举风险；限流采用有界单实例内存，重启清零，多实例上线前必须另行设计。具体接口、安全参数、验证证据分别以 API.md、SECURITY.md、STATE.md 为准。
+
+## R03 已确认细化
+
+- /me 持续仅用户；GET /workspaces 仅供应方所属空间；GET /projects 的 workspaceId 可选，Client 直接查询授权项目列表。
+- Owner 通过 Workspace 所有权访问项目，不额外添加 Project Developer 记录。
+- 首次 Submit 前 Client PUT 为串行更正，最后成功提交生效；历史锁定后同账号重试 200，无副作用，实际换人 409。
+- 利用现有唯一索引和事务行锁，无新增迁移：成员写锁 Workspace、Client 写再锁 Project；反向角色分配共享 Workspace 锁。未来 Submit 必须共享 Project 锁并查询唯一 Client。
+- 本阶段仅 API、数据库及 HTTP/Next Rewrite E2E，不增加前端页面。权限校验始终在 API。

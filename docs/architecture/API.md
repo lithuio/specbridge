@@ -1,12 +1,12 @@
 # SpecBridge REST API 契约（设计基线）
 
-> v0.2（P0 需求基线已确认）｜Base Path：`/api/v1`｜API-32 健康检查已实现，业务接口仍为设计基线。后续 NestJS 生成 OpenAPI，必须与本文保持一致。
+> v0.2（P0 需求基线已确认）｜Base Path：`/api/v1`｜API-01～12、API-32 与 Client 绑定已有实现；其余业务接口仍为设计基线。后续 NestJS 生成 OpenAPI，必须与本文保持一致。
 
 ## 1. 统一约定
 
 - 浏览器以同源 `/api/v1/*` 访问，由 Next.js Rewrite/Caddy 转发 NestJS；不将数据库连接或密钥暴露给 Web。
 - Session Cookie 认证；所有非公共写请求需有效会话与 CSRF/Origin 校验。所有对象端点必须做项目级授权。
-- JSON 时间为 ISO-8601 UTC；ID 为 UUID；金额为整数最小单位 `costDeltaMinor` + 3 位 ISO `currency`；列表统一 `limit` (1–100) 和 `cursor`（v1 可用 limit/offset，但须一致）。
+- JSON 时间为 ISO-8601 UTC；ID 为 UUID；金额为整数最小单位 `costDeltaMinor` + 3 位 ISO `currency`；v1 列表统一 `limit`（1–100，默认 20）和 `offset`（非负安全整数，默认 0）。
 - 写请求对状态机使用 `expectedVersion` 正整数进行乐观并发校验，不接收客户端输入的审批人身份/时间。
 - Idempotency v1 简化：数据库唯一约束+状态机防重复，重复审批返回 409；POST 创建操作建议支持 `Idempotency-Key`，但不作为首版必须，具体见 ADR。
 
@@ -29,15 +29,15 @@
 | API-01 | `POST /auth/register` | Public | email、password、displayName → user id |
 | API-02 | `POST /auth/login` | Public | email、password → Set-Cookie + user |
 | API-03 | `POST /auth/logout` | Auth | 撤销 Session → 204 |
-| API-04 | `GET /me` | Auth | user + 可用 workspace/project 列表入口 |
-| API-05 | `GET /workspaces` | Auth | 当前用户可访问的 Workspace |
+| API-04 | `GET /me` | Auth | 仅 user；列表使用独立端点 |
+| API-05 | `GET /workspaces` | Auth | 当前用户以 Owner/Developer 身份所属的 Workspace；Client 绑定不产生 Workspace 入口 |
 | API-06 | `POST /workspaces` | Auth | name → Workspace，创建者自动 Owner |
 | API-07 | `GET /workspaces/{workspaceId}/members` | Owner | Workspace 用户和角色 |
 | API-08 | `POST /workspaces/{workspaceId}/members` | Owner | 以**已注册邮箱**加入 Developer，无邮件邀请 |
-| API-09 | `GET /projects?workspaceId=...` | Auth | 根据 Owner/Developer/Client 项目授权过滤 |
+| API-09 | `GET /projects?workspaceId=...`（筛选可省略） | Auth | 始终按项目授权过滤；省略 workspaceId 返回全部获授权项目 |
 | API-10 | `POST /projects` | Owner | workspaceId、name、baselineScope |
 | API-11 | `GET /projects/{projectId}` | Project member / Owner | 项目信息、允许展示的成员字段 |
-| API-12 | `POST /projects/{projectId}/members` | Owner | 只允许已注册的 Workspace Developer 以 `role=DEVELOPER` 加入项目；Client 通过独立 PUT 接口指定 |
+| API-12 | `POST /projects/{projectId}/members` | Owner | `{userId,role:"DEVELOPER"}`，只允许已有 Workspace Developer 加入项目；Client 通过独立 PUT 接口指定 |
 | API-13 | `GET /projects/{projectId}/requirements` | Project viewer | 分页列表、状态、当前版本号 |
 | API-14 | `POST /projects/{projectId}/requirements` | Project member | title、originalText → Draft |
 | API-15 | `GET /requirements/{requirementId}` | Project viewer | 原始需求/澄清/最新版本 |
@@ -229,3 +229,29 @@ MCP `list_project_requirements` 和 `get_approved_spec` 通过上述授权 API �
 写请求必须发送 `Origin: <AUTH_TRUSTED_ORIGINS 中的精确来源>` 与 `X-CSRF-Protection: 1`，有请求体使用 application/json；Sec-Fetch-Site 存在时必须 same-origin。公共注册/登录同样受保护。CSRF 不满足优先返回 403，满足 CSRF 但缺失/过期 Session 返回 401。空 logout body 可省略 Content-Type，其余保护头仍必需。无跨域凭据 CORS，无 CSRF Token 获取端点。
 
 邮箱 trim + lowercase；注册 password 15–128 Unicode code points / 至多 512 bytes，displayName trim 后 1–100；未知字段（含 userId/role）返回 400。重复注册 409 不返回已存在账号信息，但注册成功/失败仍构成已确认接受的有限枚举风险。429 提供 Retry-After 秒数。
+
+## R03 Workspace / Project 实施契约
+
+负责人确认：Client 不加入供应方 Workspace；项目列表 workspaceId 可选；/me 仍仅用户；Owner 不额外分配为 Project Developer；首次 Submit 前不同 Client PUT 串行替换，最后成功提交生效；锁定后相同 Client PUT 返回 200 且不写审计。本阶段无 Web 页面，仅 HTTP 与真实 Next Rewrite 验证。
+
+| 端点 | Body | 成功 |
+|---|---|---|
+| GET /workspaces | — | 200，仅当前用户所属供应方空间 |
+| POST /workspaces | `{name}` | 201，Workspace + 唯一 Owner + 审计原子创建 |
+| GET /workspaces/{id}/members | — | 200，Owner-only 分页列表 |
+| POST /workspaces/{id}/members | `{email}` | 201；相同 Developer 重试 200，无新审计 |
+| GET /projects | — | 200，workspaceId 可选，与权限取交集 |
+| POST /projects | `{workspaceId,name,baselineScope}` | 201，ACTIVE，无 Client |
+| GET /projects/{id} | — | 200，安全详情 |
+| POST /projects/{id}/members | `{userId,role:"DEVELOPER"}` | 201；同分配重试 200，无新审计 |
+| PUT /projects/{id}/client | `{email}` | 200，指定/更正或同账号无副作用重试 |
+
+- 名称 trim 后 1–100 字符；baselineScope trim 后 1–20,000 字符，保留内部换行。邮箱复用 R02 的 trim/lowercase 和 254 长度上限。UUID、角色和分页严格校验，拒绝未知字段。无 PATCH/DELETE Project、Owner 转移、成员移除、Client 解绑或邀请端点。
+- 列表为 `{data:[...],meta:{requestId,limit,offset,hasMore}}`，按 createdAt/id 升序；SQL 先授权过滤再分页。不存在/无权的 workspaceId 筛选均返回空项目列表；不返回未授权总数。
+- Workspace 列表/创建返回 id、name、createdAt、workspaceRole。成员管理返回 id、userId、displayName、email、role、createdAt，仅 Owner 可查。
+- Project 列表返回 id、workspaceId、name、status、createdAt、projectRole；创建响应另含 baselineScope。详情另含 baselineScope、owner、members、clientAssignmentLocked。人员字段仅 userId、displayName、role；不公开邮箱或整个供应方成员名册。项目成员/Client 写响应为该人员安全字段。
+- 所有新业务成功响应 `Cache-Control: no-store`。同一请求的项目详情授权与投影使用只读 repeatable-read 快照，避免换 Client 时拼接不同时间点的数据。
+- 401 为未认证；保留 R02 CSRF 优先 403。对象不可见/不存在均 404；可见对象但无管理权 403。未注册邮箱在通过 Owner 授权后返回 422 USER_NOT_REGISTERED；目标不为本空间 Developer 返回 422 WORKSPACE_DEVELOPER_REQUIRED；Owner/供应方/Client 冲突返回 422 ROLE_CONFLICT；有历史 Version 时实际换 Client 返回 409 CLIENT_ASSIGNMENT_LOCKED。
+- 领域错误 code 仅通过“状态码+code”白名单返回；details 为空，不回传数据库错误、SQL 或约束名称。
+- Workspace/Project 创建不承诺 Idempotency-Key，重复创建可产生独立对象；名称不作为唯一键。成员重复分配无副作用，不能据此改变既有角色。
+- Client 锁定由任意历史 ChangeRequestVersion 判断，不依赖 CR 当前状态或 active pointer。R03 不实现 Submit；AC-22 仍留后续变更工作流验收。
