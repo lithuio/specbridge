@@ -1,8 +1,55 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-08；只记录实际运行证据。历史记录见后半部分。
+> 更新时间：2026-11-08。当前记录为 R03；下方 R02/R01 为历史证据。
 
-## 当前任务
+## 当前任务：R03 Workspace & Project RBAC
+
+[Issue #7](https://github.com/lithuio/specbridge/issues/7)，分支 `feat/7-workspace-project-rbac`，基线 HEAD `8b89880`（R02 合并提交）。开始时工作区干净，当前实现和文档改动未提交；本轮无 Commit/Push/Merge/部署。
+
+**状态：后端实现及本地验证完成，87 项测试通过；等待人工安全/PR Review 与后续授权的远程 CI。未新增迁移，未改开发库。**
+
+### 已完成
+
+- 9 个 Workspace/Project API；Workspace + 唯一 Owner + 审计原子创建；Developer 成员管理/项目分配；Client 唯一绑定及提交前更正。
+- 服务端按真实父链和 membership 授权；Owner 全空间项目，Developer 双 membership，Client 仅绑定项目。跨资源 404、可见对象无管理权 403；列表 SQL 先授权再分页。
+- Workspace → Project 行锁协调正反双向角色冲突和并发分配；历史 Version 决定 Client 锁定；同账号重试无副作用；业务写入和审计同事务。
+- baselineScope 非空输入检查并沿用 R01 不可变触发器；错误码白名单及安全响应字段；/me 仅用户。
+- 新 RBAC HTTP/Next Rewrite E2E、集成/单元测试及 CI PostgreSQL job；API、ADR、安全/数据/架构、测试策略同步已确认契约。
+- 无新增依赖、Schema、SQL、认证体系或 Web 页面；Auth、configure-app、Web Rewrite 与 schema 无 diff。0000/0001/0002 SHA-256 与此前审批记录一致。
+
+### 本轮验证证据
+
+数据库命令显式使用隔离 `TEST_DATABASE_URL`，不回退开发 DATABASE_URL；真实 PostgreSQL 17 临时实例位于 5434，测试库/角色双重校验。沿用已记录的 `/tmp/specbridge-r01-test-host.yml`，未重新宣称本机标准 Docker 端口转发问题已解决。
+
+| 状态 | 实际命令 | 结果 |
+|---|---|---|
+| PASS | `pnpm --filter specbridge-api test` | 6 文件、32 单元测试 |
+| PASS | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:integration` | 4 文件、25 项，含 R01/R02 和新增 9 项 RBAC；沙箱外 |
+| PASS | `pnpm --filter specbridge-api test:e2e` | 3 文件、5 项基础 HTTP 回归；沙箱外 |
+| PASS | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:e2e:auth` | 2 文件、16 项；完整保留 6 项伪造转发头限流回归；沙箱外 |
+| PASS | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:e2e:rbac` | 2 文件、9 项；真实 HTTP 与编译 API + Next Rewrite；沙箱外 |
+| PASS | `pnpm --filter specbridge-api typecheck` | 生产代码和测试类型检查 |
+| PASS | `pnpm run lint` | API/Web，无警告；已修正新测试的数值排序警告 |
+| PASS | `pnpm run build` | 完整 API/Web 构建；干净缓存、沙箱外 |
+| PASS | `pnpm --filter specbridge-api db:check` | 迁移元数据检查，无新增迁移 |
+| PASS | `git diff --check`、旧迁移哈希检查 | 空白检查；历史 SQL 哈希不变 |
+| NOT RUN | 远程 CI、人工安全/PR Review、真实浏览器/生产验证 | 本轮未推送或部署；不宣称 Issue 全部 DoD 完成 |
+
+处理过的失败：首轮 typecheck 发现 Drizzle 只读参数应为 accessMode、Supertest body 类型不能为 unknown，修复后通过。沙箱内数据库测试 connect EPERM（25 项未运行）、基础 HTTP listen EPERM（5 项失败）；获准沙箱外重跑通过。Web 首次构建受 Turbopack 内部端口权限限制，沙箱外首次重跑仍复用失败缓存；将旧 .next 保留至 `/tmp/specbridge-r03-build-cache-f35gjbrt/next` 后重新构建通过。未修改 Web 代码解决环境问题。
+
+- PASS：`docker compose -f infra/compose.test.yml -f /tmp/specbridge-r01-test-host.yml down` 已关闭并移除本轮临时测试实例；随后 `docker ps` 确认 `specbridge-dev-db-1` 仍 healthy，端口 5433。代理子进程已由测试 teardown 关闭。
+- PASS：最终 diff 核对 Auth、configure-app、Web、Schema、旧 SQL 和已跟踪 tsbuildinfo 无变化；构建产物已恢复，仅保留 R03 源码/测试/文档改动。
+
+### 边界、风险和下一步
+
+- 本轮不是完整 P0 验收：R03 历史 fixture/受控事务仅验证 Client 锁协议，不代表 Submit/审批执行；后续 Submit 必须先锁 Project，再校验 Client 并创建不可变 Version。
+- 无 RLS，跨表职责分离由统一领域事务保证；任意直接 SQL 不在 API RBAC 保证内。成员配置写在同 Workspace 串行，适合当前小团队范围。
+- 同一 Next Socket 出口共享认证限流配额的 R02 既有限制不变；不得重新信任可伪造转发头。
+- H-04：负责人安全/PR Review 待完成；无新增 Migration 审批。建议提交/PR：`feat(rbac): add workspace and project scoped authorization (#7)`。
+
+---
+
+## R02 历史任务快照（以下保留原记录，非当前状态）
 
 R02 — Authentication & Session，[Issue #5](https://github.com/lithuio/specbridge/issues/5)。R01 已有合并提交 `43343d3`，Issue #3 已关闭；之前“R01 尚未提交”是过期状态。本轮未重新核验远程 CI/Review。
 

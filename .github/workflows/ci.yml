@@ -77,3 +77,6 @@ jobs:
 
       - name: Authentication HTTP and compiled Web proxy E2E
         run: pnpm --filter specbridge-api test:e2e:auth
+
+      - name: Workspace and Project RBAC HTTP and proxy E2E
+        run: pnpm --filter specbridge-api test:e2e:rbac

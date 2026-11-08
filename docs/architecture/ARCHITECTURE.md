@@ -83,7 +83,7 @@ src/modules/changes/
 
 ### A. 登录
 
-浏览器提交邮箱和密码 → Nest Auth 验证哈希 → 生成高熵随机 Session Token → 数据库存 Token 哈希、过期时间 → 设置 HttpOnly Cookie → `GET /me` 检索身份与可见 Workspace/Project；退出时撤销会话。
+浏览器提交邮箱和密码 → Nest Auth 验证哈希 → 生成高熵随机 Session Token → 数据库存 Token 哈希、过期时间 → 设置 HttpOnly Cookie → `GET /me` 仅检索身份，独立 `GET /workspaces` / `GET /projects` 获取授权列表；退出时撤销会话。
 
 ### B. 需求澄清与版本
 
@@ -148,3 +148,7 @@ D-01 至 D-04 已确认，见 `DECISIONS_TO_CONFIRM.md`；任何改变已批准�
 6. **业务边界**：初始范围是参考快照而非双方签署文件；v1 追踪正式 ChangeRequest 及其交付，不包含原始项目所有研发任务的看板。
 
 细节状态图见 `docs/architecture/STATE_MACHINES.md`，实施以此与 API/数据模型共同校验。
+
+## R03 模块实现边界
+
+沿用现有 src 顶层模块目录：workspaces/projects 的 Controller → Service → Repository；authorization 提供共享关系查询与对象权限判断，audit 提供接受 DatabaseTransaction 的最小写入服务。Controller 不直接访问数据库；Service 编排锁、业务与审计事务。角色只从当前资源父链解析，Session 无全局角色。未增加 Web 页面、微服务、缓存或认证体系。

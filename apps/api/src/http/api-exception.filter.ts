@@ -15,9 +15,14 @@ const codes: Record<number, string> = {
   404: 'NOT_FOUND',
   409: 'CONFLICT',
   413: 'PAYLOAD_TOO_LARGE',
+  422: 'BUSINESS_RULE_VIOLATION',
   429: 'RATE_LIMITED',
   500: 'INTERNAL_ERROR',
   503: 'SERVICE_UNAVAILABLE',
+};
+const domainCodes: Record<number, readonly string[]> = {
+  409: ['REGISTRATION_UNAVAILABLE', 'CLIENT_ASSIGNMENT_LOCKED'],
+  422: ['ROLE_CONFLICT', 'USER_NOT_REGISTERED', 'WORKSPACE_DEVELOPER_REQUIRED'],
 };
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
@@ -33,8 +38,9 @@ export class ApiExceptionFilter implements ExceptionFilter {
         ? (payload as Record<string, unknown>)
         : {};
     const code =
-      status === 409 && detail.code === 'REGISTRATION_UNAVAILABLE'
-        ? 'REGISTRATION_UNAVAILABLE'
+      typeof detail.code === 'string' &&
+      domainCodes[status]?.includes(detail.code)
+        ? detail.code
         : (codes[status] ?? 'REQUEST_FAILED');
     // Never serialize raw exceptions, validation values, DB errors or SQL parameters.
     const message =
@@ -62,10 +68,8 @@ export class ApiExceptionFilter implements ExceptionFilter {
           action: 'request.failed',
         }),
       );
-    res
-      .status(status)
-      .json({
-        error: { code, message, requestId: req.requestId, details: [] },
-      });
+    res.status(status).json({
+      error: { code, message, requestId: req.requestId, details: [] },
+    });
   }
 }

@@ -114,3 +114,14 @@
 - Cookie Secure 只由运行环境决定；CSRF 校验明确的 Origin 白名单及自定义头；Session Guard 不依赖代理 IP/协议。保留全局 trust proxy 不影响这些认证安全决策；不得在未来代码中将未经验证的 req.ip/req.protocol 当作安全事实。
 - 结构化认证日志仅 requestId、actorId（已解析时）、action、status、durationMs。未知异常不输出原始对象/SQL 参数；Observe 关闭请求内容和源代码捕获，忽略认证路由 trace，保留脱敏；未配置真实 Observe key pair 时禁用发送。外部 Observe 服务端接收结果不属于本地测试证据。
 - 登出撤销后后续认证返回 401；已通过认证的在途请求可能完成。Session 持久化不等于授权，后续资源端点仍须服务端作用域检查。
+
+## R03 作用域授权实施
+
+- Workspace 列表只包含供应方成员所属空间，Client 通过不带 workspaceId 的项目列表进入。项目列表过滤条件只能缩小授权集合；EXISTS 查询先过滤后分页，不公开全局总数。
+- Owner 要求 owner_id 与 OWNER membership 一致；Developer 必须同时具有父 Workspace DEVELOPER 和 Project DEVELOPER；Client 必须有该项目 CLIENT 且没有本空间供应方身份。冲突配置默认拒绝。
+- 写操作先锁 Workspace，项目写再锁 Project，并在事务内复核。加入 Workspace Developer 时检查目标是否为本空间任何项目 Client；绑定 Client 时反向检查全部供应方身份。Owner 不能被重复分配为 Developer。
+- 首次正式提交历史存在后，换 Client 返回 409 CLIENT_ASSIGNMENT_LOCKED；同账号 PUT 是 200 无副作用重试。并发更正于提交前串行，真正变化才留审计。
+- 未注册邮箱仅在 Owner 授权后报告；Client/Developer 项目详情不显示邮箱、密码摘要或 Session。领域错误经过状态/code 白名单，内部错误继续通用 500。
+- 保留 R02 默认 Guard、CSRF 顺序、Cookie 和 Socket IP 限流。Next Rewrite、trust proxy 和转发头均不提供 RBAC 身份；身份只来自真实 Session。
+
+任何已认证用户可创建新的 Workspace 并成为其 Owner；这不赋予其管理已有外部 Workspace 的权限。

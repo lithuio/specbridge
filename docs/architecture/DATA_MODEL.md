@@ -116,7 +116,7 @@ COMMIT;
 ## 8. v0.2 强制的额外数据约束
 
 1. **Client：0→1 时点**：创建项目可为 0，首次 Submit 必须为 1；部分唯一索引保证不能超过 1。禁止在发生正式 Submit 后更换，不能依赖前端隐藏按钮。
-2. **供应方/客户职责分离**：项目 Client 账号不可同时作为同一 Workspace 的 Owner/Developer；项目 Developer 必须是该 Workspace 的 Owner 或 Developer 成员。
+2. **供应方/客户职责分离**：项目 Client 账号不可同时作为同一 Workspace 的 Owner/Developer；显式 Project Developer 必须是该 Workspace 的 Developer 成员；Owner 通过所有权访问全部项目，不重复分配为 Project Developer。
 3. **Draft→Version 映射**：`change_requests.draft_*` 是可编辑字段，`change_request_versions` 是 Submit 时复制的不可变字段；在事务中校验完整性、最新 Ready Revision 和唯一 Client。
 4. **Revision 审批冲突**：同一 Requirement 存在任一 `SUBMITTED`/`VENDOR_APPROVED` 的 ChangeRequest 时禁止新增 Revision；已完成/拒绝后可新增，不改变旧 Approval/Delivery。
 5. **交付串行性**：`deliveries` 增加部分唯一索引 `UNIQUE (change_request_version_id) WHERE status='SUBMITTED'`；同一 CRVersion 已有 Accepted 交付时不能再创建；`delivery_no` 在事务内递增。
@@ -156,3 +156,13 @@ COMMIT;
 
 - API-16 的 `expectedVersion` 和响应示例 `draftVersion` 尚无对应 Requirement 并发字段：在 Requirement 功能任务中明确，不在 R01 擅自添加。
 - Session 空闲失效在 R02 明确：新增 0002_session_activity.sql 添加 last_activity_at timestamptz NOT NULL DEFAULT now()；旧记录回填 created_at，保留原会话年龄。expires_at 仅表示 7 天绝对期限，last_activity_at 表示 24 小时空闲期限。新增 SQL 审核/验证状态见 STATE.md；R01 0000/0001 不改动。
+
+## R03 领域事务落实
+
+- 无新增 Schema/Migration，0000–0002 不变。Owner 成员存在性及与 owner_id 一致由创建事务保证；唯一索引仅保证最多一人。
+- Workspace Developer 添加、Project 创建/成员分配均锁 Workspace；项目成员及 Client 写再锁 Project。先锁后重新校验授权，统一 Workspace → Project → Requirement → CR 顺序。
+- 绑定 Client 检查 owner_id 和 Workspace membership；反向添加供应方成员检查本空间所有项目的 Client。两入口共享 Workspace 锁，防止并发双角色。
+- Client 更正使用单事务删除旧 CLIENT + 插入新 CLIENT + 审计；部分唯一索引兜底。相同绑定重复请求无修改/无审计；未提交前不同账号请求按事务串行处理。
+- 首次提交锁定通过 Project → Requirement → CR → 任意历史 Version 存在性判断，不加布尔列。未来 Submit 必须先锁 Project 再校验 Client、创建 Version；R03 用结构 fixture 验证锁协议，非完整 Submit 实现。
+- 审计包含 workspace.created、workspace.developer_added、project.created、project.developer_added、project.client_bound/replaced；同一 transaction 写入，metadata 仅相关身份 ID/角色，不包含邮箱、baseline 正文或认证凭据。
+- 无 RLS/数据库级跨表角色触发器；任意直接 SQL 不在应用 RBAC 保证内。读取时对 Owner 不一致、请求者的供应方/Client 冲突默认拒绝。
