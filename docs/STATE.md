@@ -6,7 +6,7 @@
 
 R02 — Authentication & Session，[Issue #5](https://github.com/lithuio/specbridge/issues/5)。R01 已有合并提交 `43343d3`，Issue #3 已关闭；之前“R01 尚未提交”是过期状态。本轮未重新核验远程 CI/Review。
 
-**状态：R02 本地实现与验证完成，58 项测试通过。负责人已批准 0002 SQL，隔离库迁移、R01/R02 集成及认证 HTTP/Next Proxy E2E 已验证。未提交、推送或部署；远程 CI 与人工 PR Review 尚未完成，Issue DoD 仍待后续流程。**
+**状态：R02 P1 转发头限流绕过已完成最小修复与本地验证。修复前 6 项回归真实失败；修复后全部 64 项测试及质量检查通过。当前分支 feat/5-auth-session，改动保留供审核，本轮未 Commit/Push/Merge。**
 
 ## R02 已实现内容
 
@@ -16,7 +16,33 @@ R02 — Authentication & Session，[Issue #5](https://github.com/lithuio/specbri
 - 新增 `0002_session_activity.sql`：last_activity_at 回填 created_at，再设默认值与 NOT NULL。R01 两份 SQL/snapshot 未改；DatabaseModule 与 Web Rewrite 未改。
 - 真实 PostgreSQL 集成、R01→R02 升级、真实 HTTP 和编译 API + Next Rewrite E2E 已执行通过；CI PostgreSQL job 已配置认证测试，远程结果尚未验证。
 
-## R02 验证证据
+## R02 P1 修复检查点
+
+- 基线 HEAD：`44d371c`，开始时工作区干净。当前 Next base-server 使用 `x-forwarded-for ??=` 保留已有头；两个认证限流入口优先使用 req.ip，loopback 代理信任使攻击者可改变桶身份。
+- RED 已执行：`TEST_DATABASE_URL=<隔离测试库> pnpm --filter specbridge-api test:e2e:auth`，仅新增测试、尚未改生产代码时 6 FAIL / 10 PASS。Next 与 API 直连三种限流均可绕过（期望 429，注册实际 201、登录实际 401）。原始测试输出：`/tmp/specbridge-r02-xff-red.log`。
+- 修复：只将 configure-app 与 AuthController 两处限流 IP 改为 socket.remoteAddress；保留现有 trust proxy、限流阈值、Cookie/CSRF/Guard。同一 Next 出口的用户共享 IP 配额；真实客户端 IP 不用于限流。
+- GREEN 已执行：相同 `test:e2e:auth` 命令，16/16 PASS，包含全部 6 项新增回归及原有 10 项。输出保存在 `/tmp/specbridge-r02-xff-green.log`；修复前后测试未修改。
+
+| 状态 | 本轮命令 / 范围 | 实际结果 |
+|---|---|---|
+| FAIL（修复前，预期复现） | `TEST_DATABASE_URL=<隔离测试库> pnpm --filter specbridge-api test:e2e:auth` | 6 项新增回归失败、原有 10 项通过；生产代码未修改时执行 |
+| PASS（修复后） | 同一 `test:e2e:auth` 命令 | 16/16，含 Next Rewrite + trust loopback、直连、Cookie/CSRF/login/logout |
+| PASS | `pnpm --filter specbridge-api test` | 27/27 单元测试 |
+| PASS | `TEST_DATABASE_URL=<隔离测试库> pnpm --filter specbridge-api test:integration` | 16/16，含认证与 R01 数据库回归 |
+| PASS | `pnpm --filter specbridge-api test:e2e` | 5/5 基础真实 HTTP 测试 |
+| PASS | `pnpm --filter specbridge-api typecheck` | 类型检查 |
+| PASS | `pnpm run lint` | API + Web，无警告 |
+| PASS | `pnpm run build` | API + Web 完整构建（沙箱外运行，未再发生缓存失败） |
+| PASS | `pnpm --filter specbridge-api db:check` | 迁移元数据检查；SQL/snapshot/schema 本轮无 diff，0000/0001/0002 哈希不变 |
+| PASS | `git diff --check` | diff 空白检查，生成的 tracked tsbuildinfo 恢复 |
+| NOT RUN | 远程 CI、安全渗透测试、生产验证 | 本轮未提交、推送或部署，不宣称远程验证通过 |
+
+- 检查覆盖：注册第 6 次、同邮箱登录第 6 次、变化邮箱登录第 31 次在伪造不同转发头时均被限流，返回 429/RATE_LIMITED/Retry-After；阈值以内请求照常处理。数据库只使用 5434 专用临时实例及既有已批准迁移；开发库/生产环境未访问。
+- 已知限制：同一代理 Socket 出口用户共用注册 5 次/小时、登录 30 次/15 分钟配额，存在相互限流/耗尽配额风险；IP+邮箱维度仍按邮箱分开。没有从未经验证的头恢复真实用户 IP。保留全局 trust proxy 的元信息语义，但认证安全判断不依赖它；将来增加依赖该元信息的安全功能需另行验证入口。
+- PASS：已关闭并移除本轮 specbridge-test 临时容器，核对 specbridge-dev-db-1 仍 healthy（5433）。修复代码已完成，无待修复测试失败。下一步为负责人审阅本轮 diff；本轮未 Commit/Push/Merge。
+- 建议修复提交：`fix(auth): key rate limits by socket peer to block spoofed forwarding headers`。
+
+## R02 基础实现验证证据（P1 修复前）
 
 | 状态 | 命令 / 范围 | 结果 |
 |---|---|---|

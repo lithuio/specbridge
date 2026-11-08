@@ -54,7 +54,8 @@ export class AuthController {
   ) {
     const result = await this.auth.login(
       input,
-      req.ip ?? req.socket.remoteAddress ?? 'unknown',
+      // Match the IP bucket: forwarding headers are not verified identities.
+      req.socket.remoteAddress ?? 'unknown',
       req.cookies?.[this.config.cookieName],
     );
     res.cookie(this.config.cookieName, result.session.token, {

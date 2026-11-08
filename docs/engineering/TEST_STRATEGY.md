@@ -41,3 +41,9 @@ CI 本身成功不等于端到端业务全部通过；从未运行的测试不�
 - 所有数据库套件必须通过 TEST_DATABASE_URL 和库/角色身份校验，不回退 DATABASE_URL、不加载开发 .env。HTTP 用例以 UUID 用户隔离，仅删除自己创建的 Session/User；R01 历史 fixture 不删除。
 - CI PostgreSQL job 顺序执行数据库集成与认证 HTTP/代理 E2E；未审核 SQL 不得运行。普通 quality job 不需要数据库。
 - HTTP 客户端验证响应头及手动 Cookie 往返，不等于真实浏览器执行 Secure/SameSite 策略；浏览器/生产 HTTPS/外部 Observe 接收验证仍单列，不声称完成。
+
+### R02 P1 转发头限流回归
+
+`test:e2e:auth` 内的 compiled-proxy 套件保持 `AUTH_TRUSTED_PROXIES=loopback`，使用实际编译 API 和 Next Rewrite。每个场景启动独立进程获得新的内存限流窗口，不修改阈值或 mock 限流器。对 Next 入口和 API 直连各覆盖注册第 6 次、同邮箱登录第 6 次、变化邮箱登录第 31 次，全部轮换伪造 XFF/X-Real-IP/Forwarded；断言 429、RATE_LIMITED、Retry-After，注册被阻止时无新增用户，同邮箱限流不误判为总 IP 桶耗尽。原 Cookie/CSRF/login/logout smoke 保留。
+
+修复前 HEAD `44d371c` 上先增加测试，实际结果 6 FAIL / 10 PASS；注册超限收到 201，两个登录超限收到 401，证实原限流被绕过。再将两个限流入口改为 Socket IP；最终结果和命令见 STATE.md。

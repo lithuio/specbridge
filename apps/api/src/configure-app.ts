@@ -48,7 +48,9 @@ export function configureApp(app: INestApplication): void {
     }
     try {
       if (req.method === 'POST') {
-        const ip = req.ip ?? req.socket.remoteAddress ?? 'unknown';
+        // Next rewrites preserve client-supplied XFF. Rate limits must use the
+        // socket peer even when Express trusts proxy metadata elsewhere.
+        const ip = req.socket.remoteAddress ?? 'unknown';
         if (path === '/api/v1/auth/login')
           limits.consume(`login-ip:${ip}`, 30, 15 * 60_000);
         if (path === '/api/v1/auth/register')

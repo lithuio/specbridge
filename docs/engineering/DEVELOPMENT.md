@@ -130,7 +130,7 @@ pnpm run db:test:down
 
 ## R02 认证开发与验证
 
-API 环境需显式注入 DATABASE_URL、AUTH_TRUSTED_ORIGINS（开发默认 http://localhost:3000）与 AUTH_TRUSTED_PROXIES（开发默认 loopback；生产默认空）。运行时不自动读取根目录 .env。生产 Origin 必须精确 HTTPS 来源，无尾斜杠/通配符，多个来源用逗号分隔；代理必须覆盖客户端提供的转发头。Cookie/限流细节见 SECURITY.md。
+API 环境需显式注入 DATABASE_URL、AUTH_TRUSTED_ORIGINS（开发默认 http://localhost:3000）与 AUTH_TRUSTED_PROXIES（开发默认 loopback；生产默认空）。运行时不自动读取根目录 .env。生产 Origin 必须精确 HTTPS 来源，无尾斜杠/通配符，多个来源用逗号分隔；现有 Next Rewrite 不保证覆盖客户端转发头，因此认证限流固定使用 API Socket 对端 IP，不受 AUTH_TRUSTED_PROXIES 影响，也不从其他头提取 IP。同一代理出口的用户共用注册/登录 IP 配额，可能互相触发 429；当前配置无法为限流可靠识别真实客户端 IP。Cookie/限流细节见 SECURITY.md。
 
 新增 0002_session_activity.sql 必须经人工审核，再执行数据库命令；审批和验证状态见 STATE.md。不要修改或重新生成覆盖 R01 的两份 SQL。
 

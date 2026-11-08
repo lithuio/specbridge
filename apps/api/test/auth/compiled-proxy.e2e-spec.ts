@@ -8,6 +8,13 @@ import { openTestDatabase } from '../database/helpers.js';
 const origin = 'https://app.example.test';
 const password = 'Proxy-smoke-private-password-83';
 const email = `${randomUUID()}@example.test`;
+const emails = new Set<string>();
+const headers = {
+  Origin: origin,
+  'X-CSRF-Protection': '1',
+  'Sec-Fetch-Site': 'same-origin',
+  'Content-Type': 'application/json',
+};
 let pool: Pool;
 const children: ChildProcess[] = [];
 let output = '';
@@ -61,6 +68,13 @@ async function ready(child: ChildProcess, url: string) {
 }
 beforeAll(async () => {
   pool = await openTestDatabase();
+});
+beforeEach(async () => {
+  // Fresh processes give each scenario its own real limiter windows.
+  children.length = 0;
+  output = '';
+  emails.clear();
+  emails.add(email);
   await freePort(4000);
   await freePort(3000);
   const apiDir = fileURLToPath(new URL('../../', import.meta.url));
@@ -95,7 +109,7 @@ beforeAll(async () => {
   );
   await ready(web, 'http://127.0.0.1:3000/api/v1/health');
 }, 60000);
-afterAll(async () => {
+afterEach(async () => {
   for (const child of children.reverse()) {
     if (child.exitCode !== null || child.pid === undefined) continue;
     await new Promise<void>((resolve) => {
@@ -109,21 +123,19 @@ afterAll(async () => {
   }
   if (pool) {
     await pool.query(
-      'DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email=$1)',
-      [email],
+      'DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email=ANY($1::text[]))',
+      [Array.from(emails)],
     );
-    await pool.query('DELETE FROM users WHERE email=$1', [email]);
-    await pool.end();
+    await pool.query('DELETE FROM users WHERE email=ANY($1::text[])', [
+      Array.from(emails),
+    ]);
   }
+});
+afterAll(async () => {
+  await pool?.end();
 });
 it('runs compiled bootstrap and real Next rewrite with production cookies, CSRF and logout', async () => {
   const base = 'http://127.0.0.1:3000/api/v1';
-  const headers = {
-    Origin: origin,
-    'X-CSRF-Protection': '1',
-    'Sec-Fetch-Site': 'same-origin',
-    'Content-Type': 'application/json',
-  };
   const registered = await fetch(`${base}/auth/register`, {
     method: 'POST',
     headers,
@@ -174,3 +186,96 @@ it('runs compiled bootstrap and real Next rewrite with production cookies, CSRF 
   expect(output.includes(password)).toBe(false);
   expect(output.includes(cookie.split('=')[1])).toBe(false);
 });
+
+// Both paths deliberately keep AUTH_TRUSTED_PROXIES=loopback. Disabling proxy
+// trust here would conceal the production bug this regression must detect.
+const targets = [
+  ['Next rewrite', 'http://127.0.0.1:3000/api/v1'],
+  ['direct API', 'http://127.0.0.1:4000/api/v1'],
+] as const;
+async function forgedRequest(
+  base: string,
+  route: string,
+  attempt: number,
+  address: string,
+) {
+  const response = await fetch(`${base}/auth/${route}`, {
+    method: 'POST',
+    headers: {
+      ...headers,
+      'X-Forwarded-For': `203.0.113.${attempt + 1}`,
+      'X-Real-IP': `198.51.100.${attempt + 1}`,
+      Forwarded: `for=192.0.2.${attempt + 1};proto=https`,
+    },
+    body: JSON.stringify({
+      email: address,
+      password,
+      ...(route === 'register' ? { displayName: 'Rate limit test' } : {}),
+    }),
+  });
+  return {
+    status: response.status,
+    retryAfter: response.headers.get('retry-after'),
+    body: await response.json(),
+  };
+}
+function expectLimited(response: Awaited<ReturnType<typeof forgedRequest>>) {
+  expect(response.status).toBe(429);
+  expect(response.body.error.code).toBe('RATE_LIMITED');
+  expect(Number(response.retryAfter)).toBeGreaterThan(0);
+}
+it.each(targets)(
+  '%s: rotating forwarded headers cannot bypass the registration IP limit',
+  async (_name, base) => {
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const address = `${randomUUID()}@example.test`;
+      emails.add(address);
+      const response = await forgedRequest(base, 'register', attempt, address);
+      if (attempt < 5) expect(response.status).toBe(201);
+      else {
+        expectLimited(response);
+        expect(
+          (await pool.query('SELECT id FROM users WHERE email=$1', [address]))
+            .rowCount,
+        ).toBe(0);
+      }
+    }
+  },
+);
+it.each(targets)(
+  '%s: rotating forwarded headers cannot bypass the IP+email limit',
+  async (_name, base) => {
+    // No registered account: all five allowed attempts must reach credential validation.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      expect(
+        (await forgedRequest(base, 'login', attempt % 2, email)).status,
+      ).toBe(401);
+    }
+    expectLimited(await forgedRequest(base, 'login', 5, email));
+    // This was the identity bucket, not the 30-request IP bucket.
+    expect(
+      (await forgedRequest(base, 'login', 6, `${randomUUID()}@example.test`))
+        .status,
+    ).toBe(401);
+  },
+);
+it.each(targets)(
+  '%s: rotating emails and forwarded headers cannot bypass the independent login IP limit',
+  async (_name, base) => {
+    for (let attempt = 0; attempt < 30; attempt++) {
+      expect(
+        (
+          await forgedRequest(
+            base,
+            'login',
+            attempt,
+            `${randomUUID()}@example.test`,
+          )
+        ).status,
+      ).toBe(401);
+    }
+    expectLimited(
+      await forgedRequest(base, 'login', 30, `${randomUUID()}@example.test`),
+    );
+  },
+);
