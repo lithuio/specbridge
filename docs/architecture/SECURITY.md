@@ -96,3 +96,19 @@
 - **冻结范围**：`baseline_scope` 只写入一次，不提供修改或初始签署能力，避免把供应方录入信息伪装成客户合同认可。
 - **链接交付**：仅接收 HTTPS URL 和纯文本；展示时使用安全文本渲染和显式跳转，不自动跟随任意客户端链接或执行内容；不上传文件。
 - **并发约束**：客户审批、交付评论都要在数据库事务里检查版本、状态和唯一键；任何失败不得留下孤立 Approval/DeliveryReview/AuditEvent。
+
+## 12. R02 认证实施契约
+
+负责人已确认：`/me` 本阶段仅返回用户；重复注册返回通用 409（仍可区分邮箱存在性）；限流仅承诺单 API 实例。R02 不实现邮箱验证、密码重置或 Workspace/Project RBAC。
+
+- 注册/登录邮箱执行 trim + lowercase，不合并邮箱服务商别名；注册密码 15–128 Unicode code points、UTF-8 至多 512 bytes，不 trim/规范化；登录接受 1–128 code points，以兼容已存密码。displayName trim 后 1–100 字符。DTO 拒绝未知字段。
+- Argon2id 使用随机盐、memoryCost=19456 KiB、timeCost=2、parallelism=1。不存在邮箱执行 dummy hash 验证；不存在账号与错误密码返回相同 401，不承诺严格恒定延时。
+- Session 使用 32 随机 bytes 的规范 base64url，库内仅保存 SHA-256 hex。每次登录新建，并在同一事务撤销请求携带的旧 Session；其他设备保持登录。事务失败不发 Cookie。
+- 绝对期 7 天不可延长，空闲期 24 小时，达到边界即无效。条件 UPDATE 同时验证有效性并刷新 last_activity_at，不复活 revoked session。CSRF 被拒绝的请求不更新活动时间。公共接口不更新 Session。
+- 生产 Cookie 为 `__Host-specbridge_session; HttpOnly; Secure; SameSite=Lax; Path=/`，无 Domain；非生产为 `specbridge_session`，仅省略 Secure。expires 对应绝对期，登出清同作用域 Cookie。认证响应 `Cache-Control: no-store`。
+- 所有写请求（含注册/登录）必须有精确可信 Origin 和 `X-CSRF-Protection: 1`；有 body 时只接受 application/json。Origin 缺失/null/非法均拒绝，无 Referer 回退。Sec-Fetch-Site 若存在必须 same-origin。未开放跨域凭据 CORS。标记头不是认证秘密；此方案依赖浏览器同源策略，不能防同源 XSS。
+- `@Public()` 只豁免 Session 认证，不豁免 CSRF/限流。默认保护新 Controller；公开的旧 `/` 与 health 不访问 DB。
+- 登录每 IP 30 次/15 分钟，IP+规范化邮箱 5 次/15 分钟；注册每 IP 5 次/小时，成功失败均计数。最多 10,000 活动计数项，容量耗尽拒绝新键，返回 429 + Retry-After；进程重启清零，多实例部署前必须升级。
+- 默认开发信任 loopback 代理，生产默认不信任代理；只接受配置中的实际代理 IP/CIDR，代理必须覆盖客户端伪造的转发头。不得使用 trust proxy=true。
+- 结构化认证日志仅 requestId、actorId（已解析时）、action、status、durationMs。未知异常不输出原始对象/SQL 参数；Observe 关闭请求内容和源代码捕获，忽略认证路由 trace，保留脱敏；未配置真实 Observe key pair 时禁用发送。外部 Observe 服务端接收结果不属于本地测试证据。
+- 登出撤销后后续认证返回 401；已通过认证的在途请求可能完成。Session 持久化不等于授权，后续资源端点仍须服务端作用域检查。

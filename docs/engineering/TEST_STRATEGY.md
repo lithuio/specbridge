@@ -31,3 +31,13 @@ CI 本身成功不等于端到端业务全部通过；从未运行的测试不�
 - AC-03/08/09/12/14/17/23/26/27 仅能获得相应数据库层证据。完整业务验收、备份恢复和生产迁移另行验证。
 
 当前执行证据与未运行项目见 `../STATE.md`；操作步骤见 `DEVELOPMENT.md`。
+
+## R02 认证测试边界
+
+- 单元：真实 Argon2id、输入规范化/长度、CSRF、Cookie 配置、限流窗口/容量、异常脱敏。
+- PostgreSQL 集成：并发重复注册、Token 摘要、绝对/空闲失效、撤销/刷新竞争、登录轮换事务回滚。迁移升级用例在事务内独立 schema 应用 R01 SQL（仅替换 namespace），插入旧 Session 后应用 0002，再整体回滚；不重置 public。
+- `test:e2e` 保留两项旧路由回归，并增加三项无数据库的认证安全 HTTP 测试；认证套件独立为 `test:e2e:auth`，先 build API，再运行真实 HTTP + 隔离 DB 测试。
+- 认证 E2E 覆盖 AC-01/02、默认保护、同响应登录失败、身份字段注入、CSRF、限流、过期、Cookie 属性和日志哨兵。另启动编译后的 API 与真实 Next.js Rewrite 验证 Cookie/CSRF/logout 往返；占用 3000/4000 时明确失败，不复用用户的已有服务。
+- 所有数据库套件必须通过 TEST_DATABASE_URL 和库/角色身份校验，不回退 DATABASE_URL、不加载开发 .env。HTTP 用例以 UUID 用户隔离，仅删除自己创建的 Session/User；R01 历史 fixture 不删除。
+- CI PostgreSQL job 顺序执行数据库集成与认证 HTTP/代理 E2E；未审核 SQL 不得运行。普通 quality job 不需要数据库。
+- HTTP 客户端验证响应头及手动 Cookie 往返，不等于真实浏览器执行 Secure/SameSite 策略；浏览器/生产 HTTPS/外部 Observe 接收验证仍单列，不声称完成。
