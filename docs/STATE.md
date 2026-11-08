@@ -1,8 +1,39 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-08。当前记录为 R03；下方 R02/R01 为历史证据。
+> 更新时间：2026-11-09。当前检查点为 R03 P2 UUID 修复；下方保留初始实现及 R02/R01 历史证据。
 
-## 当前任务：R03 Workspace & Project RBAC
+## R03 P2 UUID 修复（当前检查点）
+
+基线 HEAD `c32b43a`，分支 `feat/7-workspace-project-rbac`，Issue #7。开始时工作区干净。本轮仅修复 Review 指出的 Developer 分配响应缺失问题，无 Commit/Push/Merge。
+
+- 根因：IsUUID 接受合法的大写/混合大小写 UUID，PostgreSQL 按 UUID 查询并返回小写；Service 将原始 targetId 与返回 userId 严格比较，导致已写入成员/审计却返回 undefined data。非空断言不会进行运行时检查。
+- 最小修复：ProjectsService.add 入口将 targetId 转为小写，查询、写入、审计 metadata、响应查找统一身份表示；HTTP 和内部 Service 调用均覆盖。没有修改权限、Workspace → Project 锁序、事务、Schema、SQL 或 R02。
+- 相关路径审计：Workspace/Client 的字符串身份比较使用数据库规范 ID，授权 userId 来自 Session；Project/Workspace 请求 ID 在 SQL UUID 比较中处理。没有发现同类外部 UUID 导致响应缺失路径，未扩大重构。
+- 新增 3 个真实 PostgreSQL 参数化用例与 4 个 HTTP 用例：大写/小写/混合首次分配，再以小写、混合、大写重试；断言完整 data、首次 201/重试 200、单成员/单审计；不存在用户/未加入 Workspace 的用户 422、无管理权 403、不可见 404、非法 UUID 400 均保留。固定 ab 前缀确保实际覆盖大小写，不依赖随机 UUID 是否带字母。
+
+| 阶段/状态 | 实际命令 | 结果 |
+|---|---|---|
+| RED / FAIL（预期） | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:integration` | 3 FAIL / 25 PASS；生产代码尚未修复，失败为缺失 data |
+| RED / FAIL（预期） | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:e2e:rbac` | 3 FAIL / 10 PASS；响应状态成功但 data undefined，数据库成员/审计计数断言通过 |
+| GREEN / PASS | 上述相同集成命令 | 28/28 |
+| GREEN / PASS | 上述相同 RBAC HTTP/代理命令 | 13/13 |
+| PASS | `pnpm --filter specbridge-api test` | 32/32 单元测试 |
+| PASS | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:e2e:auth` | 16/16，含 R02 转发头限流回归 |
+| PASS | `pnpm --filter specbridge-api typecheck` | 类型检查 |
+| PASS | `pnpm run lint` | API/Web，无警告 |
+| PASS | `pnpm run build` | API/Web 完整构建；沙箱外，无需清缓存 |
+| PASS | `pnpm --filter specbridge-api db:check`、`git diff --check` | 元数据和 diff 空白检查；未新增 SQL |
+| NOT RUN | 远程 CI、人工复审、生产验证 | 本轮未推送或部署 |
+
+共 89 项测试通过。生产修复前后新增回归测试保持一致；RED 阶段 fixture 曾先改用独立随机 UUID 后缀避免与已有 fixture ID 碰撞，再重新运行集成 RED。原始输出保留于 `/tmp/specbridge-r03-uuid-{integration,http}-{red,green}.log`，R02 输出 `/tmp/specbridge-r03-uuid-auth-green.log`，构建 `/tmp/specbridge-r03-uuid-build.log`。
+
+数据库/HTTP 测试仅在 5434 专用 PostgreSQL 17 测试实例运行，沿用已批准的现有迁移和已记录 host 网络覆盖；没有访问开发库。无已知待修复失败；仍需负责人复审和后续授权的远程 CI。建议提交：`fix(rbac): normalize developer UUID before member assignment response`。
+
+- PASS：本轮 specbridge-test 临时容器已关闭并移除；随后核对 5433 开发数据库仍 healthy。构建产生的 tracked tsbuildinfo 已恢复，最终仅 4 个修复相关文件有 diff。
+
+---
+
+## R03 初始实现记录（历史）
 
 [Issue #7](https://github.com/lithuio/specbridge/issues/7)，分支 `feat/7-workspace-project-rbac`，基线 HEAD `8b89880`（R02 合并提交）。开始时工作区干净，当前实现和文档改动未提交；本轮无 Commit/Push/Merge/部署。
 

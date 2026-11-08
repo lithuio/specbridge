@@ -421,3 +421,91 @@ it('preserves default Session/CSRF protections on new endpoints and ignores forg
   ]);
   await get('/projects', f.owner).expect(401);
 });
+
+it.each(['upper', 'lower', 'mixed'] as const)(
+  'UUID casing: %s first HTTP assignment and retries preserve complete data and idempotency',
+  async (firstCase) => {
+    const f = await domain(pool, workspaces, projects);
+    const targetId = `ab${randomUUID().slice(2)}`;
+    const email = `${targetId}@example.test`;
+    await pool.query(
+      'INSERT INTO users(id,email,display_name,password_hash) VALUES($1,$2,$3,$4)',
+      [targetId, email, 'Case Developer', 'fixture-not-for-login'],
+    );
+    await workspaces.add(f.owner.id, f.workspace.id, email);
+    const variants = {
+      upper: targetId.toUpperCase(),
+      lower: targetId,
+      mixed: `aB${targetId.slice(2)}`,
+    };
+    for (const [index, userId] of [
+      variants[firstCase],
+      variants.lower,
+      variants.mixed,
+      variants.upper,
+    ].entries()) {
+      const response = await post(
+        `/projects/${f.project.id.toUpperCase()}/members`,
+        f.owner,
+        { userId, role: 'DEVELOPER' },
+      ).expect(index === 0 ? 201 : 200);
+      expect
+        .soft(response.body.data)
+        .toEqual({
+          userId: targetId,
+          displayName: 'Case Developer',
+          role: 'DEVELOPER',
+        });
+      expect(response.body.meta.requestId).toEqual(expect.any(String));
+      expect(
+        (
+          await pool.query(
+            'SELECT user_id,role FROM project_members WHERE project_id=$1',
+            [f.project.id],
+          )
+        ).rows,
+      ).toEqual([{ user_id: targetId, role: 'DEVELOPER' }]);
+      expect(
+        (
+          await pool.query(
+            "SELECT id FROM audit_events WHERE project_id=$1 AND event_type='project.developer_added'",
+            [f.project.id],
+          )
+        ).rowCount,
+      ).toBe(1);
+    }
+  },
+);
+
+it('UUID casing does not relax missing-member, authorization or validation failures', async () => {
+  const f = await domain(pool, workspaces, projects);
+  const path = `/projects/${f.project.id.toUpperCase()}/members`;
+  const body = { userId: f.developer.id.toUpperCase(), role: 'DEVELOPER' };
+  for (const userId of [randomUUID().toUpperCase(), body.userId]) {
+    expect(
+      (await post(path, f.owner, { ...body, userId }).expect(422)).body.error
+        .code,
+    ).toBe('WORKSPACE_DEVELOPER_REQUIRED');
+  }
+  await workspaces.add(f.owner.id, f.workspace.id, f.developer.email);
+  await projects.bindClient(f.owner.id, f.project.id, f.client.email);
+  await post(path, f.client, body).expect(403);
+  await post(path, f.outsider, body).expect(404);
+  await post(path, f.owner, { ...body, userId: 'INVALID-UUID' }).expect(400);
+  expect(
+    (
+      await pool.query(
+        "SELECT id FROM project_members WHERE project_id=$1 AND role='DEVELOPER'",
+        [f.project.id],
+      )
+    ).rowCount,
+  ).toBe(0);
+  expect(
+    (
+      await pool.query(
+        "SELECT id FROM audit_events WHERE project_id=$1 AND event_type='project.developer_added'",
+        [f.project.id],
+      )
+    ).rowCount,
+  ).toBe(0);
+});

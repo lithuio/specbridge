@@ -1,5 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Pool } from 'pg';
+import { randomUUID } from 'node:crypto';
 import { AppModule } from '../../src/app.module.js';
 import { WorkspacesService } from '../../src/workspaces/workspaces.service.js';
 import { ProjectsService } from '../../src/projects/projects.service.js';
@@ -365,3 +366,59 @@ it('fails closed for inconsistent owner or supplier/client data and preserves ba
     projects.detail(f.outsider.id, f.project.id),
   ).rejects.toMatchObject({ status: 404 });
 });
+
+it.each(['upper', 'lower', 'mixed'] as const)(
+  'UUID casing: %s first assignment and retries return the same member without extra writes',
+  async (firstCase) => {
+    const f = await domain(pool, workspaces, projects);
+    // Ensure letter case is exercised, independently of the random UUID suffix.
+    const targetId = `ab${randomUUID().slice(2)}`;
+    const email = `${targetId}@example.test`;
+    await pool.query(
+      'INSERT INTO users(id,email,display_name,password_hash) VALUES($1,$2,$3,$4)',
+      [targetId, email, 'Case Developer', 'fixture-not-for-login'],
+    );
+    await workspaces.add(f.owner.id, f.workspace.id, email);
+    const variants = {
+      upper: targetId.toUpperCase(),
+      lower: targetId,
+      mixed: `aB${targetId.slice(2)}`,
+    };
+    for (const [index, input] of [
+      variants[firstCase],
+      variants.lower,
+      variants.mixed,
+      variants.upper,
+    ].entries()) {
+      const result = await projects.add(
+        f.owner.id,
+        f.project.id.toUpperCase(),
+        input,
+      );
+      expect.soft(result).toEqual({
+        created: index === 0,
+        data: {
+          userId: targetId,
+          displayName: 'Case Developer',
+          role: 'DEVELOPER',
+        },
+      });
+      expect(
+        (
+          await pool.query(
+            'SELECT user_id,role FROM project_members WHERE project_id=$1',
+            [f.project.id],
+          )
+        ).rows,
+      ).toEqual([{ user_id: targetId, role: 'DEVELOPER' }]);
+      expect(
+        (
+          await pool.query(
+            "SELECT id FROM audit_events WHERE project_id=$1 AND event_type='project.developer_added'",
+            [f.project.id],
+          )
+        ).rowCount,
+      ).toBe(1);
+    }
+  },
+);

@@ -53,6 +53,8 @@ export class ProjectsService {
     );
   }
   add(userId: string, projectId: string, targetId: string) {
+    // PostgreSQL returns lowercase UUIDs; use the same identity for writes and response lookup.
+    targetId = targetId.toLowerCase();
     return this.repository.database.transaction(async (tx) => {
       const project = await this.authorization.projectOwner(
         userId,
