@@ -1,0 +1,2 @@
+ALTER TABLE "requirements" ADD COLUMN "draft_version" integer DEFAULT 1 NOT NULL;--> statement-breakpoint
+ALTER TABLE "requirements" ADD CONSTRAINT "requirements_draft_version_positive" CHECK ("requirements"."draft_version" > 0);

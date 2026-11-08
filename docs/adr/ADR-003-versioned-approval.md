@@ -35,3 +35,10 @@
 - 同 Requirement 有提交中/供应方已批但客户未决的版本时不允许产生新 Revision；需先完成或拒绝当前审批。
 - 审批和交付均关联不可变 Version；客户拒收 Delivery 后创建新的 Delivery；已 Accepted 版本不得继续交付。
 - 首次正式 Submit 后 v1 禁止项目 Client 更换，避免审批主体身份漂移。
+
+
+## R04 已批准实施细化（2026-11-09；本地实现及验证完成）
+
+Requirement 使用独立 draft_version（初始 1），PATCH、问答、Revision、Ready 均要求 expectedVersion，并在同一事务递增。统一聚合版本使旧页面不能确认并发创建的新 Revision；代价是追加问答也可能需刷新重试。READY 不允许追加问答，先由供应方创建新 Revision 重开澄清。
+
+复用 Workspace → Project → Requirement → CR 锁序；R04 锁到 Requirement，未来 Submit 必须共享该锁。只有唯一键或“先查询 Pending”不足以防止 Submit/Revision 竞态。新字段通过 0003 增量迁移加入，生成后须人工审核才能执行；本决定本身不代替 SQL 审批；0003 的后续批准及隔离验证证据见 STATE / HUMAN_TASKS。

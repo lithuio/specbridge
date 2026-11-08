@@ -125,3 +125,10 @@
 - 保留 R02 默认 Guard、CSRF 顺序、Cookie 和 Socket IP 限流。Next Rewrite、trust proxy 和转发头均不提供 RBAC 身份；身份只来自真实 Session。
 
 任何已认证用户可创建新的 Workspace 并成为其 Owner；这不赋予其管理已有外部 Workspace 的权限。
+
+
+## R04 授权与事务实施
+
+Requirement ID 必须通过数据库解析所属 Project 后复用 R03 Policy；创建/读取允许本项目 Owner、Developer、Client，PATCH 仅 DRAFT 原作者/Owner，Revision 与 Ready 仅 Owner/Developer。写操作按 Workspace → Project → Requirement 锁行，锁后重新授权；Client 不需要供应方 Workspace membership。跨项目资源统一 404，可见对象无操作权 403，再检查版本、状态及业务规则。
+
+READY 禁止所有角色追加问答；ANSWER 只能引用同需求 QUESTION。未知字段、客户端 actor/status/指针注入拒绝。UUID 在 Service 边界规范化。继续使用 Session、CSRF 与安全错误白名单；不输出父项所属资源、SQL、约束名或用户正文。审计与业务使用同一 tx，metadata 仅 ID/版本/状态/字段名。

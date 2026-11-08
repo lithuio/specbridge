@@ -14,7 +14,7 @@
 ```mermaid
 stateDiagram-v2
   [*] --> DRAFT
-  DRAFT --> CLARIFYING: 添加问题
+  DRAFT --> CLARIFYING: 添加问题或创建首个 Revision
   DRAFT --> READY: 有合格 Revision 且无未答疑问
   CLARIFYING --> READY: 有合格 Revision 且无未答疑问
   READY --> CLARIFYING: 新需求修订（无审批中的 CR）
@@ -25,6 +25,14 @@ stateDiagram-v2
 - `READY` 需要至少一个有效 Revision、非空验收标准、未解决的必答问题均有答复。MVP 用是否存在 Answer 作为判断，若需要更复杂的“澄清已解决”语义应新增状态字段。
 - 同 Requirement 存在 `SUBMITTED` / `VENDOR_APPROVED` 的 CR 时，新 Revision 返回 `409 REVIEW_IN_PROGRESS`。旧的 Approved 版本不变；待审批结束后可以创建新 Revision 和新 CR。
 - 新 Revision 创建后状态回到 CLARIFYING，必须重新标记 READY；不能未经确认直接自动批准。
+
+### R04 实施细化（本地验证完成）
+
+- 所有 QUESTION 均为必答；存在同需求、以该 QUESTION 为 parent 的合法 ANSWER 即已答。不新增 required/resolved 字段，不要求额外 Resolve 动作；允许多个追加回答，无编辑/删除问答接口。
+- READY 禁止追加问题和回答；须先创建新 Revision 回到 CLARIFYING。Client 不能通过问答使 Ready 失效。
+- 创建首个 Revision 同样进入 CLARIFYING；每次 Revision 均需重新 Ready。Ready 只确认最新指针且必须是最高 revisionNo，无独立 readyRevisionId。
+- Revision 的已澄清结论由供应方整理进 content；不新增问答快照关系，不将后续问答解释为旧 Revision 内容。
+- 只有 DRAFT 原作者/Owner 可 PATCH；CLARIFYING 中可追加问题/回答。所有已有需求写操作携带 expectedVersion，并推进同一 draftVersion，防止旧页面确认新内容。
 
 ## 2. ChangeRequest
 

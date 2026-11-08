@@ -62,6 +62,10 @@ it('preserves only allowlisted domain codes with the matching HTTP status', asyn
   } as unknown as ArgumentsHost;
   for (const [status, code, expected] of [
     [409, 'CLIENT_ASSIGNMENT_LOCKED', 'CLIENT_ASSIGNMENT_LOCKED'],
+    [409, 'STALE_VERSION', 'STALE_VERSION'],
+    [409, 'INVALID_TRANSITION', 'INVALID_TRANSITION'],
+    [409, 'REVIEW_IN_PROGRESS', 'REVIEW_IN_PROGRESS'],
+    [422, 'STALE_VERSION', 'BUSINESS_RULE_VIOLATION'],
     [422, 'ROLE_CONFLICT', 'ROLE_CONFLICT'],
     [422, 'USER_NOT_REGISTERED', 'USER_NOT_REGISTERED'],
     [422, 'WORKSPACE_DEVELOPER_REQUIRED', 'WORKSPACE_DEVELOPER_REQUIRED'],

@@ -80,3 +80,6 @@ jobs:
 
       - name: Workspace and Project RBAC HTTP and proxy E2E
         run: pnpm --filter specbridge-api test:e2e:rbac
+
+      - name: Requirement revision HTTP and proxy E2E
+        run: pnpm --filter specbridge-api test:e2e:requirements

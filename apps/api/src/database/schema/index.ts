@@ -180,12 +180,14 @@ export const requirements = pgTable(
     title: text('title').notNull(),
     originalText: text('original_text').notNull(),
     status: requirementStatus('status').default('DRAFT').notNull(),
+    draftVersion: integer('draft_version').default(1).notNull(),
     latestRevisionId: uuid('latest_revision_id'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t): PgTableExtraConfigValue[] => [
     index('requirements_project_status_idx').on(t.projectId, t.status),
+    check('requirements_draft_version_positive', sql`${t.draftVersion} > 0`),
     foreignKey({
       name: 'requirements_latest_revision_fk',
       columns: [t.id, t.latestRevisionId],

@@ -43,7 +43,7 @@ erDiagram
 |---|---|---|
 | `projects` | `id uuid PK`, `workspace_id FK`, `name`, `baseline_scope text NOT NULL`, `status enum ACTIVE/ARCHIVED`, `created_at` | index `(workspace_id,status)`；trim 后非空；仅 INSERT 时设置 baseline_scope，v1 无修改路径 |
 | `project_members` | `id uuid PK`, `project_id FK`, `user_id FK`, `role enum DEVELOPER/CLIENT`, `created_at` | 唯一 `(project_id,user_id)`；`CLIENT` 在同项目最多一人（部分唯一索引）；首个正式提交前可空，之后不得替换 |
-| `requirements` | `id uuid PK`, `project_id FK`, `created_by FK`, `title`, `original_text`, `status enum DRAFT/CLARIFYING/READY`, `latest_revision_id nullable`, `created_at`, `updated_at` | index `(project_id,status)`；外键/校验保证 `latest_revision_id` 属于本 Requirement |
+| `requirements` | `id uuid PK`, `project_id FK`, `created_by FK`, `title`, `original_text`, `status enum DRAFT/CLARIFYING/READY`, `latest_revision_id nullable`, `draft_version int NOT NULL DEFAULT 1`, `created_at`, `updated_at` | index `(project_id,status)`；外键/校验保证 `latest_revision_id` 属于本 Requirement |
 | `clarifications` | `id uuid PK`, `requirement_id FK`, `author_id FK`, `parent_id nullable`, `kind enum QUESTION/ANSWER`, `body text`, `created_at` | index `(requirement_id,created_at)`；父项须同 Requirement |
 | `requirement_revisions` | `id uuid PK`, `requirement_id FK`, `revision_no int`, `content text`, `acceptance_criteria jsonb`, `created_by FK`, `created_at` | 唯一 `(requirement_id,revision_no)`；R01 采用数据库触发器拒绝 UPDATE/DELETE，已在 R01 隔离 PostgreSQL 集成测试验证 |
 
@@ -154,7 +154,7 @@ COMMIT;
 
 ### 已识别、经负责人确认延后的契约缺口
 
-- API-16 的 `expectedVersion` 和响应示例 `draftVersion` 尚无对应 Requirement 并发字段：在 Requirement 功能任务中明确，不在 R01 擅自添加。
+- R01 延后的 Requirement 并发字段已在 R04 计划明确为 draft_version；新增 0003 SQL 已人工批准并在隔离测试实例应用，见下节。
 - Session 空闲失效在 R02 明确：新增 0002_session_activity.sql 添加 last_activity_at timestamptz NOT NULL DEFAULT now()；旧记录回填 created_at，保留原会话年龄。expires_at 仅表示 7 天绝对期限，last_activity_at 表示 24 小时空闲期限。新增 SQL 审核/验证状态见 STATE.md；R01 0000/0001 不改动。
 
 ## R03 领域事务落实
@@ -166,3 +166,14 @@ COMMIT;
 - 首次提交锁定通过 Project → Requirement → CR → 任意历史 Version 存在性判断，不加布尔列。未来 Submit 必须先锁 Project 再校验 Client、创建 Version；R03 用结构 fixture 验证锁协议，非完整 Submit 实现。
 - 审计包含 workspace.created、workspace.developer_added、project.created、project.developer_added、project.client_bound/replaced；同一 transaction 写入，metadata 仅相关身份 ID/角色，不包含邮箱、baseline 正文或认证凭据。
 - 无 RLS/数据库级跨表角色触发器；任意直接 SQL 不在应用 RBAC 保证内。读取时对 Owner 不一致、请求者的供应方/Client 冲突默认拒绝。
+
+
+## R04 增量实现与迁移
+
+- 新增 requirements.draft_version integer NOT NULL DEFAULT 1，CHECK > 0；既有行从 1 开始，不推算历史编辑次数。0000–0002 SQL/snapshot 保持不变。0003 已获人工批准，并通过隔离 PostgreSQL 存量升级及回归测试；执行证据见 STATE 与 HUMAN_TASKS。
+- draft_version 是 Requirement 聚合版本，包含草稿、问答、Revision 和 Ready 写入；与 revision_no 分离。条件 UPDATE 同时匹配 id/版本，并显式更新 updated_at。
+- Revision 在 Requirement 锁内按 MAX(revision_no)+1 分配；插入、最新指针、CLARIFYING 状态、聚合版本及审计同事务，回滚不消耗编号。
+- R04 写锁统一 Workspace → Project → Requirement（创建需求锁到 Project）；READ COMMITTED，FOR UPDATE，获得锁后重新用 Project Policy 授权。Client 不通过要求供应方 membership 的 Workspace Policy 校验。
+- 未来 Submit 延续 Workspace → Project → Requirement → CR 锁序，同事务验证唯一 Client、最新 Ready Revision 和 CR 版本。Revision 查询同需求全部 SUBMITTED/VENDOR_APPROVED CR；双方共锁 Requirement 防止检查后新增 Pending。不可先锁 CR 再回锁父项。
+- 问答父项必须是同需求 QUESTION，由领域服务校验；已有复合外键仅保证归属。问答追加共享 Requirement 锁，R04 不提供问答改删；历史 Revision 保留数据库不可变触发器。
+- 多查询读取使用只读 REPEATABLE READ 快照，避免授权与投影跨越 Client 更正。AuditWriter 复用同一 tx，扩展事件/版本类型，任何业务或审计失败整体回滚。

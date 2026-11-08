@@ -21,7 +21,13 @@ const codes: Record<number, string> = {
   503: 'SERVICE_UNAVAILABLE',
 };
 const domainCodes: Record<number, readonly string[]> = {
-  409: ['REGISTRATION_UNAVAILABLE', 'CLIENT_ASSIGNMENT_LOCKED'],
+  409: [
+    'REGISTRATION_UNAVAILABLE',
+    'CLIENT_ASSIGNMENT_LOCKED',
+    'STALE_VERSION',
+    'INVALID_TRANSITION',
+    'REVIEW_IN_PROGRESS',
+  ],
   422: ['ROLE_CONFLICT', 'USER_NOT_REGISTERED', 'WORKSPACE_DEVELOPER_REQUIRED'],
 };
 @Catch()

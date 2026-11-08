@@ -60,3 +60,12 @@ CI 本身成功不等于端到端业务全部通过；从未运行的测试不�
 - AC-03/04/05/16/23/24/26 获得本阶段 API/DB 证据；AC-15 只覆盖审计写入/原子性，审计查询待后续；AC-22 Submit 前 Client 必填及完整审批流程不在 R03。无浏览器、生产 HTTPS、外部安全审计或远程 CI 通过声明。
 
 实际命令、数量、环境故障及修复结果见 STATE.md。
+
+
+## R04 本地验证范围
+
+- Unit：DTO/版本边界、合法状态、Ready 资格、错误码白名单与 UUID。PostgreSQL：聚合更新、Revision 编号、不可变历史、审批中阻断、审计注入失败回滚；HTTP：8 接口三角色矩阵、作者限制、跨项目/Workspace、非法父问题、CSRF/Session、完整响应及真实 Next Rewrite smoke。
+- 并发使用独立连接、事务屏障和 pg_blocking_pids：同版本 PATCH/Revision 一成功一 stale；Ready/Revision、Ready/问答双顺序；Client 更正后的重新授权；模拟未来 Submit 的双顺序协议测试明确标注 fixture，不宣称 R05 完成。
+- 迁移测试：旧 0000–0002 存量升级、draft_version 默认值/CHECK、旧内容与历史保留、迁移器重复运行及旧 SQL 哈希。保留 R01/R02/R03 全部回归。
+- 已新增 test:e2e:requirements 及独立配置，接入现有 database CI job。0003 经人工批准后才执行数据库套件；openTestDatabase 会自动应用 migrations，未来新增 SQL 仍须先批准，不得以运行测试绕过审核。
+- R04 新增 3 项 DTO 单元、18 项领域 PostgreSQL 集成、1 项升级迁移、8 项 HTTP 矩阵与 1 项真实 Next Rewrite smoke；扩展现有异常过滤白名单测试。包含回归共 125 项本地测试通过，具体命令和已处理失败见 STATE。并发协议 fixture 不等于真实 R05 Submit；HTTP 测试不等于浏览器/生产验收。
