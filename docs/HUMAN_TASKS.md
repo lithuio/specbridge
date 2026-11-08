@@ -10,6 +10,9 @@
 
 - [x] H-02：审核 `apps/api/drizzle/0000_database_foundation.sql` 与 `0001_immutable_history.sql`。负责人于 2026-11-08 明确回复“已审批，可以继续”；两份 SQL 未改变。已在隔离 PostgreSQL 实例验证迁移与 10 项集成测试，解除迁移审批阻塞。运行证据和网络环境限制见 `STATE.md`；未来新增/修改迁移仍须审查。
 
+- [x] H-03（已解除 R02 数据库验证阻塞）：审核 `apps/api/drizzle/0002_session_activity.sql` 并批准仅在隔离测试实例应用。只增加 last_activity_at、回填 created_at、设 DEFAULT now()/NOT NULL；不修改 R01 SQL。SHA-256：`236ecd64b2a7d1ea437ba48a09077107e8cb789a3cced16f5a7dd080a9839ee3`。Issue #5 DoD 明确要求新增 SQL 人工审核。负责人明确回复“已审核通过，可以继续进行”；已核对 SQL 哈希不变，允许隔离实例迁移/验证，不涉及开发库或生产库。隔离迁移与 R01/R02 数据库/认证 E2E 已通过，证据见 STATE.md。
+- [x] R02 范围决策：负责人确认 /me 仅返回用户、重复注册通用 409、单实例内存限流。实现与验证状态见 STATE.md；不代表已通过安全 Review。
+
 ## 后续开发
 - [ ] 审核后续新增/修改的 ERD 与 Migration SQL，尤其租户/审批约束；R01 初始两份 SQL 见已完成 H-02。
 - [ ] 审核 Auth/Session/RBAC 的安全边界。

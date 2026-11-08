@@ -127,3 +127,22 @@ pnpm run db:test:down
 ```
 
 仅对可丢弃的测试实例使用：切换网络会重建容器并丢弃 tmpfs 测试数据。PostgreSQL 仍只绑定回环地址，不对外开放。本轮通过证据来自此临时配置；标准端口转发在当前机器仍有故障，不能将绕行成功表述为该故障已修复。CI 保留标准 PostgreSQL service，结果待远程执行。
+
+## R02 认证开发与验证
+
+API 环境需显式注入 DATABASE_URL、AUTH_TRUSTED_ORIGINS（开发默认 http://localhost:3000）与 AUTH_TRUSTED_PROXIES（开发默认 loopback；生产默认空）。运行时不自动读取根目录 .env。生产 Origin 必须精确 HTTPS 来源，无尾斜杠/通配符，多个来源用逗号分隔；现有 Next Rewrite 不保证覆盖客户端转发头，因此认证限流固定使用 API Socket 对端 IP，不受 AUTH_TRUSTED_PROXIES 影响，也不从其他头提取 IP。同一代理出口的用户共用注册/登录 IP 配额，可能互相触发 429；当前配置无法为限流可靠识别真实客户端 IP。Cookie/限流细节见 SECURITY.md。
+
+新增 0002_session_activity.sql 必须经人工审核，再执行数据库命令；审批和验证状态见 STATE.md。不要修改或重新生成覆盖 R01 的两份 SQL。
+
+```bash
+# 仅使用一次性公开测试凭据；先按上文启动隔离测试实例。
+export TEST_DATABASE_URL='postgresql://specbridge_test:local_test_only@127.0.0.1:5434/specbridge_test'
+pnpm --filter specbridge-api test:integration
+pnpm --filter specbridge-api test:e2e:auth
+```
+
+认证 E2E 自动编译 API、启动真实 HTTP listener；代理 smoke 还会临时启动编译产物和 Next dev，要求 3000/4000 空闲。测试结束关闭自己的子进程，不复用或停止用户服务。仅手动发送 Cookie，不替代浏览器验收。该测试可能更新本地 Next 缓存，不修改 Rewrite。
+
+前端 JSON 写请求使用 `Content-Type: application/json`、`X-CSRF-Protection: 1`；浏览器自动附带 Origin，必须匹配配置。curl/测试客户端需显式提供 Origin。Cookie 交给浏览器 HttpOnly 存储，不写入 localStorage；注册成功不自动登录。
+
+Argon2 使用依赖自带原生预编译二进制；本地和 CI 必须运行真实 hash/verify 测试。若目标平台无法加载，修复该平台的依赖安装，禁止降级到弱密码哈希。认证日志不包含请求体/凭据，Observe 未配置 key pair 时不发送。

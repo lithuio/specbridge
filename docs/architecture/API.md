@@ -212,3 +212,20 @@ MCP `list_project_requirements` 和 `get_approved_spec` 通过上述授权 API �
 **一致性**：所有写请求检查对象的父项目与身份；锁版本过期 `409 STALE_VERSION`。服务端不能根据客户端提交的 actorId、审批时间或 VersionId 信任其审批身份。
 
 **API 契约核对**：该文保持“设计契约”性质；NestJS 生成 OpenAPI 后需核查以上字段命名、权限、响应和错误码，不应当把未实现的路由标记为已上线。
+
+## R02 Authentication 实施补充
+
+本节落实 API-01～04。负责人确认 API-04 在 R02 仅返回用户；Workspace/Project 列表及授权后续实现。
+
+| 路由 | 成功响应 | 错误 |
+|---|---|---|
+| POST /api/v1/auth/register | 201 `{data:{id},meta:{requestId}}`；不自动登录 | 400 VALIDATION_ERROR；409 REGISTRATION_UNAVAILABLE；429 RATE_LIMITED |
+| POST /api/v1/auth/login | 200 `{data:{user},meta:{requestId}}` + Set-Cookie | 400；401 UNAUTHENTICATED（邮箱不存在/密码错误相同）；429 |
+| POST /api/v1/auth/logout | 204，无 body；撤销当前 Session、清 Cookie | 401（凭据无效）；403（CSRF 不满足） |
+| GET /api/v1/me | 200 `{data:{user},meta:{requestId}}` | 401 |
+
+`user` 仅包含 id、email、displayName、createdAt（ISO UTC）；不含角色、hash、Session ID 或 Token。所有认证 JSON 失败返回统一 error envelope；details 为安全空数组，未知异常返回通用 500 INTERNAL_ERROR。响应带服务端生成的 X-Request-Id，认证响应禁止缓存。Health 与根路由保持原成功格式。
+
+写请求必须发送 `Origin: <AUTH_TRUSTED_ORIGINS 中的精确来源>` 与 `X-CSRF-Protection: 1`，有请求体使用 application/json；Sec-Fetch-Site 存在时必须 same-origin。公共注册/登录同样受保护。CSRF 不满足优先返回 403，满足 CSRF 但缺失/过期 Session 返回 401。空 logout body 可省略 Content-Type，其余保护头仍必需。无跨域凭据 CORS，无 CSRF Token 获取端点。
+
+邮箱 trim + lowercase；注册 password 15–128 Unicode code points / 至多 512 bytes，displayName trim 后 1–100；未知字段（含 userId/role）返回 400。重复注册 409 不返回已存在账号信息，但注册成功/失败仍构成已确认接受的有限枚举风险。429 提供 Retry-After 秒数。

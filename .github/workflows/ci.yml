@@ -74,3 +74,6 @@ jobs:
       # Apply only committed, human-reviewed SQL; never generate/push schema in CI.
       - name: PostgreSQL migrations and integration tests
         run: pnpm --filter specbridge-api test:integration
+
+      - name: Authentication HTTP and compiled Web proxy E2E
+        run: pnpm --filter specbridge-api test:e2e:auth

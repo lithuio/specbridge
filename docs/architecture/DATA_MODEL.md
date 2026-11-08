@@ -33,7 +33,7 @@ erDiagram
 | 表 | 主字段 | 约束 / 索引 |
 |---|---|---|
 | `users` | `id uuid PK`, `email text`, `display_name text`, `password_hash text`, `created_at` | `unique(lower(email))`（R01 选择，无需 citext 扩展）；密码哈希不外发 |
-| `sessions` | `id uuid PK`, `user_id FK`, `token_hash char(64)`, `expires_at`, `revoked_at nullable`, `created_at` | `unique(token_hash)`，索引 `(user_id, expires_at)`；仅存哈希 |
+| `sessions` | `id uuid PK`, `user_id FK`, `token_hash char(64)`, `expires_at`, `last_activity_at`, `revoked_at nullable`, `created_at` | `unique(token_hash)`，索引 `(user_id, expires_at)`；仅存哈希 |
 | `workspaces` | `id uuid PK`, `name`, `owner_id FK users`, `created_at` | Owner 必须有效，工作空间主键是租户边界 |
 | `workspace_members` | `id uuid PK`, `workspace_id FK`, `user_id FK`, `role enum OWNER/DEVELOPER`, `created_at` | 唯一 `(workspace_id,user_id)`；创建时在同一事务写入唯一 Owner 成员，`workspaces.owner_id` 与 Owner 成员必须一致 |
 
@@ -155,4 +155,4 @@ COMMIT;
 ### 已识别、经负责人确认延后的契约缺口
 
 - API-16 的 `expectedVersion` 和响应示例 `draftVersion` 尚无对应 Requirement 并发字段：在 Requirement 功能任务中明确，不在 R01 擅自添加。
-- Session 空闲失效的活动时间存储尚未明确：在 Auth/Session 任务中明确，当前 `expires_at` 不代表完整空闲失效能力。
+- Session 空闲失效在 R02 明确：新增 0002_session_activity.sql 添加 last_activity_at timestamptz NOT NULL DEFAULT now()；旧记录回填 created_at，保留原会话年龄。expires_at 仅表示 7 天绝对期限，last_activity_at 表示 24 小时空闲期限。新增 SQL 审核/验证状态见 STATE.md；R01 0000/0001 不改动。

@@ -80,6 +80,9 @@ export const sessions = pgTable(
       .references(() => users.id, { onDelete: 'restrict' }),
     tokenHash: char('token_hash', { length: 64 }).notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    lastActivityAt: timestamp('last_activity_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
