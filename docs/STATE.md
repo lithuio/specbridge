@@ -1,8 +1,79 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-09。当前检查点为 R03 P2 UUID 修复；下方保留初始实现及 R02/R01 历史证据。
+> 更新时间：2026-11-09。当前检查点为 R04 本地实现与验证完成；下方保留 SQL 待审及 R03/R02/R01 历史证据。
 
-## R03 P2 UUID 修复（当前检查点）
+## R04 Requirement & Revision — 当前检查点
+
+分支 `feat/9-requirement-revision`，基线 HEAD `e80e657`，[Issue #9](https://github.com/lithuio/specbridge/issues/9)。负责人明确回复“已审批”，H-05 解除；执行前复核 0003 SHA-256 `73d3b4839fdc64f43a420a4cf4bd15f2923e194a014a86d174a205ddd4695d68` 一致。
+
+**状态：8 个 API、事务授权/审计、并发控制及本地验证完成；125 项测试通过，等待人工安全/并发 Review 和后续获授权的远程 CI。未提交、推送、合并或部署。**
+
+### 已完成
+
+- API-13～20：需求创建/项目列表/详情/DRAFT 作者或 Owner 编辑；项目成员问答；Owner/Developer 不可变 Revision 和 Ready；历史分页。输入边界、未知字段、Session/CSRF、no-store、安全错误及 UUID 规范化延续现有约定。
+- draft_version 持久化并映射 draftVersion；4 个已有需求写接口统一 expectedVersion，每次成功只加 1。行锁和条件 UPDATE 配合，stale/非法状态/业务失败无副作用。版本耗尽返回 422，不溢出。
+- 所有问题必答；ANSWER 只引用同需求 QUESTION。READY 禁止问答；新 Revision 使状态回到 CLARIFYING。Ready 检查最高编号与最新指针、非空正文/验收标准、全部问题已答。
+- AuthorizationRepository 增加共享 projectWrite，复用 R03 Policy，Workspace → Project → Requirement 锁后重新授权。读取用只读 REPEATABLE READ 快照。所有领域写入与 AuditWriter 共用 tx；事件只记录 ID、版本、字段名和状态，不记录正文。
+- 新 Revision 在锁内分配编号、检查本需求全部 Pending CR，原子更新指针/状态/聚合版本。未来 Submit 锁协议双顺序验证采用明确标注的 SQL fixture，不宣称 R05 已实现。
+- 已批准 0003 在 5434 隔离 PostgreSQL 应用；存量升级、历史不可变、重复迁移、旧数据保留验证通过。无新增依赖，无 Auth/Next Rewrite 修改，0000–0002 SQL/snapshot 未变。
+- 新增 3 单元、18 领域集成、1 升级迁移、8 HTTP 矩阵与 1 代理 smoke；异常码测试扩展。新增 requirements E2E script/config，CI database job 增加顺序执行项。架构/API/安全/验收/测试文档同步。
+
+### 实际验证
+
+数据库命令显式设置 `TEST_DATABASE_URL` 为 5434 专用 specbridge_test 角色/库，不回退开发配置；沿用 `/tmp/specbridge-r01-test-host.yml`，未修改仓库 Compose 或修复宿主端口转发问题。
+
+| 状态 | 实际命令/检查 | 结果 |
+|---|---|---|
+| PASS | `pnpm --filter specbridge-api test` | 7 文件、35 项单元测试 |
+| PASS | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:integration` | 6 文件、47 项 PostgreSQL 测试，含 R01–R03 回归；沙箱外 |
+| PASS | `pnpm --filter specbridge-api test:e2e` | 3 文件、5 项基础 HTTP 回归；沙箱外 |
+| PASS | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:e2e:requirements` | 2 文件、9 项真实 HTTP/编译 API + Next Rewrite；沙箱外 |
+| PASS | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:e2e:auth` | 2 文件、16 项，保留全部转发头限流回归；沙箱外 |
+| PASS | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:e2e:rbac` | 2 文件、13 项，含 R03 UUID 回归；沙箱外 |
+| PASS | `pnpm --filter specbridge-api typecheck`、`pnpm run lint` | API 类型与 API/Web lint |
+| PASS | `pnpm run build` | API/Web 完整构建，保留失败缓存后沙箱外通过 |
+| PASS | `pnpm --filter specbridge-api db:check`、`git diff --check`、SQL 哈希及旧 snapshot 比较 | 迁移元数据/空白/历史文件检查 |
+| PASS | 隔离库只读核对 | PostgreSQL 17.11、specbridge_test 库/角色、4 条迁移；draft_version DEFAULT 1 NOT NULL |
+| PASS | 测试 Compose down、docker ps | 已移除本轮测试容器；5433 开发容器仍 healthy，未访问开发数据 |
+| NOT RUN | 远程 CI、人工安全/并发 Review、浏览器/生产验证 | 未推送/部署，不能据此宣称 Issue 全部 DoD 完成 |
+
+已处理失败：沙箱数据库 connect EPERM，集成 47 项和 R04 HTTP 9 项当次未执行，获准沙箱外重跑；首次真实集成 45 PASS / 2 FAIL 为新测试的 text/uuid 审计查询比较错误，补显式 text cast 后 47 PASS，未改生产逻辑掩盖失败。Web 构建沙箱端口权限失败，首次沙箱外重跑仍复用失败缓存；缓存保留于 `/tmp/specbridge-r04-build-cache-688nmga3/next` 后完整构建通过，未修改 Web 代码。构建产生的 tracked tsbuildinfo 已恢复。
+
+### 边界与交接
+
+- H-05 完成；H-06 人工安全/并发 Review 待完成。未来 R05 必须共享 Workspace → Project → Requirement → CR 锁序，否则无法依赖当前 Pending 检查防竞态。
+- 同 Workspace 写入串行，适合当前小团队范围；无 RLS，任意直接 SQL 不属于 API 授权保证。Clarification 无公开改删入口；Revision 数据库触发器保留。
+- AC-06/07/08/25 及新端点 AC-05/16 获得本地 API/DB 证据；AC-15 仅审计写入，AC-09 仅 Ready 前置。无审计查询、R05 审批、前端页面或全 P0 完成声明。
+- 建议提交/PR：`feat(requirements): add clarification and immutable revisions (#9)`。下一步为负责人 Review 与后续授权的提交/远程 CI，不自动执行。
+
+---
+
+## R04 Requirement & Revision — SQL 审阅检查点（历史，H-05 已解除）
+
+分支 `feat/9-requirement-revision`，基线 HEAD `e80e657`（已含 R03 合并），[Issue #9](https://github.com/lithuio/specbridge/issues/9)。开始时工作区干净。负责人批准实施计划；本轮完成契约落地和迁移生成，按“生成 SQL 后先暂停供人工审核”停在 H-05，**R04 业务 API 尚未实现**。
+
+- 已确认并记录：PATCH/问答/Revision/Ready 统一 expectedVersion；每次成功写入推进 draftVersion；READY 禁止问答，先由 Owner/Developer 创建 Revision 重开澄清；所有问题必答，合法 Answer 存在即已答。细节见 API、STATE_MACHINES、DATA_MODEL、ADR-003；安全/验收/测试文档同步标明待实现。
+- Schema 新增 requirements.draftVersion；生成 `0003_requirement_draft_version.sql` 和 snapshot/journal。SQL 只有新增 integer NOT NULL DEFAULT 1 列和正数 CHECK。旧行从 1 开始，不重写历史内容或推算旧版本。
+- 新 SQL SHA-256：`73d3b4839fdc64f43a420a4cf4bd15f2923e194a014a86d174a205ddd4695d68`。0000–0002 SQL 哈希与原批准记录一致；旧 snapshot 与 HEAD 逐字节一致。新 snapshot 与旧版规范化比较仅多该列及 CHECK，prevId 正确。
+
+| 状态 | 实际命令/检查 | 结果 |
+|---|---|---|
+| PASS | `pnpm --filter specbridge-api exec drizzle-kit generate --name=requirement_draft_version` | 离线生成 0003；不连接数据库 |
+| PASS | `pnpm --filter specbridge-api db:check` | 迁移元数据有效，不代表 SQL 已执行 |
+| PASS | `pnpm --filter specbridge-api typecheck` | Schema 及现有代码/测试类型检查 |
+| PASS | `pnpm --filter specbridge-api test` | 6 文件、32 项现有单元测试；不是 R04 功能验收 |
+| PASS | `pnpm --filter specbridge-api lint` | API 类型感知 lint |
+| PASS | snapshot 结构差异与历史 SQL/snapshot 比较、`git diff --check` | 无额外 Schema 改动或空白错误 |
+| BLOCKED | H-05 新 SQL 人工审核 | 未获批准，不执行迁移 |
+| NOT RUN | PostgreSQL 集成、HTTP/代理 E2E、完整构建、远程 CI | 数据库测试初始化会自动应用迁移，必须等 H-05；本轮无业务/前端改动，未运行完整构建 |
+
+下一步：负责人审核 H-05；批准后核对 SQL 哈希，继续共享项目写锁/授权、AuditWriter/错误码扩展、Requirements 模块与 8 接口，再在隔离 PostgreSQL 验证迁移、领域并发/回滚、HTTP 权限矩阵及 R01–R03 回归。统一锁序 Workspace → Project → Requirement → CR；未来 Submit 必须共享 Requirement 锁，协议 fixture 不代表 R05 已实现。
+
+本轮未安装依赖、连接/迁移数据库、提交、推送、合并或部署。无新增业务测试文件；迁移批准前保留明确停止点。建议本检查点提交摘要：`feat(requirements): define R04 contract and add draft version migration`（未执行提交）。
+
+---
+
+## R03 P2 UUID 修复（历史检查点）
 
 基线 HEAD `c32b43a`，分支 `feat/7-workspace-project-rbac`，Issue #7。开始时工作区干净。本轮仅修复 Review 指出的 Developer 分配响应缺失问题，无 Commit/Push/Merge。
 

@@ -89,6 +89,18 @@ export class AuthorizationRepository {
     if (!result.rows[0]) throw new NotFoundException();
     return result.rows[0];
   }
+  // Shared write protocol: Client may lock the Workspace without supplier membership.
+  async projectWrite(userId: string, id: string, tx: DatabaseTransaction) {
+    const visible = await this.project(userId, id, tx);
+    await tx.execute(
+      sql`SELECT id FROM workspaces WHERE id=${visible.workspaceId} FOR UPDATE`,
+    );
+    const locked = await tx.execute(
+      sql`SELECT id FROM projects WHERE id=${visible.id} AND workspace_id=${visible.workspaceId} FOR UPDATE`,
+    );
+    if (!locked.rows.length) throw new NotFoundException();
+    return this.project(userId, visible.id, tx);
+  }
   async projectOwner(userId: string, id: string, tx: DatabaseTransaction) {
     const visible = await this.project(userId, id, tx);
     if (visible.projectRole !== 'OWNER') throw new ForbiddenException();

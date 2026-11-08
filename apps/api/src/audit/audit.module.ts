@@ -15,8 +15,20 @@ export class AuditWriter {
         | 'project.created'
         | 'project.developer_added'
         | 'project.client_bound'
-        | 'project.client_replaced';
-      entityType: 'workspace' | 'project';
+        | 'project.client_replaced'
+        | 'requirement.created'
+        | 'requirement.draft_updated'
+        | 'clarification.question_added'
+        | 'clarification.answer_added'
+        | 'requirement.revision_created'
+        | 'requirement.marked_ready';
+      entityType:
+        | 'workspace'
+        | 'project'
+        | 'requirement'
+        | 'clarification'
+        | 'requirement_revision';
+      entityVersion?: number;
       entityId: string;
       metadata?: Record<string, unknown>;
     },

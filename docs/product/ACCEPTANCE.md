@@ -70,3 +70,11 @@
 | AC-27 | 某已批准 CR 已有 SUBMITTED Delivery 或 ACCEPTED Delivery | 再次创建 Delivery | 对未审情况返回 409 `DELIVERY_PENDING`；已验收后返回 409 `DELIVERY_COMPLETED`；退回后允许新 HTTPS 链接交付 |
 
 **交付格式补充**：`artifactUrl` 为 HTTPS URL，`summary` 为纯文本，`evidenceLinks` 为可选 HTTPS URL 数组；不接受二进制文件上传或服务端自动抓取 URL。
+
+
+## R04 验收细化（本地 API/数据库证据见 STATE）
+
+- AC-06/16：仅 DRAFT 作者/Owner 可 PATCH；全部已有 Requirement 写接口要求 expectedVersion，过期 409 STALE_VERSION 且无业务/审计副作用。
+- AC-07：所有问题均必答，至少一个同需求合法 Answer 即已答；父项必须是 QUESTION。READY 禁止追加问答；Owner/Developer 创建新 Revision 后恢复 CLARIFYING，再重新 Mark Ready。Client 无 Revision/Ready 权限。
+- AC-08/25：同版本并发 Revision 一成功一 stale，刷新后重试编号连续；Ready/Revision 竞争不能确认未看过的新版本；任一 SUBMITTED/VENDOR_APPROVED CR 阻断新 Revision。
+- 本阶段 AC-15 仅验证事务审计写入，AC-09 仅提供最新 Ready Revision 前置条件；不代表审计查询、Submit/审批或浏览器验收完成。

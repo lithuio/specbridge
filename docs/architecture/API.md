@@ -1,6 +1,6 @@
 # SpecBridge REST API 契约（设计基线）
 
-> v0.2（P0 需求基线已确认）｜Base Path：`/api/v1`｜API-01～12、API-32 与 Client 绑定已有实现；其余业务接口仍为设计基线。后续 NestJS 生成 OpenAPI，必须与本文保持一致。
+> v0.2（P0 需求基线已确认）｜Base Path：`/api/v1`｜API-01～20、API-32 与 Client 绑定已有实现；其余业务接口仍为设计基线。后续 NestJS 生成 OpenAPI，必须与本文保持一致。
 
 ## 1. 统一约定
 
@@ -42,10 +42,10 @@
 | API-14 | `POST /projects/{projectId}/requirements` | Project member | title、originalText → Draft |
 | API-15 | `GET /requirements/{requirementId}` | Project viewer | 原始需求/澄清/最新版本 |
 | API-16 | `PATCH /requirements/{requirementId}` | Draft 作者或 Owner | 标题/草稿正文；带 expectedVersion；不改变原始需求已形成的 Revision |
-| API-17 | `POST /requirements/{requirementId}/clarifications` | Project member | kind QUESTION/ANSWER、parentId、body |
-| API-18 | `POST /requirements/{requirementId}/revisions` | Owner/Developer | content、acceptanceCriteria → 不可变 Revision |
+| API-17 | `POST /requirements/{requirementId}/clarifications` | Project member | expectedVersion、kind QUESTION/ANSWER、parentId、body |
+| API-18 | `POST /requirements/{requirementId}/revisions` | Owner/Developer | expectedVersion、content、acceptanceCriteria → 不可变 Revision |
 | API-19 | `GET /requirements/{requirementId}/revisions` | Project viewer | Revision history |
-| API-20 | `POST /requirements/{requirementId}/mark-ready` | Owner/Developer | 必须有有效 Revision → Ready |
+| API-20 | `POST /requirements/{requirementId}/mark-ready` | Owner/Developer | expectedVersion；必须有有效最新 Revision → Ready |
 | API-21 | `POST /requirements/{requirementId}/change-requests` | Owner/Developer | 以最新 Ready Revision 新建 Draft ChangeRequest |
 | API-22 | `GET /change-requests/{changeId}` | Project viewer | 当前 Draft/Version/审批/交付信息（字段按角色裁剪） |
 | API-23 | `PATCH /change-requests/{changeId}` | Owner/Developer | 仅 Draft 可编辑 `draft*` 商业评估（含需求版本、工时、费用、工期、验收标准），expectedVersion |
@@ -90,12 +90,13 @@ API-32 实际完整路径为 `GET /api/v1/health`，无需认证，返回 HTTP 2
 
 ```json
 {
+  "expectedVersion": 3,
   "content":"仅已注册会员可累积积分；规则由客户明确确认",
   "acceptanceCriteria":["用户能看到积分余额","退款完成后余额按批准规则回退"]
 }
 ```
 
-201: `{ "data": { "id": "uuid-rev", "revisionNo": 2 } }`。旧版无法通过 PATCH 更新。
+201: `{ "data": { "id": "uuid-rev", "requirementId": "uuid-req", "revisionNo": 2, "draftVersion": 4, "status": "CLARIFYING", "latestRevisionId": "uuid-rev" }, "meta": { "requestId": "req-abc" } }`（其余 Revision 字段省略）。旧版无法通过 PATCH 更新。
 
 ### 提交变更快照
 
@@ -255,3 +256,21 @@ MCP `list_project_requirements` 和 `get_approved_spec` 通过上述授权 API �
 - 领域错误 code 仅通过“状态码+code”白名单返回；details 为空，不回传数据库错误、SQL 或约束名称。
 - Workspace/Project 创建不承诺 Idempotency-Key，重复创建可产生独立对象；名称不作为唯一键。成员重复分配无副作用，不能据此改变既有角色。
 - Client 锁定由任意历史 ChangeRequestVersion 判断，不依赖 CR 当前状态或 active pointer。R03 不实现 Submit；AC-22 仍留后续变更工作流验收。
+
+
+## R04 Requirement / Revision 实施契约
+
+API-13～20 已完成本地实现及 PostgreSQL/HTTP/代理测试；未部署。SQL 审核与验证证据见 STATE / HUMAN_TASKS。
+
+- Requirement 创建返回 `draftVersion=1`。PATCH、添加问答、创建 Revision、Mark Ready 均必填正整数 `expectedVersion`，与持久化 `draftVersion` 比较；每次成功写入（含同值 PATCH）只递增一次，同时更新 updatedAt。版本不是 revisionNo；相同版本并发请求一成功一 `409 STALE_VERSION`，失败无业务记录或审计。
+- PATCH 至少提供 title/originalText 之一，只允许 DRAFT 原作者或 Owner；不接收项目、作者、status、最新指针等服务端字段。
+- 三种项目角色均可提问/回答；QUESTION 的 parentId 省略或 null，ANSWER 必须引用同需求 QUESTION。非法父项统一 422 BUSINESS_RULE_VIOLATION，不披露其他资源。READY 下问答返回 409 INVALID_TRANSITION，须先由 Owner/Developer 创建 Revision。
+- 创建 Revision 使状态变为 CLARIFYING，首次创建亦如此；正文非空，acceptanceCriteria 可以为空数组。Mark Ready 必须确认最高 revisionNo 对应的最新指针、非空正文、非空验收标准及全部问题已答。重复 Mark Ready 返回 409 INVALID_TRANSITION。
+- title trim 后 1–200 字符；originalText/content 1–20,000；问答 body 1–10,000；验收标准最多 100 条，每条 trim 后 1–1,000 字符，保留文本内部换行。拒绝未知字段、null 可编辑文本、空 PATCH 和非法 UUID/版本。版本受 PostgreSQL integer 上限约束，耗尽时拒绝写入，不溢出或归零。
+- 需求列表按 createdAt/id 升序，含 draftVersion/latestRevisionId/latestRevisionNo；Revision 历史按 revisionNo 降序，均复用 limit/offset/hasMore。详情含原文、按 createdAt/id 排序的问答及完整最新 Revision。
+- 问答/Revision 创建返回 201，保留自身字段，并附 requirementId/draftVersion/status/latestRevisionId；PATCH、Mark Ready 返回 200 更新后需求。沿用 data/meta.requestId、no-store 和安全字段投影。
+- 检查顺序：Session/CSRF、输入校验、数据库父链与项目可见性、操作权限、expectedVersion、状态与业务资格。不可见 404，无操作权 403；版本过期 409 STALE_VERSION；非法状态 409 INVALID_TRANSITION；待审批禁止修订 409 REVIEW_IN_PROGRESS；Ready 不合格 422 BUSINESS_RULE_VIOLATION。details 保持安全空数组。
+- UUID 在 Service 边界规范化，响应/审计使用数据库规范 ID；不得只依赖 DTO 转换。Client 无权创建 Revision 或 Mark Ready。创建 Requirement 不要求已绑定 Client。
+
+- 审计事件为 requirement.created、requirement.draft_updated、clarification.question_added/answer_added、requirement.revision_created、requirement.marked_ready。Revision 事件 entityVersion 为 revisionNo，metadata 包含 requirementId/draftVersion；其他写操作记录聚合版本。字段/状态/ID 为白名单元数据，不记录正文。业务失败或审计失败整体回滚。
+- 已有需求写入若 draftVersion 达到 2147483647，或创建 Revision 时 revisionNo 达到该上限，返回 422 BUSINESS_RULE_VIOLATION。无客户端自动重试或 Idempotency-Key 承诺。
