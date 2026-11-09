@@ -69,3 +69,11 @@ CI 本身成功不等于端到端业务全部通过；从未运行的测试不�
 - 迁移测试：旧 0000–0002 存量升级、draft_version 默认值/CHECK、旧内容与历史保留、迁移器重复运行及旧 SQL 哈希。保留 R01/R02/R03 全部回归。
 - 已新增 test:e2e:requirements 及独立配置，接入现有 database CI job。0003 经人工批准后才执行数据库套件；openTestDatabase 会自动应用 migrations，未来新增 SQL 仍须先批准，不得以运行测试绕过审核。
 - R04 新增 3 项 DTO 单元、18 项领域 PostgreSQL 集成、1 项升级迁移、8 项 HTTP 矩阵与 1 项真实 Next Rewrite smoke；扩展现有异常过滤白名单测试。包含回归共 125 项本地测试通过，具体命令和已处理失败见 STATE。并发协议 fixture 不等于真实 R05 Submit；HTTP 测试不等于浏览器/生产验收。
+
+## R05 ChangeRequest / Approval
+
+- DTO 单元：非负 CR 版本、精确工时、金额安全边界、币种、NULL 清空、未知字段/身份注入。
+- `test/database/changes.integration-spec.ts` 使用真实领域服务和 PostgreSQL：不可变版本、顺序审批、双拒绝路径、新版重审、六类审计失败回滚、版本耗尽、异常 active pointer、多个 Pending、金额边界、UUID、Client 换绑时读取快照。
+- 并发测试通过 AuditWriter/Repository 屏障和 pg_blocking_pids 观察真实锁等待，覆盖 Submit/Client 更换、Submit/Revision 两种顺序，双 Submit、双阶段决定竞争及 Owner/Client 双顺序；原 R03/R04 fixture 保留其结构协议定位。
+- `test:e2e:changes` 执行真实 PostgreSQL + HTTP 七接口权限/输入/并发/回滚矩阵及编译 API + Next Rewrite 主链路；CI database job 在既有套件后顺序运行，避免共享测试端口冲突。
+- `TEST_DATABASE_URL` 必须指向隔离库，不回退开发配置；openTestDatabase 会应用既有已审 SQL，新迁移如未批准须在运行套件前暂停。具体命令和 PASS/FAIL/NOT RUN 见 STATE。

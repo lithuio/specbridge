@@ -177,3 +177,14 @@ COMMIT;
 - 未来 Submit 延续 Workspace → Project → Requirement → CR 锁序，同事务验证唯一 Client、最新 Ready Revision 和 CR 版本。Revision 查询同需求全部 SUBMITTED/VENDOR_APPROVED CR；双方共锁 Requirement 防止检查后新增 Pending。不可先锁 CR 再回锁父项。
 - 问答父项必须是同需求 QUESTION，由领域服务校验；已有复合外键仅保证归属。问答追加共享 Requirement 锁，R04 不提供问答改删；历史 Revision 保留数据库不可变触发器。
 - 多查询读取使用只读 REPEATABLE READ 快照，避免授权与投影跨越 Client 更正。AuditWriter 复用同一 tx，扩展事件/版本类型，任何业务或审计失败整体回滚。
+
+## R05 领域实现
+
+不新增 Schema/Migration；CR 沿用 lock_version DEFAULT 0 / CHECK >=0，HTTP expectedVersion 与之对齐，Requirement draft_version 不改。商业字段 NULL 仍表示未评估，Submit 后对应字段全部必填。
+
+- CRVersion 没有状态列；当前阶段由 CR.status 表达，每个历史版本的决定由不可变 Approval 记录表达，拒绝时不更新冻结表。activeVersionId 必须属于 CR 且为该 CR 最新 Version；审批还验证其 Revision 属于 CR 的 Requirement。
+- 创建锁 Workspace→Project→Requirement；其余 CR 写锁完整 Workspace→Project→Requirement→CR，并锁后复核父链/权限。Version 编号在锁内查询最大值再加一，唯一键兜底；CR UPDATE 匹配父项、原状态、lockVersion、activeVersionId，业务与审计共享 tx。
+- Submit 和 R03 Client 更换共享父级锁；首次提交成功后任意历史 Version 永久锁定 Client，拒绝/重开不解除。Submit 和 R04 Revision 共享 Requirement 锁；任一 Pending CR 阻断 Revision，无每需求单 CR 限制。
+- 重开保留旧快照指针和草稿值；DRAFT 不允许决定。下一次 Submit 新建 Version，并切换指针，不沿用旧 Approval。Approved CR 终态保留。
+- HTTP 金额只接受安全整数，存储仍 bigint；工时保留精确 numeric 字符串，禁止浮点往返。超出 HTTP 金额范围的异常存量安全报错，不自动迁移或舍入。
+- 复用原不可变触发器；不承诺任意直接 SQL 的完整业务合法性或 RLS。审计表未新增不可变触发器。测试和 Review 证据见 STATE。

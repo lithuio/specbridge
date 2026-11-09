@@ -63,6 +63,8 @@ it('preserves only allowlisted domain codes with the matching HTTP status', asyn
   for (const [status, code, expected] of [
     [409, 'CLIENT_ASSIGNMENT_LOCKED', 'CLIENT_ASSIGNMENT_LOCKED'],
     [409, 'STALE_VERSION', 'STALE_VERSION'],
+    [409, 'ALREADY_REVIEWED', 'ALREADY_REVIEWED'],
+    [422, 'CLIENT_REQUIRED', 'CLIENT_REQUIRED'],
     [409, 'INVALID_TRANSITION', 'INVALID_TRANSITION'],
     [409, 'REVIEW_IN_PROGRESS', 'REVIEW_IN_PROGRESS'],
     [422, 'STALE_VERSION', 'BUSINESS_RULE_VIOLATION'],

@@ -27,8 +27,14 @@ const domainCodes: Record<number, readonly string[]> = {
     'STALE_VERSION',
     'INVALID_TRANSITION',
     'REVIEW_IN_PROGRESS',
+    'ALREADY_REVIEWED',
   ],
-  422: ['ROLE_CONFLICT', 'USER_NOT_REGISTERED', 'WORKSPACE_DEVELOPER_REQUIRED'],
+  422: [
+    'CLIENT_REQUIRED',
+    'ROLE_CONFLICT',
+    'USER_NOT_REGISTERED',
+    'WORKSPACE_DEVELOPER_REQUIRED',
+  ],
 };
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {

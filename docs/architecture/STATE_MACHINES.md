@@ -83,3 +83,11 @@ stateDiagram-v2
 | 非当前项目账号审批/验收 | 403/404 | 无泄露、无副作用 |
 
 未记录的非法状态转移默认拒绝；所有状态变更由 NestJS 领域服务统一实现。
+
+## R05 实施细化
+
+- CR 初始 lockVersion=0；所有已有 CR 写操作携带非负 expectedVersion，成功递增一次，失败零副作用；Requirement draftVersion 独立。
+- resubmit 只是 REJECTED→DRAFT，保留旧 activeVersionId/商业值；DRAFT 不能审批，下一次 Submit 才生成新 Version。旧 Revision 非最新 Ready 时必须 PATCH 显式选择新 Revision。
+- APPROVED 终态不能 PATCH/resubmit；新增范围用新 Revision、新 CR。多个 CR 可以引用同一 Ready Revision，任何一个 Pending 都阻止新 Revision。
+- CRVersion 本身没有可变 status；历史拒绝/批准由其 Approval 决定记录表示。Client 决定必须验证 active Version 是最新、归属正确且有同 Version 的 Owner APPROVED。
+- 先判 stale，再判已有决定/合法阶段；同一预期版本竞争一成功一 STALE_VERSION，刷新后重复已决定步骤 ALREADY_REVIEWED。Client 先到时 INVALID_TRANSITION；等待 Owner 提交后旧 expectedVersion 为 STALE_VERSION，不自动批准新状态。

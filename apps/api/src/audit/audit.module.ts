@@ -21,13 +21,20 @@ export class AuditWriter {
         | 'clarification.question_added'
         | 'clarification.answer_added'
         | 'requirement.revision_created'
-        | 'requirement.marked_ready';
+        | 'requirement.marked_ready'
+        | 'change_request.created'
+        | 'change_request.draft_updated'
+        | 'change_request.submitted'
+        | 'change_request.vendor_decided'
+        | 'change_request.client_decided'
+        | 'change_request.reopened';
       entityType:
         | 'workspace'
         | 'project'
         | 'requirement'
         | 'clarification'
-        | 'requirement_revision';
+        | 'requirement_revision'
+        | 'change_request';
       entityVersion?: number;
       entityId: string;
       metadata?: Record<string, unknown>;
