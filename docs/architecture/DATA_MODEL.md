@@ -188,3 +188,13 @@ COMMIT;
 - 重开保留旧快照指针和草稿值；DRAFT 不允许决定。下一次 Submit 新建 Version，并切换指针，不沿用旧 Approval。Approved CR 终态保留。
 - HTTP 金额只接受安全整数，存储仍 bigint；工时保留精确 numeric 字符串，禁止浮点往返。超出 HTTP 金额范围的异常存量安全报错，不自动迁移或舍入。
 - 复用原不可变触发器；不承诺任意直接 SQL 的完整业务合法性或 RLS。审计表未新增不可变触发器。测试和 Review 证据见 STATE。
+
+## R06 交付事务落实（方案 A）
+
+复用 deliveries / delivery_reviews 和 0000～0003；不添加 lock_version，不生成 Migration。已存在 deliveries_version_number_unique、deliveries_one_submitted、delivery_reviews_delivery_unique，后者保证 delivery_id 唯一。
+
+创建和 Review 共享 Workspace→Project→Requirement→CR 行锁，Review 追加 Delivery FOR UPDATE；定位父链的无锁查询不作为最终授权依据。锁后检查当前 APPROVED CR、active/最高 Version、Revision 归属及同版本 Owner/Client APPROVED。不因后续 Requirement Revision 否定旧批准规格。
+
+同 tx 检查 ACCEPTED/SUBMITTED、计算 MAX(delivery_no)+1 并 INSERT；失败不消耗编号。Review 仅 INSERT，Delivery UPDATE 限 id/已验证 Version/status=SUBMITTED，必须命中一行；Review/状态/Audit 同事务，异常完整回滚。CR 与 Requirement 版本不变。
+
+DeliveryReview 沿用数据库不可变触发器；Delivery 本体只有一次终审状态 UPDATE，Repository 不提供正文修改/删除入口，无公开 PATCH/DELETE。任意直接 SQL 修改 Delivery 不在领域保证内；不宣称增加了数据库级 Delivery 内容触发器。历史读取在只读 REPEATABLE READ 中授权并按 CR 的全部 Version 返回分页 Delivery+Review。

@@ -27,14 +27,17 @@ export class AuditWriter {
         | 'change_request.submitted'
         | 'change_request.vendor_decided'
         | 'change_request.client_decided'
-        | 'change_request.reopened';
+        | 'change_request.reopened'
+        | 'delivery.submitted'
+        | 'delivery.reviewed';
       entityType:
         | 'workspace'
         | 'project'
         | 'requirement'
         | 'clarification'
         | 'requirement_revision'
-        | 'change_request';
+        | 'change_request'
+        | 'delivery';
       entityVersion?: number;
       entityId: string;
       metadata?: Record<string, unknown>;

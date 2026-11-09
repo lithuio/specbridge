@@ -9,5 +9,6 @@ import { ChangesRepository } from './changes.repository.js';
   imports: [DatabaseModule, AuthorizationModule, AuditModule],
   controllers: [ChangesController],
   providers: [ChangesService, ChangesRepository],
+  exports: [ChangesRepository],
 })
 export class ChangesModule {}

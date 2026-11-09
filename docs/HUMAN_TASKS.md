@@ -3,6 +3,7 @@
 仅列必须由项目负责人决定或亲自核验的事项；Agent 不得把本表当作自动执行指令。
 
 ## 现在
+- [ ] H-08：R06 人工安全/并发 Review。负责人已批准方案 A 并授权实施；本地 240 项测试、类型/Lint/完整构建已通过。重点核对父链/角色锁后重验、同版本批准证据、Workspace→Project→Requirement→CR→Delivery 锁序、SUBMITTED 条件更新、真实 23505 回滚映射、退回重交/Accepted 终态和审计原子性。原因：Issue #13 DoD 要求人工安全/并发评审。状态：待审核，不阻塞已完成本地实现；不授权提交/推送/合并/部署，远程 CI/PR 需后续授权。无新增 Schema/Migration 或 SQL 审批任务。
 - [ ] H-07：R05 人工安全/并发 Review。负责人已批准规划及版本从 0 开始、Client 草稿隔离/正式评论公开的契约；本地 176 项测试、类型/Lint/完整构建已通过。重点：七接口授权、同 Version 双批准、拒绝重提、共享锁与 R03/R04 竞争、审计回滚和金额序列化。原因：Issue #11 DoD 要求人工 Review；不阻塞已完成实现，不授权提交/推送/合并/部署。无新增 Migration；下一步在获授权后运行远程 CI。
 - [x] H-05：R04 `apps/api/drizzle/0003_requirement_draft_version.sql` 已获负责人明确回复“已审批”。执行前核对 SHA-256 `73d3b4839fdc64f43a420a4cf4bd15f2923e194a014a86d174a205ddd4695d68` 一致；仅在 5434 隔离测试实例应用并完成存量升级/回归验证。0000–0002 未改，开发库/生产库未操作。
 - [ ] H-06：R04 人工安全与并发 Review。重点：8 接口父链授权、作者限制、expectedVersion、Workspace → Project → Requirement → CR 锁序、Ready/Revision 与未来 Submit 竞态、审计回滚。状态：本地验证已完成，待人工 Review 和后续获授权的远程 CI；不阻塞已完成实现，不授权提交/推送/合并/部署。

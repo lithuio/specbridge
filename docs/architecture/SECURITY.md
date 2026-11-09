@@ -54,7 +54,7 @@
 
 ## 6. 审批安全与事务完整性
 
-- 必须先核对项目授权、当前阶段、具体版本和 `lock_version`；所有状态更新条件写 + Approval/Review + AuditEvent 在单事务内。
+- 必须先核对项目授权、当前阶段、具体规格版本；Requirement/CR 另检查聚合版本，Delivery 使用下述方案 A；所有状态更新条件写 + Approval/Review + AuditEvent 在单事务内。
 - 冻结快照只有 INSERT，没有业务 UPDATE；拒绝后新建版本重新审批。
 - 审批人、审批时间与精确 Version ID 不可由请求体自行指定，均从认证上下文和数据库读取。
 - 客户只批准已由 Owner 批准的同一快照。
@@ -141,3 +141,11 @@ READY 禁止所有角色追加问答；ANSWER 只能引用同需求 QUESTION。�
 - 多查询详情在只读 REPEATABLE READ 事务中授权与投影；更换之前已开始的读取可完成旧快照，后续旧 Client 请求 404。与 Session 的在途请求边界一致。
 - Approval、CR 状态/lockVersion、AuditEvent 共享同一事务；审计异常传播并回滚，错误不输出数据库信息。审批过程验证当前 Version 属于 CR、为最新且引用本 Requirement Revision；Client 再核查该 Version 的 Vendor APPROVED 和 Owner 身份。
 - 同 Workspace 写入串行化是既有吞吐量限制；没有新增 RLS 或任意 SQL 防绕过承诺。保留所有 R02 转发头限流回归，未修改 Auth/Next Rewrite。
+
+## R06 交付授权与一致性
+
+三接口继续使用真实 Session、CSRF 与 Project Policy。Owner/分配 Developer 可交付，仅唯一 Client 可验收；同 Workspace 未分配到项目的 Developer 也无权访问。无权对象 404、可见对象角色不足 403。所有身份、时间、精确 Version 和父关系由服务端决定，DTO 禁止 expectedVersion/身份/指针注入。
+
+Review 从 Delivery→Version→CR→Requirement 定位项目，再按 Workspace→Project→Requirement→CR→Delivery 锁序获取行锁；不能先锁 Delivery 再回锁父级。锁后重新验证关系与角色，并核查批准证据。方案 A 不要求 Delivery lock_version，使用 SUBMITTED 条件更新和唯一 Review，与审计同事务；R04/R05 的版本校验仍保留。
+
+链接仅校验和存储，不请求外部地址；纯文本不按 HTML 执行。审计仅存 ID/版本/状态/决定，不存链接或正文。DeliveryReview 数据库触发器拒绝改删；Delivery 内容通过无公开改删入口和受限 Repository 保留，不承诺任意直接 SQL 防篡改。历史列表授权与投影使用只读 REPEATABLE READ，返回交付和 Review 的一致快照。
