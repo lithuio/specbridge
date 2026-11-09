@@ -1,5 +1,7 @@
 # SpecBridge 低保真交互原型（文字线框版）
 
+> R07 Phase A 已细化现代中文 SaaS 视觉、响应式 Shell 与关键页面，见 [R07_DESIGN.md](R07_DESIGN.md) 和 [可交互原型/截图](prototypes/r07/README.md)。旧线框保留产品旅程参考；新原型仅为设计评审，不代表生产 UI 或真实 Dashboard 已交付。
+
 > v0.2 更新（客户绑定与范围冻结）；用来冻结信息结构，不代表视觉 UI 已设计或开发。目标：三类角色可以完成主流程。
 
 ## 1. Owner / Developer：Dashboard

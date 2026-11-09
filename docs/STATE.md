@@ -1,8 +1,44 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-09。当前检查点为 R06 本地实现与验证完成；下方保留 R05～R01 历史证据。
+> 更新时间：2026-11-10。当前检查点为 R07 Phase A 已交付、跨 Session 总规划已调整；下一新 Session 执行 B；下方保留 R06～R01 历史证据。
 
-## R06 Delivery & Acceptance — 当前检查点
+## R07 Web Integration — Phase A 已交付，后续分 Session 实施
+
+分支 `feat/15-web-integration`，起始 HEAD `63d81aa`，主任务 [Issue #15](https://github.com/lithuio/specbridge/issues/15)。负责人已批准总体工程规划、七项只读 API、capabilities、保守 Audit 白名单、真实 Dashboard、OpenAPI/生成类型和中文浅色视觉；最新要求改为 **B–H 各在新 Session 实施，精简重复验证，保留核心测试**。本轮只调整文档，不启动 B；后续明确启动 B 即沿用 A 基线，不重复请求例行批准。人工视觉结论尚未记录。
+
+### 实际成果
+
+- [增量读取契约](architecture/R07_READ_MODELS.md)：七 API 的权限、字段、筛选/排序/分页、历史定位；Audit 事件与 metadata 白名单；Dashboard 三类工作项和精确计数口径；必要详情能力与既有资格复用方案。
+- [视觉规范](ux/R07_DESIGN.md)：语义 Tokens、App Shell、路由/布局、组件、响应式和关键交互。登录/Dashboard/项目详情的独立 HTML/CSS/JS 原型，明确标记示例，**不接入生产路由、不代表真实业务实现**。
+- [评审材料与证据](ux/prototypes/r07/README.md)：实际 Chromium 渲染 9 张截图；桌面/手机三页、Developer/Client Dashboard、手机导航。提供可重现验证脚本与初轮失败记录。
+- [R07 总规划与核心交接](engineering/R07_PLAN.md)：A–H 范围、实时进度、最少阅读、核心安全事实、精简验证、交接模板及七份独立 Session 提示词；B–H 尚未执行。
+- 文档索引、API/线框入口已更新。没有修改 apps 生产代码、项目依赖、Schema、Migration、认证、Rewrite 或数据库。没有 Commit/Push/PR/Merge/部署。
+
+### 实际验证
+
+| 状态 | 命令/检查 | 结果与边界 |
+|---|---|---|
+| PASS | `node --check docs/ux/prototypes/r07/prototype.js` | 设计交互脚本语法有效 |
+| PASS | `node --check docs/ux/prototypes/r07/verify.mjs` | 原型验证脚本语法有效 |
+| PASS | `R07_BROWSER_TOOLS=/tmp/specbridge-r07-browser PLAYWRIGHT_BROWSERS_PATH=/tmp/specbridge-r07-browsers node docs/ux/prototypes/r07/verify.mjs` | 沙箱外；40 项原型检查、0 axe A/AA 规则违规、9 张实际截图；三页×五宽度、Tab/Drawer 焦点、桌面/平板折叠、角色样例、十组 Token 对比度；无 API/外网请求 |
+| PASS | 截图图像自检 | 中文、留白、表格/状态/下一步层级、手机重排无明显重叠截断；不代替负责人主观视觉验收 |
+| PASS | `git diff --check`、本轮文档链接及原型文本空白检查 | 引用可解析、无 diff 空白问题；生产目录和依赖保持未改 |
+| NOT RUN | R01–R06 回归、真实 API/DB 浏览器 E2E、生产构建、远程 CI | 本阶段只改文档及独立原型，未启动 API、Next 或数据库；不继承宣称本轮通过 |
+| NOT RUN | Firefox/WebKit、屏幕阅读器、原生200%缩放、生产 HTTPS/Cookie | 留后续真实 Web 验收，不声称完整 WCAG 合规 |
+
+失败与修正：工具下载/本地监听被沙箱 EPERM 阻止，获授权使用 /tmp 工具和本机临时端口；修正 axe package exports 的版本读取。初轮浏览器检查发现手机 Drawer 连续 Tab 末尾逃出模态内容，保留 `verification-initial.json`；补焦点循环后通过。图像检查后修正 Sidebar 视口位置、平板展开行为，并移除 Dashboard 契约没有的工时/问题正文样例。最终机器证据见 `ux/prototypes/r07/evidence/verification.json`。临时浏览器和验证服务已由脚本关闭。
+
+### 停点与下一步
+
+- 下一步：在新 Session 使用 R07_PLAN 第9节的 B 提示词，执行只读 API、capabilities 与契约生成。本轮不开始 B。H-09 保留人工视觉结论未记录，不作为重复实施审批门槛。
+- 本轮规划调整仅修改文档；C–G 按受影响范围做检查、代表性真实浏览器流程和少量截图，H 集中全量回归；权限/隔离/并发核心检查保持。实际文档验证见 R07_PLAN 的本轮交接。
+- 已在 Git 历史确认 R06 合并提交；下方“未提交”等为历史检查点。H-04/06/07/08 仍保留原人工审核状态，不根据 Git 合并推断评审完成。
+- R07 授权明确本阶段的中文/浅色和 P1 边界；既有 D-07/D-08 等不在本次解决范围，未静默更改。
+- 建议提交摘要（仅建议）：`docs(r07): define read contracts and visual review prototypes (#15)`。
+
+---
+
+## R06 Delivery & Acceptance — 历史检查点
 
 分支 `feat/13-delivery-acceptance`，基线 HEAD `ad7c37d`，[Issue #13](https://github.com/lithuio/specbridge/issues/13)。负责人已批准只读规划并明确要求实施；开始时工作区干净。Git 历史已包含 R01～R05，下方 R05“未提交”仅为当时检查点。
 
