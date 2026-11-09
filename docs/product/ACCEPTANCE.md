@@ -78,3 +78,11 @@
 - AC-07：所有问题均必答，至少一个同需求合法 Answer 即已答；父项必须是 QUESTION。READY 禁止追加问答；Owner/Developer 创建新 Revision 后恢复 CLARIFYING，再重新 Mark Ready。Client 无 Revision/Ready 权限。
 - AC-08/25：同版本并发 Revision 一成功一 stale，刷新后重试编号连续；Ready/Revision 竞争不能确认未看过的新版本；任一 SUBMITTED/VENDOR_APPROVED CR 阻断新 Revision。
 - 本阶段 AC-15 仅验证事务审计写入，AC-09 仅提供最新 Ready Revision 前置条件；不代表审计查询、Submit/审批或浏览器验收完成。
+
+## R05 验收细化
+
+- AC-09/22：最新 Ready Revision 创建 NULL 商业草稿，完整评估后 Submit 冻结全部字段；无 Client、非最新 Revision、非法/不完整评估不得创建 Version。
+- AC-10/11/12：Owner→Client 依次决定同一 Version；任一拒绝终止该版，重开后新 Submit 生成新编号且无旧审批。并发/重复不得产生矛盾决定，stale 409；APPROVED 为终态。
+- AC-24/25：真实 Submit 与 Client 更换/Revision 创建的双顺序竞争测试，不再仅依赖 SQL 协议 fixture。任一 Pending CR 阻止 Revision，拒绝/重开不解除 Client 历史锁定。
+- AC-05/16：七接口 HTTP 角色/跨项目矩阵；Client 隐藏全部商业草稿，所有正式快照和双方评论可见；请求不能注入审批身份、时间或 Version ID。
+- AC-15 本阶段仍仅证明事务审计写入与失败回滚；未实现审计查询、Delivery、完整浏览器页面或生产发布。实际本地执行证据见 STATE，不据此宣称全 P0 验收。

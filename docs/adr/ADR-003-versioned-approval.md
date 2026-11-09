@@ -42,3 +42,11 @@
 Requirement 使用独立 draft_version（初始 1），PATCH、问答、Revision、Ready 均要求 expectedVersion，并在同一事务递增。统一聚合版本使旧页面不能确认并发创建的新 Revision；代价是追加问答也可能需刷新重试。READY 不允许追加问答，先由供应方创建新 Revision 重开澄清。
 
 复用 Workspace → Project → Requirement → CR 锁序；R04 锁到 Requirement，未来 Submit 必须共享该锁。只有唯一键或“先查询 Pending”不足以防止 Submit/Revision 竞态。新字段通过 0003 增量迁移加入，生成后须人工审核才能执行；本决定本身不代替 SQL 审批；0003 的后续批准及隔离验证证据见 STATE / HUMAN_TASKS。
+
+## R05 已批准实施细化（2026-11-09）
+
+负责人批准完整 R05 计划，并确认：CR expectedVersion 从 0 开始以兼容既有 Schema；Requirement 仍从 1 开始。Client 看不到草稿，但可看所有已提交快照及双方审批评论（包括 Vendor 待审/拒绝）。无需新增迁移。
+
+使用统一父→子行锁、状态/版本/指针条件 UPDATE 与既有唯一键；六类领域事件复用 AuditWriter 同事务写入。Submit 创建不可变 Version，拒绝只写 Approval 和 CR 状态，Version 不含 status。重开不清除历史指针，不自动选择新 Revision、不继承旧审批；新 Submit 才递增 versionNo。APPROVED CR 不再重开。
+
+读取采用 REPEATABLE READ；金额 HTTP 限 JS 安全整数，内部 bigint，工时用精确字符串。重复请求冲突而非自动重放。此决定不授权提交、推送、部署或未来 Migration；验证和人工 Review 状态见 STATE/HUMAN_TASKS。

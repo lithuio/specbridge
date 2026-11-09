@@ -1,8 +1,56 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-09。当前检查点为 R04 本地实现与验证完成；下方保留 SQL 待审及 R03/R02/R01 历史证据。
+> 更新时间：2026-11-09。当前检查点为 R05 本地实现与验证完成；下方保留 R04/R03/R02/R01 历史证据。
 
-## R04 Requirement & Revision — 当前检查点
+## R05 ChangeRequest & Approval — 当前检查点
+
+分支 `feat/11-change-request-approval`，基线 HEAD `06ce706`，[Issue #11](https://github.com/lithuio/specbridge/issues/11)。负责人批准完整规划并要求实施；初始工作区干净。R04 已出现在 Git 合并历史，下方 R04 的“未提交”只代表当时检查点。
+
+**状态：API-21～27、共享锁/授权、不可变快照、顺序审批、事务审计及本地验证完成；176 项测试通过。待人工安全/并发 Review 和获授权后的远程 CI。未提交、推送、合并或部署。**
+
+### 已完成
+
+- 创建最新 Ready Revision 的 NULL 商业草稿、严格输入校验和精确金额/工时转换、详情与历史分页、Draft PATCH、Submit、Owner/Client 决策、Rejected 重开再提交新 Version；Approved 为终态。
+- 负责人确认 CR lockVersion 初始 0 / expectedVersion 非负，Requirement 保持初始 1。每次成功 CR 写恰好推进一次，stale/错误状态/业务失败无副作用。所有身份/时间/父链/active Version 来自 Session 或数据库。
+- 复用 Workspace → Project → Requirement → CR FOR UPDATE 协议和锁后授权；条件 UPDATE 匹配父项/状态/版本/active pointer。真实 Submit 与 Client 更换、Revision 创建双顺序竞争已验证；不增加每需求单 CR 限制。
+- Client 不返回任何商业 draft；全部正式快照及双方审批评论可见。详情在只读 REPEATABLE READ 中授权与投影；引用旧 Revision 的冻结内容保持可查。
+- Approval/Version 仅 INSERT；重开保留旧 active pointer，但 DRAFT 禁止审批。新提交使用 MAX(versionNo)+1，不继承旧决定。六类审计同 tx，任何失败整体回滚；metadata 不写商业正文、金额或评论。
+- 新增 24 个 DTO 单元用例、19 个真实 PostgreSQL 集成用例、7 个 HTTP 矩阵与 1 个编译 API/Next Rewrite 用例；CI database job 顺序增加 test:e2e:changes。API/数据/状态机/安全/ADR/验收/测试文档同步。
+- 无新增依赖/Schema/Migration。0000～0003 SQL/snapshot、Auth、R03/R04 生产模块和 Web/Next Rewrite 未改；构建产生的 tracked tsbuildinfo 已恢复。
+
+### 实际验证
+
+数据库命令显式使用 5434 `specbridge_test` 隔离库/角色；沿用 `/tmp/specbridge-r01-test-host.yml`，未访问开发/生产库，未改变标准 Compose。
+
+| 状态 | 实际命令/检查 | 结果 |
+|---|---|---|
+| PASS | `pnpm --filter specbridge-api test` | 8 文件、59 单元测试 |
+| PASS | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:integration` | 7 文件、66 PostgreSQL 测试，含 R01～R04 回归；沙箱外 |
+| PASS | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:e2e` | 3 文件、5 基础 HTTP 回归；沙箱外 |
+| PASS | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:e2e:auth` | 2 文件、16 认证/转发头/代理回归；沙箱外 |
+| PASS | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:e2e:rbac` | 2 文件、13 权限/UUID/代理回归；沙箱外 |
+| PASS | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:e2e:requirements` | 2 文件、9 Requirement/代理回归；沙箱外 |
+| PASS | `TEST_DATABASE_URL=<隔离库> pnpm --filter specbridge-api test:e2e:changes` | 2 文件、8 R05 HTTP/代理测试；沙箱外 |
+| PASS | `pnpm --filter specbridge-api typecheck`、`pnpm run lint` | 含测试的类型检查、API/Web lint，无警告 |
+| PASS | `pnpm run build` | 干净缓存 API/Web 完整构建；沙箱外 |
+| PASS | `pnpm --filter specbridge-api db:check`、`git diff --check`、历史 SQL 哈希/Schema diff | 迁移元数据、空白及历史文件保持检查 |
+| PASS | 测试 Compose down、docker ps | 本轮临时测试容器已移除；5433 开发容器仍 healthy，未访问开发数据 |
+| NOT RUN | 远程 CI、人工 Review、完整浏览器/生产验证 | 未推送/部署，不据此完成 Issue 全部 DoD |
+
+已处理失败：数据库沙箱 connect EPERM 导致首轮集成和 R05 HTTP 套件未执行，获准沙箱外通过。最终新增读取一致性测试曾有 TS2345：把返回 Drizzle 查询对象的方法 mock 为 Promise；改为在异步授权方法设置屏障，类型检查与完整 66 项集成重新通过，未改生产逻辑。两条测试排序 lint 警告已补数值比较器。Web 沙箱构建因内部端口 EPERM 失败，首次沙箱外重跑复用失败缓存；缓存保留于 `/tmp/specbridge-r05-build-cache-z4xu4nj3`，干净缓存完整构建成功。
+
+可用本地日志：`/tmp/specbridge-r05-integration-final.log`、`/tmp/specbridge-r05-{base,auth,rbac,requirements,changes}-e2e.log`、`/tmp/specbridge-r05-build-clean.log`。日志属于本地验证证据，不保证跨机器持久化。R05 E2E 中一条安全 500 日志来自故意注入 AuditWriter 失败，用例断言回滚成功。
+
+### 边界和下一步
+
+- 同 Workspace 写串行化是既有吞吐量限制；无 RLS，任意直接 SQL 不属于完整领域授权保证。HTTP 金额仅安全整数，异常超界存量安全失败、不自动修复。
+- AC-09～12/22～25 和七接口权限有本地证据；AC-15 仍仅审计写入，未实现审计查询、Delivery、完整前端、AI 或 MCP。
+- H-07：负责人安全/并发 Review；后续远程 CI/提交/PR 需独立授权，无新增 SQL 审批任务。
+- 建议提交/PR：`feat(changes): add immutable submissions and sequential approvals (#11)`。
+
+---
+
+## R04 Requirement & Revision — 历史检查点
 
 分支 `feat/9-requirement-revision`，基线 HEAD `e80e657`，[Issue #9](https://github.com/lithuio/specbridge/issues/9)。负责人明确回复“已审批”，H-05 解除；执行前复核 0003 SHA-256 `73d3b4839fdc64f43a420a4cf4bd15f2923e194a014a86d174a205ddd4695d68` 一致。
 

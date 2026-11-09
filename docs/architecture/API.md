@@ -1,13 +1,13 @@
 # SpecBridge REST API 契约（设计基线）
 
-> v0.2（P0 需求基线已确认）｜Base Path：`/api/v1`｜API-01～20、API-32 与 Client 绑定已有实现；其余业务接口仍为设计基线。后续 NestJS 生成 OpenAPI，必须与本文保持一致。
+> v0.2（P0 需求基线已确认）｜Base Path：`/api/v1`｜API-01～27、API-32 与 Client 绑定已有本地实现；其余业务接口仍为设计基线。后续 NestJS 生成 OpenAPI，必须与本文保持一致。
 
 ## 1. 统一约定
 
 - 浏览器以同源 `/api/v1/*` 访问，由 Next.js Rewrite/Caddy 转发 NestJS；不将数据库连接或密钥暴露给 Web。
 - Session Cookie 认证；所有非公共写请求需有效会话与 CSRF/Origin 校验。所有对象端点必须做项目级授权。
 - JSON 时间为 ISO-8601 UTC；ID 为 UUID；金额为整数最小单位 `costDeltaMinor` + 3 位 ISO `currency`；v1 列表统一 `limit`（1–100，默认 20）和 `offset`（非负安全整数，默认 0）。
-- 写请求对状态机使用 `expectedVersion` 正整数进行乐观并发校验，不接收客户端输入的审批人身份/时间。
+- 写请求对状态机使用 `expectedVersion` 进行乐观并发校验（Requirement 为正整数，CR 为非负整数），不接收客户端输入的审批人身份/时间。
 - Idempotency v1 简化：数据库唯一约束+状态机防重复，重复审批返回 409；POST 创建操作建议支持 `Idempotency-Key`，但不作为首版必须，具体见 ADR。
 
 ### 统一成功/错误
@@ -47,7 +47,7 @@
 | API-19 | `GET /requirements/{requirementId}/revisions` | Project viewer | Revision history |
 | API-20 | `POST /requirements/{requirementId}/mark-ready` | Owner/Developer | expectedVersion；必须有有效最新 Revision → Ready |
 | API-21 | `POST /requirements/{requirementId}/change-requests` | Owner/Developer | 以最新 Ready Revision 新建 Draft ChangeRequest |
-| API-22 | `GET /change-requests/{changeId}` | Project viewer | 当前 Draft/Version/审批/交付信息（字段按角色裁剪） |
+| API-22 | `GET /change-requests/{changeId}` | Project viewer | 当前摘要/草稿/冻结 Version/审批历史（字段按角色裁剪；交付另见 API-28～30） |
 | API-23 | `PATCH /change-requests/{changeId}` | Owner/Developer | 仅 Draft 可编辑 `draft*` 商业评估（含需求版本、工时、费用、工期、验收标准），expectedVersion |
 | API-24 | `POST /change-requests/{changeId}/submit` | Owner/Developer | expectedVersion → 校验 Client 存在、最新 Ready Revision；创建 ChangeRequestVersion，状态 Submitted |
 | API-25 | `POST /change-requests/{changeId}/vendor-decision` | Owner | `decision: APPROVED/REJECTED`、expectedVersion、comment? |
@@ -274,3 +274,28 @@ API-13～20 已完成本地实现及 PostgreSQL/HTTP/代理测试；未部署。
 
 - 审计事件为 requirement.created、requirement.draft_updated、clarification.question_added/answer_added、requirement.revision_created、requirement.marked_ready。Revision 事件 entityVersion 为 revisionNo，metadata 包含 requirementId/draftVersion；其他写操作记录聚合版本。字段/状态/ID 为白名单元数据，不记录正文。业务失败或审计失败整体回滚。
 - 已有需求写入若 draftVersion 达到 2147483647，或创建 Revision 时 revisionNo 达到该上限，返回 422 BUSINESS_RULE_VIOLATION。无客户端自动重试或 Idempotency-Key 承诺。
+
+## R05 ChangeRequest / Approval 实施契约
+
+负责人已确认 CR `lockVersion` 初始为 **0**，CR 写请求 `expectedVersion` 接受 0～2147483647 的 JSON 整数；Requirement 仍初始 1、要求正整数。上方示例从 1 开始表示已经保存过一次草稿，不代表 CR 初始版本。无新增 Migration，0000～0003 保持不变。
+
+| API | 请求 | 成功 |
+|---|---|---|
+| 21 POST /requirements/{id}/change-requests | `{}`，Owner/Developer；服务器选择最高编号且指针一致的最新 Ready Revision | 201，DRAFT/lockVersion=0/activeVersionId=null，商业字段 NULL |
+| 22 GET /change-requests/{id} | 本项目 viewer；limit/offset 对历史 Version 分页 | 200，摘要、角色允许的 draft、activeVersion、versions；meta 含 requestId/limit/offset/hasMore |
+| 23 PATCH /change-requests/{id} | expectedVersion + 至少一个商业字段，仅 DRAFT Owner/Developer | 200，摘要与 draft，lockVersion +1 |
+| 24 POST /change-requests/{id}/submit | `{expectedVersion}`，Owner/Developer | 201，changeRequestId/changeRequestVersionId/versionNo/status/lockVersion |
+| 25 POST /change-requests/{id}/vendor-decision | `{expectedVersion,decision,comment?}`，仅 Owner | 200，CR/Version ID、status、lockVersion、approval |
+| 26 POST /change-requests/{id}/client-decision | 同上，仅绑定 Client | 200，同 Vendor 的精确 Version；必须已由 Owner 批准 |
+| 27 POST /change-requests/{id}/resubmit | `{expectedVersion}`，仅 REJECTED Owner/Developer | 200，回到 DRAFT、版本 +1，**不立即创建 Version** |
+
+- PATCH 字段为 `requirementRevisionId/scopeSummary/estimateHours/costDeltaMinor/currency/scheduleDeltaDays/acceptanceCriteria`；映射持久化 draft_*。省略保持原值；商业字段 NULL 表示清空，Revision ID 不得 NULL。范围 trim 后 1–20,000 字符；验收标准至多 100 条，每条 trim 后 1–1,000 字符，草稿可空数组，Submit 必须非空。
+- 工时为十进制字符串，0～999999.99，最多两位小数，保存后规范为两位小数；禁止指数/NaN/Infinity。金额输入/输出为 JSON 安全整数（±9007199254740991），库内 bigint；不舍入超界存量，读取时安全失败。工期为 int32，可正负/零。币种为运行时 `Intl.supportedValuesOf('currency')` 接受的三位大写代码，不自动填 CNY；不换汇。
+- decision 仅 APPROVED/REJECTED；comment 可省略，提供时 trim 后 1–10,000 字符，不接收 null。双方评论均对本项目 Client 可见，不作内部备注。
+- 摘要为 id/requirementId/projectId/status/lockVersion/activeVersionId/createdAt/updatedAt。Owner/Developer 另有 draft；Client 响应彻底省略 draft，即使当前 DRAFT。activeVersion 与每个历史 Version 包含完整商业快照、所引用不可变 requirementRevision 和 approvals；历史按 versionNo 降序。所有正式快照对 Client 可见，包括 Vendor 待审/拒绝历史；首次提交前只显示安全摘要、空历史与 null activeVersion。R05 不返回交付信息，不实现审计查询。
+- APPROVED 决策响应保留示例的 `approvedVersionId` 别名，含义为**该审批步骤**批准的 Version，不能单独证明双方完成审批；同时返回 changeRequestVersionId。REJECTED 不返回该别名；数据库无 approvedVersionId 字段。
+- Submit 检查唯一 Client 和角色分离、最新 Ready Revision、商业字段完整性，在同一事务复制草稿并创建 MAX(versionNo)+1；无任何 Version/Approval 更新入口。PATCH 不会修改已提交快照。重开保留商业草稿及旧 activeVersionId；若需求已修订，必须显式选择新 Ready Revision。APPROVED 不可重开。
+- 成功 PATCH（含同值）、Submit、决定、重开均恰好推进一次 lockVersion/updatedAt；不推进 Requirement draftVersion。CR 创建不承诺 Idempotency-Key，同一 Requirement 可有多个 CR，任一 Pending 都阻止新 Revision。
+- 检查顺序：Session/CSRF、DTO、父链与项目可见性、操作权限、expectedVersion、已有决定/状态、业务资格。stale 优先 409 STALE_VERSION；当前版本重复步骤 409 ALREADY_REVIEWED；非法阶段 409 INVALID_TRANSITION。缺 Client 422 CLIENT_REQUIRED，身份冲突 422 ROLE_CONFLICT，非最新 Ready/跨需求 Revision/评估不完整/编号耗尽 422 BUSINESS_RULE_VIOLATION。未知错误保持通用 500，details 为空。DRAFT 下审批始终 INVALID_TRANSITION，不把旧 activeVersion 的决定当成新草稿审批。
+- 所有 UUID 在 Service 边界规范小写。请求不接受 actorId、时间、所属项目、状态或审批 Version ID；身份来自 Session，父链和当前 Version 来自锁后数据库。读取采用只读 REPEATABLE READ，写统一 Workspace → Project → Requirement → CR 锁序。
+- 六类审计：change_request.created/draft_updated/submitted/vendor_decided/client_decided/reopened，entityType=change_request，entityVersion=更新后的 lockVersion（创建为 0）；metadata 仅相关 ID、快照编号、状态、步骤、决定及字段名，不含商业正文/金额/评论。任何失败整体回滚。

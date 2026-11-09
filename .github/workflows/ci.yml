@@ -83,3 +83,6 @@ jobs:
 
       - name: Requirement revision HTTP and proxy E2E
         run: pnpm --filter specbridge-api test:e2e:requirements
+
+      - name: ChangeRequest approval HTTP and proxy E2E
+        run: pnpm --filter specbridge-api test:e2e:changes

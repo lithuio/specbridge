@@ -132,3 +132,12 @@
 Requirement ID 必须通过数据库解析所属 Project 后复用 R03 Policy；创建/读取允许本项目 Owner、Developer、Client，PATCH 仅 DRAFT 原作者/Owner，Revision 与 Ready 仅 Owner/Developer。写操作按 Workspace → Project → Requirement 锁行，锁后重新授权；Client 不需要供应方 Workspace membership。跨项目资源统一 404，可见对象无操作权 403，再检查版本、状态及业务规则。
 
 READY 禁止所有角色追加问答；ANSWER 只能引用同需求 QUESTION。未知字段、客户端 actor/status/指针注入拒绝。UUID 在 Service 边界规范化。继续使用 Session、CSRF 与安全错误白名单；不输出父项所属资源、SQL、约束名或用户正文。审计与业务使用同一 tx，metadata 仅 ID/版本/状态/字段名。
+
+## R05 审批与可见性实施
+
+- 七接口均复用 R02 默认 Guard/CSRF 和 R03 Project Policy；不根据请求传入 actor/time/Version ID 授权。Owner/Developer 可创建、编辑、提交、重开；Vendor 仅 Workspace Owner，Client 决定仅唯一绑定账号。跨项目 404，同项目越权 403，未知输入 400。
+- 写锁 Workspace→Project→Requirement→CR 后重新授权并验证父链，禁止反序锁；Client 路径使用 projectWrite，不要求供应方 membership。成员写/Submit/Revision 共享既有协议。
+- Client 响应不包含商业 draft；所有正式快照（含 Vendor 待审/拒绝）及双方审批评论公开给本项目 Client。v1 无内部备注，Vendor 不应在 comment 写内部信息。原始实体不直接作为 CR 摘要返回，金额显式安全序列化，不暴露邮箱/认证字段。
+- 多查询详情在只读 REPEATABLE READ 事务中授权与投影；更换之前已开始的读取可完成旧快照，后续旧 Client 请求 404。与 Session 的在途请求边界一致。
+- Approval、CR 状态/lockVersion、AuditEvent 共享同一事务；审计异常传播并回滚，错误不输出数据库信息。审批过程验证当前 Version 属于 CR、为最新且引用本 Requirement Revision；Client 再核查该 Version 的 Vendor APPROVED 和 Owner 身份。
+- 同 Workspace 写入串行化是既有吞吐量限制；没有新增 RLS 或任意 SQL 防绕过承诺。保留所有 R02 转发头限流回归，未修改 Auth/Next Rewrite。
