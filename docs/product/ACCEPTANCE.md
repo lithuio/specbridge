@@ -86,3 +86,11 @@
 - AC-24/25：真实 Submit 与 Client 更换/Revision 创建的双顺序竞争测试，不再仅依赖 SQL 协议 fixture。任一 Pending CR 阻止 Revision，拒绝/重开不解除 Client 历史锁定。
 - AC-05/16：七接口 HTTP 角色/跨项目矩阵；Client 隐藏全部商业草稿，所有正式快照和双方评论可见；请求不能注入审批身份、时间或 Version ID。
 - AC-15 本阶段仍仅证明事务审计写入与失败回滚；未实现审计查询、Delivery、完整浏览器页面或生产发布。实际本地执行证据见 STATE，不据此宣称全 P0 验收。
+
+## R06 验收细化
+
+- AC-13：Owner/已分配 Developer 为当前双方批准 Version 创建 HTTPS 交付；拒绝所有未批准阶段、异常指针/审批证据；后续 Requirement 修订不阻断旧批准规格交付。
+- AC-14：Client 非空评论退回→新 deliveryNo→Client 接受；旧 Delivery/Review 不被覆盖，分页历史完整，未审项 review=null。Review 不需要 expectedVersion，重复/并发只能一项终审成功。
+- AC-27：重复待审交付 409 DELIVERY_PENDING；接受后创建 409 DELIVERY_COMPLETED；事务失败不消耗编号。真实 PostgreSQL 覆盖创建/Review 的双顺序竞争和审计失败回滚。
+- AC-05/16：三个接口完整 HTTP 权限矩阵，含同 Workspace 跨项目、未分配 Developer、跨 Workspace、Session/CSRF、未知字段与 UUID；完整 Next Rewrite 链路保留。
+- AC-15 仍仅覆盖事务审计写入，不代表审计查询完成。HTTP/代理测试不等同于完整浏览器或生产验收；实际运行证据见 STATE。

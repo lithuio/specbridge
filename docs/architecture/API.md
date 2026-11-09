@@ -1,13 +1,13 @@
 # SpecBridge REST API 契约（设计基线）
 
-> v0.2（P0 需求基线已确认）｜Base Path：`/api/v1`｜API-01～27、API-32 与 Client 绑定已有本地实现；其余业务接口仍为设计基线。后续 NestJS 生成 OpenAPI，必须与本文保持一致。
+> v0.2（P0 需求基线已确认）｜Base Path：`/api/v1`｜API-01～30、API-32 与 Client 绑定已有本地实现；其余业务接口仍为设计基线。后续 NestJS 生成 OpenAPI，必须与本文保持一致。
 
 ## 1. 统一约定
 
 - 浏览器以同源 `/api/v1/*` 访问，由 Next.js Rewrite/Caddy 转发 NestJS；不将数据库连接或密钥暴露给 Web。
 - Session Cookie 认证；所有非公共写请求需有效会话与 CSRF/Origin 校验。所有对象端点必须做项目级授权。
 - JSON 时间为 ISO-8601 UTC；ID 为 UUID；金额为整数最小单位 `costDeltaMinor` + 3 位 ISO `currency`；v1 列表统一 `limit`（1–100，默认 20）和 `offset`（非负安全整数，默认 0）。
-- 写请求对状态机使用 `expectedVersion` 进行乐观并发校验（Requirement 为正整数，CR 为非负整数），不接收客户端输入的审批人身份/时间。
+- Requirement/ChangeRequest 的已有状态写请求使用 `expectedVersion` 进行乐观并发校验（Requirement 为正整数，CR 为非负整数），不接收客户端输入的审批人身份/时间。
 - Idempotency v1 简化：数据库唯一约束+状态机防重复，重复审批返回 409；POST 创建操作建议支持 `Idempotency-Key`，但不作为首版必须，具体见 ADR。
 
 ### 统一成功/错误
@@ -210,7 +210,7 @@ MCP `list_project_requirements` 和 `get_approved_spec` 通过上述授权 API �
 
 **审批不变量**：`vendor-decision` 仅 `SUBMITTED` 可调用、`client-decision` 仅 `VENDOR_APPROVED` 可调用，必须落在同一 `changeRequestVersionId`；任何拒绝使该冻结版本变成 REJECTED 并阻断后续审批/交付。`resubmit` 只在 REJECTED 时开启新草稿。`APPROVED` 后新增需求必须使用新的 ChangeRequest，而不是覆盖旧版本。
 
-**一致性**：所有写请求检查对象的父项目与身份；锁版本过期 `409 STALE_VERSION`。服务端不能根据客户端提交的 actorId、审批时间或 VersionId 信任其审批身份。
+**一致性**：所有写请求检查对象的父项目与身份；Requirement/CR 锁版本过期 `409 STALE_VERSION`。服务端不能根据客户端提交的 actorId、审批时间或 VersionId 信任其审批身份。
 
 **API 契约核对**：该文保持“设计契约”性质；NestJS 生成 OpenAPI 后需核查以上字段命名、权限、响应和错误码，不应当把未实现的路由标记为已上线。
 
@@ -299,3 +299,24 @@ API-13～20 已完成本地实现及 PostgreSQL/HTTP/代理测试；未部署。
 - 检查顺序：Session/CSRF、DTO、父链与项目可见性、操作权限、expectedVersion、已有决定/状态、业务资格。stale 优先 409 STALE_VERSION；当前版本重复步骤 409 ALREADY_REVIEWED；非法阶段 409 INVALID_TRANSITION。缺 Client 422 CLIENT_REQUIRED，身份冲突 422 ROLE_CONFLICT，非最新 Ready/跨需求 Revision/评估不完整/编号耗尽 422 BUSINESS_RULE_VIOLATION。未知错误保持通用 500，details 为空。DRAFT 下审批始终 INVALID_TRANSITION，不把旧 activeVersion 的决定当成新草稿审批。
 - 所有 UUID 在 Service 边界规范小写。请求不接受 actorId、时间、所属项目、状态或审批 Version ID；身份来自 Session，父链和当前 Version 来自锁后数据库。读取采用只读 REPEATABLE READ，写统一 Workspace → Project → Requirement → CR 锁序。
 - 六类审计：change_request.created/draft_updated/submitted/vendor_decided/client_decided/reopened，entityType=change_request，entityVersion=更新后的 lockVersion（创建为 0）；metadata 仅相关 ID、快照编号、状态、步骤、决定及字段名，不含商业正文/金额/评论。任何失败整体回滚。
+
+## R06 Delivery / Acceptance 实施契约
+
+API-28～30 使用既有 Schema，无新增 Migration。负责人批准方案 A：Delivery 无 lockVersion，创建和 Review 均不接收 expectedVersion；R04/R05 的乐观版本契约不变。
+
+| API | 请求 | 成功 |
+|---|---|---|
+| 28 POST /change-requests/{id}/deliveries | Owner/项目 Developer；`{artifactUrl,summary,evidenceLinks?}` | 201，新的 SUBMITTED Delivery，deliveryNo 从 1 连续递增 |
+| 29 GET /change-requests/{id}/deliveries | 项目 viewer；limit/offset | 200，全部 Version 下的分页交付历史，附对应 review 或 null |
+| 30 POST /deliveries/{id}/review | 仅唯一项目 Client；`{decision,comment?}` | 200，更新后的 Delivery 与唯一 Review |
+
+- Delivery 投影：id、changeRequestId、changeRequestVersionId、versionNo、deliveryNo、artifactUrl、summary、evidenceLinks、status、createdBy、createdAt、review。Review：id、deliveryId、reviewerId、decision、comment、createdAt。沿用 data/meta.requestId、no-store；历史另含 limit/offset/hasMore，按 versionNo/deliveryNo/id 降序。不返回商业草稿或认证字段。
+- summary trim 后 1–20,000 字符；comment 提供时 trim 后 1–10,000，不接受 null。decision 仅 ACCEPTED/CHANGES_REQUESTED，后者必须提供非空 comment。文本作为纯文本保存。
+- artifactUrl 和每个 evidenceLink 最多 2,048 字符，必须完整解析为 HTTPS、非空主机、无凭据段/空白/控制字符/反斜杠；evidenceLinks 可省略（保存 []），至多 100 条，不接受 null。服务端不抓取链接、不上传文件。
+- DTO 拒绝未知字段，包括 expectedVersion、actor/reviewer、时间、父项目、Version ID、状态、deliveryNo。UUID 在 Service 边界规范小写。
+- 创建要求 CR.status=APPROVED；active Version 必须为同 CR 最新 Version、Revision 归属正确、双方审批 APPROVED 且身份匹配 Owner/唯一 Client。Requirement 后续修订不会阻断旧批准版本的交付，不要求其仍为最新 READY Revision。
+- 同版本 ACCEPTED 阻止后续创建（409 DELIVERY_COMPLETED）；否则 SUBMITTED 阻止创建（409 DELIVERY_PENDING）。退回后新建下一编号，保留旧交付及 Review；编号耗尽为 422 BUSINESS_RULE_VIOLATION。
+- Review 只允许 SUBMITTED，一次终审；重复/竞争失败 409 ALREADY_REVIEWED，无成功重放或自动重试。其他非法 CR 阶段 409 INVALID_TRANSITION；异常批准证据/指针 422 BUSINESS_RULE_VIOLATION。角色不足 403、不可见/不存在 404，保留 CSRF 优先 403、未认证 401。
+- 写锁 Workspace→Project→Requirement→CR，Review 最后锁 Delivery；锁后重验父链、权限、批准资格。Review INSERT、Delivery WHERE status='SUBMITTED' 条件 UPDATE、AuditWriter 同 tx。业务失败或审计失败整体回滚；不推进 CR lockVersion/Requirement draftVersion。
+- 明确识别 PostgreSQL 23505 的 Review 唯一键/待审部分唯一索引/编号唯一键，事务回滚后分别映射 ALREADY_REVIEWED/DELIVERY_PENDING/CONFLICT；其他数据库异常不吞掉、不公开 SQL。
+- 审计为 delivery.submitted / delivery.reviewed，entityType=delivery、entityVersion=deliveryNo；metadata 仅关联 ID、versionNo、状态、决定，不存 URL/说明/评论。审计查询、完整前端页面不属于 R06。

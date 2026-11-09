@@ -50,3 +50,11 @@ Requirement 使用独立 draft_version（初始 1），PATCH、问答、Revision
 使用统一父→子行锁、状态/版本/指针条件 UPDATE 与既有唯一键；六类领域事件复用 AuditWriter 同事务写入。Submit 创建不可变 Version，拒绝只写 Approval 和 CR 状态，Version 不含 status。重开不清除历史指针，不自动选择新 Revision、不继承旧审批；新 Submit 才递增 versionNo。APPROVED CR 不再重开。
 
 读取采用 REPEATABLE READ；金额 HTTP 限 JS 安全整数，内部 bigint，工时用精确字符串。重复请求冲突而非自动重放。此决定不授权提交、推送、部署或未来 Migration；验证和人工 Review 状态见 STATE/HUMAN_TASKS。
+
+## R06 已批准：Delivery Review 方案 A
+
+负责人在 R06 规划中明确批准，随后授权按计划实施：不增加 deliveries.lock_version、不新增 Migration、API-30 不接收 expectedVersion。创建同样不接收 expectedVersion，CR 的既有 lockVersion 不因交付操作推进。
+
+创建与 Review 复用 Workspace→Project→Requirement→CR 锁，Review 最后 SELECT FOR UPDATE Delivery；锁后授权和验证父链/批准版本。条件 UPDATE WHERE status='SUBMITTED' 配合 delivery_reviews.delivery_id 唯一键，Review、Delivery 状态和 AuditEvent 同事务提交。唯一冲突只在整个事务回滚后转为安全 409。
+
+该取舍适用于内容不可编辑、仅一次终审的 Delivery，不改变 R04/R05 对可编辑聚合的乐观并发控制。同 Workspace 串行写吞吐量限制保持；无数据库级 Delivery 内容防改触发器，历史完整性由领域写入口与 Review 既有不可变触发器共同保证。

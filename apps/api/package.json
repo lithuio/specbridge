@@ -30,7 +30,8 @@
     "test:e2e:auth": "pnpm run build && vitest run --config ./vitest.config.auth-e2e.ts",
     "test:e2e:rbac": "pnpm run build && vitest run --config ./vitest.config.rbac-e2e.ts",
     "test:e2e:requirements": "pnpm run build && vitest run --config ./vitest.config.requirements-e2e.ts",
-    "test:e2e:changes": "pnpm run build && vitest run --config ./vitest.config.changes-e2e.ts"
+    "test:e2e:changes": "pnpm run build && vitest run --config ./vitest.config.changes-e2e.ts",
+    "test:e2e:deliveries": "pnpm run build && vitest run --config ./vitest.config.deliveries-e2e.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

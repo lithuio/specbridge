@@ -77,3 +77,12 @@ CI 本身成功不等于端到端业务全部通过；从未运行的测试不�
 - 并发测试通过 AuditWriter/Repository 屏障和 pg_blocking_pids 观察真实锁等待，覆盖 Submit/Client 更换、Submit/Revision 两种顺序，双 Submit、双阶段决定竞争及 Owner/Client 双顺序；原 R03/R04 fixture 保留其结构协议定位。
 - `test:e2e:changes` 执行真实 PostgreSQL + HTTP 七接口权限/输入/并发/回滚矩阵及编译 API + Next Rewrite 主链路；CI database job 在既有套件后顺序运行，避免共享测试端口冲突。
 - `TEST_DATABASE_URL` 必须指向隔离库，不回退开发配置；openTestDatabase 会应用既有已审 SQL，新迁移如未批准须在运行套件前暂停。具体命令和 PASS/FAIL/NOT RUN 见 STATE。
+
+## R06 Delivery / Acceptance
+
+- DTO：HTTPS 完整解析/无凭据或控制字符、长度和数组边界、退回必填评论、未知字段与 expectedVersion 注入。
+- PostgreSQL：真实 R05 服务建立批准数据；创建/退回/重新交付/接受、完整分页历史、非法阶段与批准证据、角色/项目隔离、编号耗尽和父项保持不变。
+- 并发沿用 AuditWriter/Repository 屏障及 pg_blocking_pids 验证真实等待：双创建、同/异决定双 Review、Review/创建、批准/创建、Revision/交付双顺序、持锁方审计失败后等待方继续。不是仅靠 Mock 或顺序调用。
+- 审计失败分别覆盖创建/接受/退回，快照包含父对象、Delivery、Review、Audit；包括先写审计再抛错、条件 UPDATE 零行、真实 23505 与 Drizzle cause 映射。Review 触发器拒绝 UPDATE/DELETE；Delivery 无公开改删接口，旧内容保留；历史读取验证 Review 提交期间的一致快照。
+- `test:e2e:deliveries`：三个接口 HTTP 权限/输入/并发/回滚；编译 API+Next Rewrite 从审批到退回重交再接受。CI database job 在 R05 后顺序运行；沿用 3000/4000 空闲检查及自建进程清理。
+- 完整保留 R01～R05 回归、类型检查/Lint/Build/迁移元数据检查。无新增 SQL；不得将 HTTP/代理证据称为完整浏览器或生产验证。

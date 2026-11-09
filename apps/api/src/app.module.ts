@@ -1,3 +1,4 @@
+import { DeliveriesModule } from './deliveries/deliveries.module.js';
 import { ChangesModule } from './changes/changes.module.js';
 import { RequirementsModule } from './requirements/requirements.module.js';
 import { Module } from '@nestjs/common';
@@ -22,6 +23,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
     ProjectsModule,
     RequirementsModule,
     ChangesModule,
+    DeliveriesModule,
     // Distributed tracing, auto-correlated logs, request/job metrics, error
     // telemetry, alarms, and more — out of the box. Sign up at https://observe.nestjs.com,
     // then run `npx @nestjs/observe link` to write your key pair into .env.

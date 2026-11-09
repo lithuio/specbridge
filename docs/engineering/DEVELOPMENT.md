@@ -146,3 +146,9 @@ pnpm --filter specbridge-api test:e2e:auth
 前端 JSON 写请求使用 `Content-Type: application/json`、`X-CSRF-Protection: 1`；浏览器自动附带 Origin，必须匹配配置。curl/测试客户端需显式提供 Origin。Cookie 交给浏览器 HttpOnly 存储，不写入 localStorage；注册成功不自动登录。
 
 Argon2 使用依赖自带原生预编译二进制；本地和 CI 必须运行真实 hash/verify 测试。若目标平台无法加载，修复该平台的依赖安装，禁止降级到弱密码哈希。认证日志不包含请求体/凭据，Observe 未配置 key pair 时不发送。
+
+## R06 交付开发与验证
+
+无新增 Schema/Migration。使用上述隔离测试实例和显式 TEST_DATABASE_URL；运行 `pnpm --filter specbridge-api test:integration` 和 `pnpm --filter specbridge-api test:e2e:deliveries`，同时保留 auth/rbac/requirements/changes E2E 回归。新增 E2E 同样先编译 API，并临时启动真实 Next Rewrite，3000/4000 被占用时明确失败，不复用或停止用户服务。
+
+API-28 输入 HTTPS artifactUrl、summary、可选 evidenceLinks；API-30 输入 decision、comment（退回必填）。两者均不传 expectedVersion，身份/Version/编号来自 Session 与锁后数据库；复用现有 Origin、X-CSRF-Protection 和 Cookie 契约。API-29 用 limit/offset 遍历历史，每条附 review。没有 Delivery 内容 PATCH/DELETE，也不抓取链接或上传文件。

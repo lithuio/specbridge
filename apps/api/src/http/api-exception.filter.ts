@@ -28,6 +28,8 @@ const domainCodes: Record<number, readonly string[]> = {
     'INVALID_TRANSITION',
     'REVIEW_IN_PROGRESS',
     'ALREADY_REVIEWED',
+    'DELIVERY_PENDING',
+    'DELIVERY_COMPLETED',
   ],
   422: [
     'CLIENT_REQUIRED',

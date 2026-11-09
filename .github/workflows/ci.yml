@@ -86,3 +86,6 @@ jobs:
 
       - name: ChangeRequest approval HTTP and proxy E2E
         run: pnpm --filter specbridge-api test:e2e:changes
+
+      - name: Delivery acceptance HTTP and proxy E2E
+        run: pnpm --filter specbridge-api test:e2e:deliveries

@@ -91,3 +91,10 @@ stateDiagram-v2
 - APPROVED 终态不能 PATCH/resubmit；新增范围用新 Revision、新 CR。多个 CR 可以引用同一 Ready Revision，任何一个 Pending 都阻止新 Revision。
 - CRVersion 本身没有可变 status；历史拒绝/批准由其 Approval 决定记录表示。Client 决定必须验证 active Version 是最新、归属正确且有同 Version 的 Owner APPROVED。
 - 先判 stale，再判已有决定/合法阶段；同一预期版本竞争一成功一 STALE_VERSION，刷新后重复已决定步骤 ALREADY_REVIEWED。Client 先到时 INVALID_TRANSITION；等待 Owner 提交后旧 expectedVersion 为 STALE_VERSION，不自动批准新状态。
+
+## R06 已批准实施细化
+
+- 使用方案 A：Delivery 无 lockVersion / expectedVersion；共享父→子 FOR UPDATE、SUBMITTED 条件更新、delivery_id 唯一 Review。重复 Review 为 409 ALREADY_REVIEWED，不作幂等成功重放。
+- 创建与 Review 必须确认当前 APPROVED CR 的 active Version 为最高且归属正确，并有同 Version 的合法 Owner/Client APPROVED。后续需求新 Revision 不使旧交付失效。
+- 新交付在锁内 MAX(delivery_no)+1；退回保持旧 Delivery=CHANGES_REQUESTED 并新建，ACCEPTED 为终态。已验收优先 DELIVERY_COMPLETED，否则待审 DELIVERY_PENDING。
+- Review、Delivery 状态和 AuditEvent 同 tx；创建与审计同 tx；失败不消耗编号、不推进 CR/Requirement 聚合版本。只读历史在一致快照内返回全部分页记录及对应 Review。
