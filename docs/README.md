@@ -18,7 +18,7 @@
 | 当前进度 / 人工责任 | `STATE.md`, `HUMAN_TASKS.md` |
 | 发布前检查 | `release/RELEASE_CHECKLIST.md` |
 | 竞品调研 | `research/COMPETITOR_RESEARCH.md` |
-| R07 只读增量契约、Audit 与 Dashboard 口径（Phase A 已交付） | `architecture/R07_READ_MODELS.md` |
+| R07 只读契约、Audit/Dashboard 与生成 OpenAPI（Phase B 本地完成） | `architecture/R07_READ_MODELS.md`, `architecture/openapi.json` |
 | R07 视觉规范、交互原型与浏览器截图 | `ux/R07_DESIGN.md`, `ux/prototypes/r07/README.md` |
 | R07 总规划、当前进度、跨 Session 提示词与精简验证 | `engineering/R07_PLAN.md` |
 

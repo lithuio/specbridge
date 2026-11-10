@@ -1,3 +1,4 @@
+import type { ChangeListDto } from '../http/read.dto.js';
 import {
   ConflictException,
   Inject,
@@ -27,6 +28,45 @@ export type Frozen = typeof changeRequestVersions.$inferSelect;
 @Injectable()
 export class ChangesRepository {
   constructor(@Inject(DatabaseService) readonly database: DatabaseService) {}
+  list(db: Connection, projectId: string, input: ChangeListDto) {
+    return db
+      .select({
+        id: changeRequests.id,
+        requirementId: changeRequests.requirementId,
+        projectId: requirements.projectId,
+        status: changeRequests.status,
+        lockVersion: changeRequests.lockVersion,
+        activeVersionId: changeRequests.activeVersionId,
+        createdAt: changeRequests.createdAt,
+        updatedAt: changeRequests.updatedAt,
+        requirementTitle: requirements.title,
+        activeVersionNo: changeRequestVersions.versionNo,
+      })
+      .from(changeRequests)
+      .innerJoin(
+        requirements,
+        eq(requirements.id, changeRequests.requirementId),
+      )
+      .leftJoin(
+        changeRequestVersions,
+        and(
+          eq(changeRequestVersions.id, changeRequests.activeVersionId),
+          eq(changeRequestVersions.changeRequestId, changeRequests.id),
+        ),
+      )
+      .where(
+        and(
+          eq(requirements.projectId, projectId),
+          input.requirementId
+            ? eq(requirements.id, input.requirementId.toLowerCase())
+            : undefined,
+          input.status ? eq(changeRequests.status, input.status) : undefined,
+        ),
+      )
+      .orderBy(desc(changeRequests.createdAt), desc(changeRequests.id))
+      .limit(input.limit + 1)
+      .offset(input.offset);
+  }
   async get(db: Connection, id: string, lock = false) {
     const q = db.select().from(changeRequests).where(eq(changeRequests.id, id));
     const [row] = await (lock ? q.for('update') : q);

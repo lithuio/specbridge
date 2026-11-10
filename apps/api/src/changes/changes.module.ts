@@ -1,3 +1,4 @@
+import { DeliveriesRepository } from '../deliveries/deliveries.repository.js';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../database/database.module.js';
 import { AuthorizationModule } from '../authorization/authorization.module.js';
@@ -8,7 +9,7 @@ import { ChangesRepository } from './changes.repository.js';
 @Module({
   imports: [DatabaseModule, AuthorizationModule, AuditModule],
   controllers: [ChangesController],
-  providers: [ChangesService, ChangesRepository],
+  providers: [ChangesService, ChangesRepository, DeliveriesRepository],
   exports: [ChangesRepository],
 })
 export class ChangesModule {}

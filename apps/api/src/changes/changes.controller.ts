@@ -1,3 +1,4 @@
+import { ChangeListDto, EmptyQueryDto } from '../http/read.dto.js';
 import {
   Body,
   Controller,
@@ -13,7 +14,7 @@ import {
   Req,
 } from '@nestjs/common';
 import type { AuthRequest } from '../auth/auth.types.js';
-import { dtoPipe, PageDto } from '../authorization/rbac.dto.js';
+import { dtoPipe, page, PageDto } from '../authorization/rbac.dto.js';
 import {
   ChangeDecisionDto,
   ChangeVersionDto,
@@ -26,6 +27,32 @@ export class ChangesController {
   constructor(
     @Inject(ChangesService) private readonly service: ChangesService,
   ) {}
+  @Get('projects/:id/change-requests')
+  @Header('Cache-Control', 'no-store')
+  async list(
+    @Req() req: AuthRequest,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Query(dtoPipe(ChangeListDto)) input: ChangeListDto,
+  ) {
+    return page(
+      await this.service.list(req.auth!.user.id, id, input),
+      input,
+      req.requestId,
+    );
+  }
+  @Get('change-requests/:id/versions/:versionId')
+  @Header('Cache-Control', 'no-store')
+  async versionDetail(
+    @Req() req: AuthRequest,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('versionId', new ParseUUIDPipe()) versionId: string,
+    @Query(dtoPipe(EmptyQueryDto)) _query: EmptyQueryDto,
+  ) {
+    return {
+      data: await this.service.versionDetail(req.auth!.user.id, id, versionId),
+      meta: { requestId: req.requestId },
+    };
+  }
   @Post('requirements/:id/change-requests')
   @Header('Cache-Control', 'no-store')
   async create(

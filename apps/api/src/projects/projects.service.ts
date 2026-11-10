@@ -1,3 +1,4 @@
+import { capability } from '../http/capability.js';
 import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { ProjectsRepository } from './projects.repository.js';
 import { AuthorizationRepository } from '../authorization/authorization.repository.js';
@@ -39,14 +40,22 @@ export class ProjectsService {
       async (tx) => {
         const project = await this.authorization.project(userId, projectId, tx);
         const people = await this.repository.people(tx, projectId);
+        const locked = await this.repository.submitted(tx, projectId);
+        const ownerReason =
+          project.projectRole === 'OWNER' ? undefined : 'ROLE_FORBIDDEN';
         return {
           ...project,
+          createdAt: new Date(project.createdAt),
+          capabilities: {
+            createRequirement: capability(),
+            assignDeveloper: capability(ownerReason),
+            bindClient: capability(
+              ownerReason ?? (locked ? 'CLIENT_ASSIGNMENT_LOCKED' : undefined),
+            ),
+          },
           owner: people.find((p) => p.role === 'OWNER'),
           members: people.filter((p) => p.role !== 'OWNER'),
-          clientAssignmentLocked: await this.repository.submitted(
-            tx,
-            projectId,
-          ),
+          clientAssignmentLocked: locked,
         };
       },
       { isolationLevel: 'repeatable read', accessMode: 'read only' },

@@ -322,3 +322,11 @@ API-28～30 使用既有 Schema，无新增 Migration。负责人批准方案 A�
 - 写锁 Workspace→Project→Requirement→CR，Review 最后锁 Delivery；锁后重验父链、权限、批准资格。Review INSERT、Delivery WHERE status='SUBMITTED' 条件 UPDATE、AuditWriter 同 tx。业务失败或审计失败整体回滚；不推进 CR lockVersion/Requirement draftVersion。
 - 明确识别 PostgreSQL 23505 的 Review 唯一键/待审部分唯一索引/编号唯一键，事务回滚后分别映射 ALREADY_REVIEWED/DELIVERY_PENDING/CONFLICT；其他数据库异常不吞掉、不公开 SQL。
 - 审计为 delivery.submitted / delivery.reviewed，entityType=delivery、entityVersion=deliveryNo；metadata 仅关联 ID、versionNo、状态、决定，不存 URL/说明/评论。审计查询、完整前端页面不属于 R06。
+
+## R07 Phase B 读取与生成契约（本地完成）
+
+新增七 GET 和四类详情 capabilities 的精确定义见 [R07_READ_MODELS](R07_READ_MODELS.md)，机器契约见 [OpenAPI](openapi.json)。已有 mutation 响应不附 capabilities，UI 写后刷新详情；Client 的 CR draft 仍完全缺席，OpenAPI 使用封闭 Supplier/Client oneOf。
+
+OpenAPI 覆盖 R07 使用的 R02–R06 API 和七 GET，共 30 paths / 38 operations；日期为标准 UTC ISO、工时为十进制字符串、金额为 JSON 安全整数，null/optional 显式定义。为满足已有日期契约，R03 Workspace 列表/成员（含重复添加返回值）和 Project 列表/详情已规范化原生 SQL 日期文本；没有修改权限或状态转换。
+
+离线生成 `pnpm --filter specbridge-api openapi:generate`，漂移验证 `pnpm --filter specbridge-api openapi:check`。不加载 .env、连接数据库或启动 Observe/Swagger UI。真实 HTTP 响应验证与运行证据见 STATE；不替代后续浏览器验收。

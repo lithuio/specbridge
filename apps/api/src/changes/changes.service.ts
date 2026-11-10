@@ -1,4 +1,10 @@
+import { capability, type ReasonCode } from '../http/capability.js';
+import { approvedDeliveryVersion } from '../deliveries/delivery-eligibility.js';
+import { DeliveriesRepository } from '../deliveries/deliveries.repository.js';
+import { validRevision } from '../requirements/requirements.eligibility.js';
+import type { ChangeListDto } from '../http/read.dto.js';
 import {
+  HttpException,
   BadRequestException,
   ConflictException,
   ForbiddenException,
@@ -65,6 +71,19 @@ function draft(row: Change) {
     acceptanceCriteria: row.draftAcceptanceCriteria,
   };
 }
+function checkedAssessment(row: Change) {
+  const fields = draft(row);
+  if (
+    Object.values(fields).some((v) => v === null) ||
+    !fields.acceptanceCriteria?.length
+  )
+    return undefined;
+  const checked = plainToInstance(PatchChangeDto, {
+    expectedVersion: row.lockVersion,
+    ...fields,
+  });
+  return validateSync(checked).length ? undefined : checked;
+}
 function summary(row: Change, projectId: string) {
   return {
     id: row.id,
@@ -81,6 +100,8 @@ function summary(row: Change, projectId: string) {
 export class ChangesService {
   constructor(
     @Inject(ChangesRepository) private readonly repository: ChangesRepository,
+    @Inject(DeliveriesRepository)
+    private readonly deliveries: DeliveriesRepository,
     @Inject(AuthorizationRepository)
     private readonly authorization: AuthorizationRepository,
     @Inject(AuditWriter) private readonly audit: AuditWriter,
@@ -93,12 +114,8 @@ export class ChangesService {
     const latest = await this.repository.latestRevision(tx, row.id);
     if (
       row.status !== 'READY' ||
-      !latest ||
-      latest.id !== row.latestRevisionId ||
-      (revisionId !== undefined && latest.id !== revisionId) ||
-      !latest.content.trim() ||
-      !latest.acceptanceCriteria.length ||
-      latest.acceptanceCriteria.some((v) => !v.trim())
+      !validRevision(row.latestRevisionId, latest) ||
+      (revisionId !== undefined && latest?.id !== revisionId)
     )
       business();
     return latest!;
@@ -291,30 +308,20 @@ export class ChangesService {
         if (!client) business('CLIENT_REQUIRED');
         if (client!.conflict) business('ROLE_CONFLICT');
         await this.ready(tx, requirement, row.draftRequirementRevisionId);
-        const fields = draft(row);
-        if (
-          Object.values(fields).some((v) => v === null) ||
-          !fields.acceptanceCriteria?.length
-        )
-          business();
-        // Revalidate persisted draft values, including rows not created through HTTP.
-        const checked = plainToInstance(PatchChangeDto, {
-          expectedVersion: row.lockVersion,
-          ...fields,
-        });
-        if (validateSync(checked).length) business();
+        const checked = checkedAssessment(row);
+        if (!checked) business();
         const previous = await this.repository.latestVersion(tx, row.id);
         if (previous?.versionNo === max) business();
         const version = await this.repository.freeze(tx, {
           changeRequestId: row.id,
           versionNo: (previous?.versionNo ?? 0) + 1,
           requirementRevisionId: row.draftRequirementRevisionId,
-          scopeSnapshot: checked.scopeSummary!,
+          scopeSnapshot: checked!.scopeSummary!,
           estimateHours: row.draftEstimateHours!,
           costDeltaMinor: row.draftCostDeltaMinor!,
           currency: row.draftCurrency!,
           scheduleDeltaDays: row.draftScheduleDeltaDays!,
-          acceptanceCriteria: checked.acceptanceCriteria!,
+          acceptanceCriteria: checked!.acceptanceCriteria!,
           submittedBy: actor,
         });
         const updated = await this.repository.advance(tx, row, {
@@ -359,40 +366,13 @@ export class ChangesService {
       input.expectedVersion,
       step === 'VENDOR' ? ['OWNER'] : ['CLIENT'],
       async (tx, row, requirement, project, actor) => {
-        if (row.status === 'DRAFT' || !row.activeVersionId)
-          conflict('INVALID_TRANSITION');
-        const version = await this.repository.version(
+        const version = await this.decisionVersion(
           tx,
-          row.id,
-          row.activeVersionId!,
+          row,
+          requirement,
+          project,
+          step,
         );
-        const latest = await this.repository.latestVersion(tx, row.id);
-        if (
-          !version ||
-          version.id !== latest?.id ||
-          !(await this.repository.revision(
-            tx,
-            requirement.id,
-            version.requirementRevisionId,
-          ))
-        )
-          business();
-        const decisions = await this.repository.decisions(tx, version!.id);
-        if (decisions.some((d) => d.step === step))
-          conflict('ALREADY_REVIEWED');
-        if (
-          row.status !== (step === 'VENDOR' ? 'SUBMITTED' : 'VENDOR_APPROVED')
-        )
-          conflict('INVALID_TRANSITION');
-        if (step === 'CLIENT') {
-          const vendor = decisions.find((d) => d.step === 'VENDOR');
-          const owner = await this.repositoryOwner(
-            tx,
-            project,
-            vendor?.actorId,
-          );
-          if (vendor?.decision !== 'APPROVED' || !owner) business();
-        }
         const approval = await this.repository.decide(tx, {
           changeRequestVersionId: version!.id,
           step,
@@ -437,6 +417,42 @@ export class ChangesService {
         };
       },
     );
+  }
+  private async decisionVersion(
+    tx: DatabaseTransaction,
+    row: Change,
+    requirement: Requirement,
+    project: Project,
+    step: 'VENDOR' | 'CLIENT',
+  ) {
+    if (row.status === 'DRAFT' || !row.activeVersionId)
+      conflict('INVALID_TRANSITION');
+    const version = await this.repository.version(
+      tx,
+      row.id,
+      row.activeVersionId!,
+    );
+    const latest = await this.repository.latestVersion(tx, row.id);
+    if (
+      !version ||
+      version.id !== latest?.id ||
+      !(await this.repository.revision(
+        tx,
+        requirement.id,
+        version.requirementRevisionId,
+      ))
+    )
+      business();
+    const decisions = await this.repository.decisions(tx, version!.id);
+    if (decisions.some((d) => d.step === step)) conflict('ALREADY_REVIEWED');
+    if (row.status !== (step === 'VENDOR' ? 'SUBMITTED' : 'VENDOR_APPROVED'))
+      conflict('INVALID_TRANSITION');
+    if (step === 'CLIENT') {
+      const vendor = decisions.find((d) => d.step === 'VENDOR');
+      const owner = await this.repositoryOwner(tx, project, vendor?.actorId);
+      if (vendor?.decision !== 'APPROVED' || !owner) business();
+    }
+    return version!;
   }
   private async repositoryOwner(
     tx: DatabaseTransaction,
@@ -492,6 +508,161 @@ export class ChangesService {
       approvals: await this.repository.decisions(tx, version.id),
     };
   }
+  list(actor: string, projectId: string, input: ChangeListDto) {
+    return this.repository.database.db.transaction(
+      async (tx) => {
+        const project = await this.authorization.project(
+          actor.toLowerCase(),
+          projectId.toLowerCase(),
+          tx,
+        );
+        return this.repository.list(tx, project.id, input);
+      },
+      { isolationLevel: 'repeatable read', accessMode: 'read only' },
+    );
+  }
+  versionDetail(actor: string, id: string, versionId: string) {
+    return this.repository.database.db.transaction(
+      async (tx) => {
+        const row = await this.repository.get(tx, id.toLowerCase());
+        const requirement = await this.repository.requirement(
+          tx,
+          row.requirementId,
+        );
+        const project = await this.authorization.project(
+          actor.toLowerCase(),
+          requirement.projectId,
+          tx,
+        );
+        const version = await this.repository.version(
+          tx,
+          row.id,
+          versionId.toLowerCase(),
+        );
+        if (!version) throw new NotFoundException();
+        return {
+          ...(await this.frozen(tx, row, version)),
+          projectId: project.id,
+          requirementId: requirement.id,
+        };
+      },
+      { isolationLevel: 'repeatable read', accessMode: 'read only' },
+    );
+  }
+  private async capabilities(
+    tx: DatabaseTransaction,
+    row: Change,
+    requirement: Requirement,
+    project: Project,
+  ) {
+    const role = project.projectRole;
+    const supplier: ReasonCode | undefined =
+      role === 'CLIENT' ? 'ROLE_FORBIDDEN' : undefined;
+    const exhausted: ReasonCode | undefined =
+      row.lockVersion === max ? 'VERSION_EXHAUSTED' : undefined;
+    const draftReason =
+      supplier ??
+      exhausted ??
+      (row.status !== 'DRAFT' ? 'INVALID_TRANSITION' : undefined);
+    let submitReason: ReasonCode | undefined = draftReason;
+    if (!submitReason) {
+      const client = await this.repository.client(
+        tx,
+        project.id,
+        project.workspaceId,
+      );
+      const latest = await this.repository.latestRevision(tx, requirement.id);
+      submitReason = !client
+        ? 'CLIENT_REQUIRED'
+        : client.conflict
+          ? 'ROLE_CONFLICT'
+          : requirement.status !== 'READY' ||
+              latest?.id !== row.draftRequirementRevisionId ||
+              !validRevision(requirement.latestRevisionId, latest)
+            ? 'REVISION_NOT_READY'
+            : !checkedAssessment(row)
+              ? 'ASSESSMENT_INCOMPLETE'
+              : (await this.repository.latestVersion(tx, row.id))?.versionNo ===
+                  max
+                ? 'VERSION_EXHAUSTED'
+                : undefined;
+    }
+    const decision = async (step: 'VENDOR' | 'CLIENT') => {
+      if (role !== (step === 'VENDOR' ? 'OWNER' : 'CLIENT'))
+        return capability('ROLE_FORBIDDEN');
+      if (exhausted) return capability(exhausted);
+      try {
+        await this.decisionVersion(tx, row, requirement, project, step);
+        return capability();
+      } catch (error) {
+        if (error instanceof NotFoundException)
+          return capability('BUSINESS_RULE_VIOLATION');
+        if (
+          !(error instanceof HttpException) ||
+          ![409, 422].includes(error.getStatus())
+        )
+          throw error;
+        const response = error.getResponse();
+        const code =
+          typeof response === 'object' &&
+          response !== null &&
+          'code' in response
+            ? response.code
+            : undefined;
+        return capability(
+          code === 'INVALID_TRANSITION' || code === 'ALREADY_REVIEWED'
+            ? code
+            : 'BUSINESS_RULE_VIOLATION',
+        );
+      }
+    };
+    let deliveryReason: ReasonCode | undefined = supplier;
+    if (!deliveryReason) {
+      try {
+        const version = await approvedDeliveryVersion(
+          this.repository,
+          this.authorization,
+          tx,
+          row,
+          requirement,
+          project,
+        );
+        deliveryReason = (await this.deliveries.blocking(
+          tx,
+          version.id,
+          'ACCEPTED',
+        ))
+          ? 'DELIVERY_COMPLETED'
+          : (await this.deliveries.blocking(tx, version.id, 'SUBMITTED'))
+            ? 'DELIVERY_PENDING'
+            : (await this.deliveries.nextNumber(tx, version.id)) > max
+              ? 'VERSION_EXHAUSTED'
+              : undefined;
+      } catch (error) {
+        if (
+          !(error instanceof HttpException) ||
+          ![409, 422].includes(error.getStatus())
+        )
+          throw error;
+        deliveryReason =
+          error.getStatus() === 409
+            ? 'INVALID_TRANSITION'
+            : 'BUSINESS_RULE_VIOLATION';
+      }
+    }
+    return {
+      editDraft: capability(draftReason),
+      submit: capability(submitReason),
+      reopen: capability(
+        supplier ??
+          exhausted ??
+          (row.status !== 'REJECTED' ? 'INVALID_TRANSITION' : undefined),
+      ),
+      vendorDecision: await decision('VENDOR'),
+      clientDecision: await decision('CLIENT'),
+      createDelivery: capability(deliveryReason),
+    };
+  }
   detail(actor: string, id: string, page: PageDto) {
     return this.repository.database.db.transaction(
       async (tx) => {
@@ -512,6 +683,12 @@ export class ChangesService {
         return {
           data: {
             ...summary(row, project.id),
+            capabilities: await this.capabilities(
+              tx,
+              row,
+              requirement,
+              project,
+            ),
             ...(project.projectRole !== 'CLIENT' ? { draft: draft(row) } : {}),
             activeVersion: active ? await this.frozen(tx, row, active) : null,
             versions: await Promise.all(

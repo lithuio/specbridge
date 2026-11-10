@@ -86,3 +86,9 @@ CI 本身成功不等于端到端业务全部通过；从未运行的测试不�
 - 审计失败分别覆盖创建/接受/退回，快照包含父对象、Delivery、Review、Audit；包括先写审计再抛错、条件 UPDATE 零行、真实 23505 与 Drizzle cause 映射。Review 触发器拒绝 UPDATE/DELETE；Delivery 无公开改删接口，旧内容保留；历史读取验证 Review 提交期间的一致快照。
 - `test:e2e:deliveries`：三个接口 HTTP 权限/输入/并发/回滚；编译 API+Next Rewrite 从审批到退回重交再接受。CI database job 在 R05 后顺序运行；沿用 3000/4000 空闲检查及自建进程清理。
 - 完整保留 R01～R05 回归、类型检查/Lint/Build/迁移元数据检查。无新增 SQL；不得将 HTTP/代理证据称为完整浏览器或生产验证。
+
+## R07 Phase B 读取与 HTTP 契约
+
+`test:e2e:reads` 在真实隔离 PostgreSQL 与 Nest HTTP 上执行：七 GET 的角色/跨项目/父子 ID 拼接；Client 商业字段与 Audit 裁剪；过滤先于分页/hasMore；Dashboard 工作项、独立计数与稳定顺序；capabilities 与原写路径一致；业务快照无读取副作用。复用 R03–R06 fixtures，不使用 Mock Dashboard。
+
+响应使用 Ajv 校验已生成 OpenAPI，并严格检查 UTC JSON 日期；覆盖 R07 使用的既有认证、项目准备、需求、顺序审批/拒绝重提、交付验收路径。`openapi:check` 在临时目录重生成并比较机器契约与前端类型，CI 保留所有旧检查并追加该步骤及读取测试。已跑命令/结果与未跑项以 STATE 和 R07_PLAN 交接为准。

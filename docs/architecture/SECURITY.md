@@ -149,3 +149,9 @@ READY 禁止所有角色追加问答；ANSWER 只能引用同需求 QUESTION。�
 Review 从 Delivery→Version→CR→Requirement 定位项目，再按 Workspace→Project→Requirement→CR→Delivery 锁序获取行锁；不能先锁 Delivery 再回锁父级。锁后重新验证关系与角色，并核查批准证据。方案 A 不要求 Delivery lock_version，使用 SUBMITTED 条件更新和唯一 Review，与审计同事务；R04/R05 的版本校验仍保留。
 
 链接仅校验和存储，不请求外部地址；纯文本不按 HTML 执行。审计仅存 ID/版本/状态/决定，不存链接或正文。DeliveryReview 数据库触发器拒绝改删；Delivery 内容通过无公开改删入口和受限 Repository 保留，不承诺任意直接 SQL 防篡改。历史列表授权与投影使用只读 REPEATABLE READ，返回交付和 Review 的一致快照。
+
+## R07 只读模型安全边界
+
+七 GET 复用 Session Guard 与项目授权，不增加身份来源或写业务。多查询详情/capabilities/Dashboard 在同一只读 REPEATABLE READ 中返回；capability 是即时提示，最终写授权、锁、expectedVersion 和资格检查继续由原业务入口执行。
+
+Audit 事件可见性在 SQL 分页前过滤，未知事件默认隐藏；metadata 仅返回事件特定、类型合法的白名单键，actor 仅安全姓名/ID，target 由真实父链核实。Dashboard 仅统计授权集合，显式不可见 projectId 返回 404，workspaceId 与授权集合取交集。Client 无 CR 商业草稿或内部草稿工作项，内部操作 capability 优先 ROLE_FORBIDDEN。HTTP/真实 DB 验证范围见 STATE，不宣称生产安全评审完成。

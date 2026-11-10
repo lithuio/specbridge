@@ -1,8 +1,38 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-10。当前检查点为 R07 Phase A 已交付、跨 Session 总规划已调整；下一新 Session 执行 B；下方保留 R06～R01 历史证据。
+> 更新时间：2026-11-10。当前检查点为 R07 Phase B 本地完成；下一新 Session 执行 C；下方保留 A 与 R06～R01 历史证据。
 
-## R07 Web Integration — Phase A 已交付，后续分 Session 实施
+## R07 Phase B — 本地完成，未提交
+
+分支 `feat/15-web-integration`，开工/当前 HEAD `c472d78`；开工工作区干净，A 成果已在基线中。已在线读取 Issue #15，按用户授权只实施 B，未进入 C。
+
+- 七项 GET、项目/需求/CR/Delivery 详情 capabilities 完成；授权与多查询读取使用同一只读 REPEATABLE READ。列表先授权/可见性过滤再分页；Audit 丢弃未知事件及敏感 metadata，target 校验真实父链；Dashboard 由授权数据库事实推导，summary 独立于当前 bucket/页。
+- 复用既有资格校验，保留写锁/顺序审批/不可变历史；无新写业务、表、Schema、Migration 或认证重构。必要小修将 R03 原生 SQL 日期文本统一为 UTC ISO，已有成员重复加入响应同样规范化。
+- Swagger 离线导出 30 paths / 38 operations；[OpenAPI](architecture/openapi.json)、前端 `apps/web/src/lib/api/generated/schema.d.ts` 已生成；固定生成器、临时目录漂移检查和 CI 步骤已增加。未启动生产 Swagger UI。
+- 测试仅访问 5434 隔离 PostgreSQL；复现环境、精确命令及失败修正记录见 [R07_PLAN B 交接](engineering/R07_PLAN.md)。未访问开发/生产数据。
+
+| 状态 | 实际命令（API 均 `pnpm --filter specbridge-api`） | 结果 |
+|---|---|---|
+| PASS | `test` | 10 文件 / 93 单元测试 |
+| PASS | `test:integration` | 8 文件 / 90 真实 DB 集成测试 |
+| PASS | `test:e2e:reads` | 9 场景；七 GET 权限、字段裁剪、分页、Dashboard 状态/计数、capabilities；真实 HTTP 对生成 Schema 校验及严格 UTC 日期 |
+| PASS | `test:e2e:requirements` / `test:e2e:changes` / `test:e2e:deliveries` / `test:e2e:rbac` | 分别 9 / 8 / 7 / 13，含真实 Next Rewrite；日期修复后 RBAC 重新通过 |
+| PASS | `exec vitest run --config vitest.config.integration.ts test/database/rbac.integration-spec.ts` | 日期修复后 12 项受影响 DB 回归 |
+| PASS | `typecheck`、`lint`、`openapi:generate`、`openapi:check`、`db:check` | 类型/静态检查、API build、生成与确定性漂移检查、迁移元数据 |
+| PASS | `pnpm --filter web exec tsc --noEmit --incremental false`、`pnpm --filter web lint`、`git diff --check` | Web 类型/Lint、diff 空白检查 |
+| NOT RUN | 远程 CI、正式浏览器 E2E、Web 生产构建、人工评审；完整 auth/base HTTP 套件 | B 按受影响范围验证；不宣称 R07 全部 DoD 完成 |
+
+已处理失败：初次沙箱连接被拒；Dashboard `asOf`/R03 原生 SQL 日期不符合 UTC；Swagger 私有子路径导出不可用；异常跨 CR 指针被现有复合 FK 拒绝（测试改为断言该保护并验证缺失指针）。均保留真实失败说明，最终相关测试通过。Audit 单事务查询已顺序执行；既有写审计故障注入的安全 500 为预期。
+
+遗留限制：生成器 `openapi-typescript 7.10.1` 的 TS5 peer 与 API TS6 有安装警告，实际生成/漂移/Web 类型检查通过；未做大型 Dashboard 数据集性能基准，未新增索引。H-09 等人工评审状态未改变，无新增阻塞人工事项。
+
+本轮隔离测试容器已关闭并移除，未操作开发卷；已跟踪的构建缓存恢复开工值。
+
+下一步为新 Session 的 **Phase C**，复用生成契约实现真实 Shell、Typed Client、Query 会话隔离和认证。保留所有 B 未提交文件；本 Session 不 Commit/Push/创建 PR/Merge/部署。建议摘要：`feat(r07): add scoped read APIs, capabilities and generated HTTP contracts`。
+
+---
+
+## R07 Phase A — 历史检查点
 
 分支 `feat/15-web-integration`，起始 HEAD `63d81aa`，主任务 [Issue #15](https://github.com/lithuio/specbridge/issues/15)。负责人已批准总体工程规划、七项只读 API、capabilities、保守 Audit 白名单、真实 Dashboard、OpenAPI/生成类型和中文浅色视觉；最新要求改为 **B–H 各在新 Session 实施，精简重复验证，保留核心测试**。本轮只调整文档，不启动 B；后续明确启动 B 即沿用 A 基线，不重复请求例行批准。人工视觉结论尚未记录。
 

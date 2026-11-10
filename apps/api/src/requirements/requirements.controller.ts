@@ -1,3 +1,4 @@
+import { EmptyQueryDto } from '../http/read.dto.js';
 import {
   Body,
   Controller,
@@ -111,6 +112,23 @@ export class RequirementsController {
       input,
       req.requestId,
     );
+  }
+  @Get('requirements/:id/revisions/:revisionId')
+  @Header('Cache-Control', 'no-store')
+  async revisionDetail(
+    @Req() req: AuthRequest,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('revisionId', new ParseUUIDPipe()) revisionId: string,
+    @Query(dtoPipe(EmptyQueryDto)) _query: EmptyQueryDto,
+  ) {
+    return {
+      data: await this.service.revisionDetail(
+        req.auth!.user.id,
+        id,
+        revisionId,
+      ),
+      meta: { requestId: req.requestId },
+    };
   }
   @Post('requirements/:id/mark-ready')
   @HttpCode(200)

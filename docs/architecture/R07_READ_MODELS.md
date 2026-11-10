@@ -1,6 +1,6 @@
 # R07 增量读取契约 — Phase A
 
-状态：2026-11-10 负责人已批准总体范围；本文件是 Phase A 已交付契约，人工评审结论未记录；后续实施入口遵循最新 [R07_PLAN](../engineering/R07_PLAN.md)。**接口、capabilities 和 OpenAPI 尚未实现**。主任务 [#15](https://github.com/lithuio/specbridge/issues/15)。既有写契约以 [API.md](API.md) 的 R02–R06 实施章节为准。
+状态：2026-11-10 负责人已批准总体范围；本文件是 Phase A 已交付契约，人工评审结论未记录；后续实施入口遵循最新 [R07_PLAN](../engineering/R07_PLAN.md)。**Phase B 已本地实现七 GET、必要 capabilities、OpenAPI 与前端生成类型；验证见 R07_PLAN 的 B 交接和 STATE**。主任务 [#15](https://github.com/lithuio/specbridge/issues/15)。既有写契约以 [API.md](API.md) 的 R02–R06 实施章节为准。
 
 ## 1. 不变量与通用协议
 
@@ -186,3 +186,10 @@ ReasonCode 封闭集合：`ROLE_FORBIDDEN,INVALID_TRANSITION,CLIENT_ASSIGNMENT_L
 - 离线导出不连 DB、不读 .env、不启动 Observe；生成器只在受控脚本执行，默认不暴露生产 Swagger UI。
 - 生成前端类型到 apps/web/src/lib/api/generated；固定版本生成器和确定性排序，CI 在临时目录重生成比较，不在 CI 隐式修改产物。
 - HTTP 序列化测试检验真实 JSON 匹配 Schema；仅生成成功不等于契约正确。具体实施和测试矩阵见 [R07_PLAN.md](../engineering/R07_PLAN.md)。
+
+## Phase B 实施入口（2026-11-10）
+
+- 权威机器契约：[openapi.json](openapi.json)；离线定义 `apps/api/src/openapi`，生成类型 `apps/web/src/lib/api/generated/schema.d.ts`。`pnpm --filter specbridge-api openapi:generate` 更新产物；`openapi:check` 在临时目录比较，不改产物。
+- 新读取及 capabilities 均为只读一致快照；Dashboard 用授权事实 CTE 聚合，在 SQL 内排序分页；异常批准证据不产生操作项。Audit target 对不合法 Version 候选回退到已验证 CR，无法确认实体父链时为 null。
+- UTC 时间规范由真实 HTTP 测试严格验证；R03 既有原生 SQL 日期序列化已作等价格式修复。写请求/认证/Schema/Migration 未扩展。
+- HTTP 契约验证入口 `test:e2e:reads`，真实 DB 权限、字段、分页、聚合及 R02–R06 使用路径响应均经 Schema 校验。具体已跑/未跑范围以 STATE 为准。

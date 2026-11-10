@@ -39,6 +39,9 @@ jobs:
       - name: API route regression
         run: pnpm --filter specbridge-api test:e2e
 
+      - name: OpenAPI and generated Web type drift
+        run: pnpm --filter specbridge-api openapi:check
+
       - name: Migration metadata check
         run: pnpm --filter specbridge-api db:check
 
@@ -89,3 +92,6 @@ jobs:
 
       - name: Delivery acceptance HTTP and proxy E2E
         run: pnpm --filter specbridge-api test:e2e:deliveries
+
+      - name: R07 reads and HTTP schema contracts
+        run: pnpm --filter specbridge-api test:e2e:reads

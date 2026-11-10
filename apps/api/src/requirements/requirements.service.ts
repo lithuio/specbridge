@@ -1,3 +1,5 @@
+import { capability, type ReasonCode } from '../http/capability.js';
+import { validRevision, unanswered } from './requirements.eligibility.js';
 import {
   BadRequestException,
   ConflictException,
@@ -62,11 +64,65 @@ export class RequirementsService {
   detail(userId: string, id: string) {
     return this.read(async (tx) => {
       const row = await this.repository.get(tx, id.toLowerCase());
-      await this.authorization.project(userId.toLowerCase(), row.projectId, tx);
+      const project = await this.authorization.project(
+        userId.toLowerCase(),
+        row.projectId,
+        tx,
+      );
       const latest = await this.repository.latest(tx, row.id);
+      const questions = await this.repository.questions(tx, row.id);
+      const pending = await this.repository.pending(tx, row.id);
+      const exhausted: ReasonCode | undefined =
+        row.draftVersion === 2147483647 ? 'VERSION_EXHAUSTED' : undefined;
+      const supplier: ReasonCode | undefined =
+        project.projectRole === 'CLIENT' ? 'ROLE_FORBIDDEN' : undefined;
+      const nonReady: ReasonCode | undefined =
+        row.status === 'READY' ? 'INVALID_TRANSITION' : undefined;
+      const valid = validRevision(row.latestRevisionId, latest);
       return {
         ...row,
-        clarifications: await this.repository.questions(tx, row.id),
+        capabilities: {
+          editDraft: capability(
+            (project.projectRole !== 'OWNER' &&
+            row.createdBy !== userId.toLowerCase()
+              ? 'ROLE_FORBIDDEN'
+              : undefined) ??
+              exhausted ??
+              (row.status !== 'DRAFT' ? 'INVALID_TRANSITION' : undefined),
+          ),
+          askQuestion: capability(exhausted ?? nonReady),
+          answerQuestion: capability(
+            exhausted ??
+              (row.status !== 'CLARIFYING'
+                ? 'INVALID_TRANSITION'
+                : undefined) ??
+              (!questions.some((q) => q.kind === 'QUESTION')
+                ? 'BUSINESS_RULE_VIOLATION'
+                : undefined),
+          ),
+          createRevision: capability(
+            supplier ??
+              exhausted ??
+              (pending ? 'REVIEW_IN_PROGRESS' : undefined) ??
+              (latest?.revisionNo === 2147483647
+                ? 'VERSION_EXHAUSTED'
+                : undefined),
+          ),
+          markReady: capability(
+            supplier ??
+              exhausted ??
+              nonReady ??
+              (!valid ? 'REVISION_NOT_READY' : undefined) ??
+              (unanswered(questions) ? 'UNANSWERED_QUESTIONS' : undefined),
+          ),
+          createChangeRequest: capability(
+            supplier ??
+              (row.status !== 'READY' || !valid
+                ? 'REVISION_NOT_READY'
+                : undefined),
+          ),
+        },
+        clarifications: questions,
         latestRevision: latest?.id === row.latestRevisionId ? latest : null,
       };
     });
@@ -76,6 +132,18 @@ export class RequirementsService {
       const row = await this.repository.get(tx, id.toLowerCase());
       await this.authorization.project(userId.toLowerCase(), row.projectId, tx);
       return this.repository.revisions(tx, row.id, page);
+    });
+  }
+  revisionDetail(userId: string, id: string, revisionId: string) {
+    return this.read(async (tx) => {
+      const row = await this.repository.get(tx, id.toLowerCase());
+      await this.authorization.project(userId.toLowerCase(), row.projectId, tx);
+      const revision = await this.repository.revision(
+        tx,
+        row.id,
+        revisionId.toLowerCase(),
+      );
+      return { ...revision, projectId: row.projectId };
     });
   }
   create(userId: string, projectId: string, input: CreateRequirementDto) {
@@ -270,22 +338,9 @@ export class RequirementsService {
       async (tx, row, project, actor) => {
         if (row.status === 'READY') conflict('INVALID_TRANSITION');
         const revision = await this.repository.latest(tx, row.id);
-        if (
-          !revision ||
-          revision.id !== row.latestRevisionId ||
-          !revision.content.trim() ||
-          !revision.acceptanceCriteria.length ||
-          revision.acceptanceCriteria.some((s) => !s.trim())
-        )
-          business();
+        if (!validRevision(row.latestRevisionId, revision)) business();
         const questions = await this.repository.questions(tx, row.id);
-        const answered = new Set(
-          questions
-            .filter((q) => q.kind === 'ANSWER' && q.body.trim())
-            .map((q) => q.parentId),
-        );
-        if (questions.some((q) => q.kind === 'QUESTION' && !answered.has(q.id)))
-          business();
+        if (unanswered(questions)) business();
         const updated = await this.repository.advance(tx, row, {
           status: 'READY',
         });

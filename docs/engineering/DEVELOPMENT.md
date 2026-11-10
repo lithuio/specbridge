@@ -152,3 +152,17 @@ Argon2 使用依赖自带原生预编译二进制；本地和 CI 必须运行真
 无新增 Schema/Migration。使用上述隔离测试实例和显式 TEST_DATABASE_URL；运行 `pnpm --filter specbridge-api test:integration` 和 `pnpm --filter specbridge-api test:e2e:deliveries`，同时保留 auth/rbac/requirements/changes E2E 回归。新增 E2E 同样先编译 API，并临时启动真实 Next Rewrite，3000/4000 被占用时明确失败，不复用或停止用户服务。
 
 API-28 输入 HTTPS artifactUrl、summary、可选 evidenceLinks；API-30 输入 decision、comment（退回必填）。两者均不传 expectedVersion，身份/Version/编号来自 Session 与锁后数据库；复用现有 Origin、X-CSRF-Protection 和 Cookie 契约。API-29 用 limit/offset 遍历历史，每条附 review。没有 Delivery 内容 PATCH/DELETE，也不抓取链接或上传文件。
+
+## R07 读取契约与生成类型
+
+```bash
+pnpm --filter specbridge-api openapi:generate
+pnpm --filter specbridge-api openapi:check
+# 沿用上述隔离库环境变量与启动方式：
+pnpm --filter specbridge-api test:e2e:reads
+pnpm --filter web exec tsc --noEmit --incremental false
+```
+
+生成器只在脚本中运行，先编译 API；输出 `docs/architecture/openapi.json` 和 `apps/web/src/lib/api/generated/schema.d.ts`。check 在系统临时目录重生成后逐字比较，不改工作区产物。不要手改生成文件。Swagger 仅加载 Controller 元数据并以空 provider 导出，不导入 AppModule、启动认证/DB/Observe、读取 .env 或监听端口。
+
+固定开发依赖为 openapi-typescript 7.10.1、Ajv 8.17.1、ajv-formats 3.0.1；生成器声明 TS5 peer，与 API 的 TS6 有安装警告，本地实际生成与类型检查通过。CI 沿用根 pnpm-lock.yaml；未改 Web 子目录 lockfile。

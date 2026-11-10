@@ -1,7 +1,7 @@
 # R07 总规划与跨 Session 交接
 
 > 核心交接入口。新 Session 先读本文件，再按阶段读取必要源码/契约；不依赖聊天历史。  
-> 更新：2026-11-10。负责人批准总体规划后追加：**B–H 分别在新的 Session 实施，精简过程与重复验证，保留核心质量测试**。本轮仅调整规划，不开始 B。
+> 更新：2026-11-10。负责人批准总体规划后追加：**B–H 分别在新的 Session 实施，精简过程与重复验证，保留核心质量测试**。Phase B 已完成本地实施与验证；下一新 Session 执行 C。
 
 ## 1. 任务、范围和授权
 
@@ -21,7 +21,7 @@
 | 阶段 | 当前状态 | 已有成果 / 下一步 |
 |---|---|---|
 | A 契约与视觉 | 已交付；人工视觉结论未记录 | 三份规格/计划、独立原型、9 张截图、40 项原型检查通过 |
-| B 只读 API / 能力 / 契约 | NOT STARTED | 下个新 Session，从实际 API 源码与 R07_READ_MODELS 开始 |
+| B 只读 API / 能力 / 契约 | COMPLETE（本地） | 七 GET、四类详情 capabilities、OpenAPI/生成类型/CI 漂移检查；真实 DB/HTTP 已验证 |
 | C Web 基础 / 认证 | NOT STARTED | B 后实现真实 Shell、API Client、Query 隔离、认证 |
 | D 项目 / 成员 | NOT STARTED | C 后实现项目准备全过程 |
 | E 需求 / Revision | NOT STARTED | D 后实现问答、冻结规格、Ready |
@@ -29,15 +29,15 @@
 | G 交付 / Dashboard / Audit | NOT STARTED | F 后接通交付闭环和真实聚合 |
 | H 最终集成 | NOT STARTED | G 后统一浏览器主流程、全量回归与视觉收尾 |
 
-**实际代码状态**：R01–R06 后端源码已存在；apps/web 仍为 Next 默认首页与六个基础 UI 组件，没有真实业务页面/API Client/认证 UI。packages 为空。API 已安装 Swagger，但尚无可执行 OpenAPI/生成类型。现有 Vitest/HTTP/Next Rewrite 测试不是浏览器 E2E。
+**实际代码状态**：R01–R06 后端源码已存在；apps/web 仍为 Next 默认首页与六个基础 UI 组件，没有真实业务页面/API Client/认证 UI。packages 为空。API 已实现七项读取与必要 capabilities；离线 Swagger 导出在 `apps/api/src/openapi`，契约为 `docs/architecture/openapi.json`，前端类型为 `apps/web/src/lib/api/generated/schema.d.ts`。现有 Vitest/HTTP/Next Rewrite 测试不是浏览器 E2E。
 
 **依赖审计基线**：Web 本地 Next 16.4.3、React 19.3.0、TS 5.9.3、Tailwind 4.3.3、Base UI 1.9.0、shadcn 4.23.0、Query 5.105.0、Zod 4.6.7、RHF 7.91.0。这些是 Phase A 观察值，新 Session 用 package.json/根 lockfile 核对，不升级无关依赖。Web package name 为 `web`，API 为 `specbridge-api`。Web 子目录另有 lockfile/workspace 配置，优先沿用根工作区约定，不顺手清理。
 
-**工作区连续性**：截至此次规划调整，Phase A 文档/原型及本轮修改尚未提交。它们是已授权成果，不是可删除的临时脏文件。新 Session 不 stash/reset/clean 或覆盖已有改动；先识别 diff，接续实现。
+**工作区连续性**：B 开工实际分支 `feat/15-web-integration`、HEAD `c472d78`、工作区干净，A 成果已纳入当前 Git 基线（此前“未提交”为历史描述）。B 成果保留在未提交工作区；不 stash/reset/clean，不自动 Commit/Push/PR。
 
-**证据**：A 的机器结果 [verification.json](../ux/prototypes/r07/evidence/verification.json)，40 项检查、0 axe A/AA 违规、9 张真实 Chromium 截图，仅证明独立原型。首轮焦点失败及修复保留。R06 的 240 项通过是历史记录；本轮未运行业务回归/数据库/生产构建。不能继承宣称当前阶段测试已通过。
+**证据**：A 的 [verification.json](../ux/prototypes/r07/evidence/verification.json) 仅证明独立原型。B 的精确命令/结果见下方交接与 STATE：93 单元、90 DB 集成、9 R07 HTTP 契约场景，以及受影响 R03–R06 HTTP/代理回归通过；UTC 日期小修后另重跑 R03 12 项 DB 回归。远程 CI/正式浏览器/Web 生产构建未运行。
 
-**下个 Session 的第一步**：读本文件与作用域 AGENTS → 核对工作区 → 读增量读取契约与 B 相关源码 → 简短列计划 → 实施 B。当前无已知必须改 Schema 的需求。
+**下个 Session 的第一步**：执行 C；先读本文件最新 B 交接、STATE、生成契约、R07_DESIGN 与 Web AGENTS。保留 B 未提交成果，用既有 Cookie/CSRF/Rewrite 实现 Shell、Typed Client、Query 会话隔离和认证 UI；本 Session 不进入 C。
 
 ## 3. 最少必要阅读与权威来源
 
@@ -199,6 +199,24 @@ git diff --check
 - 当前只改文档，不开始B；下次用户发送B提示词后直接实施B。例行阶段检查不另设审批门槛；不虚构既有人工Review已通过。
 - 验证：`git diff --check` PASS；Python pathlib/re 检查本轮7份文档的48个本地Markdown链接，全部存在。业务测试/构建/浏览器 NOT RUN（纯文档调整，无生产代码变更）。
 - 同步 STATE、HUMAN_TASKS、文档索引与设计/原型/契约的阶段入口说明。建议提交摘要（不执行）：`docs(r07): streamline phase execution and session handoffs`。
+
+### Session 2026-11-10 — Phase B — COMPLETE（本地）
+
+- 分支/HEAD：`feat/15-web-integration` / `c472d78`；开工工作区干净，A 成果已存在；本轮未提交、推送、建 PR、合并或部署。
+- 完成：七 GET；Project/Requirement/CR/Delivery 详情 capabilities；Audit 事件/metadata 白名单和真实父链 target；Dashboard 授权 CTE、全范围去重计数、三 bucket 与稳定分页。
+- 入口：`apps/api/src/{requirements,changes,deliveries,projects,audit,dashboard}`；局部共用 `requirements.eligibility.ts`、`delivery-eligibility.ts`、CR 决策/评估校验，写锁与错误优先级保留；无新增表、Schema、Migration、写业务或认证重构。
+- 契约：`src/openapi/{document,schemas}.ts`、`scripts/openapi.mjs`；30 paths / 38 operations；离线不连接 DB、不加载 .env/Observe、不监听；生成 `docs/architecture/openapi.json` 与 Web `schema.d.ts`；CI 在临时目录重生成比较。
+- 必要小修：严格 UTC 测试发现 R03 原生 SQL 日期文本未规范化，修复 Workspace 列表/成员及 Project 列表/详情的日期序列化（含已有成员重复加入返回值）；无权限/状态语义变更。
+- 测试环境：仅 `127.0.0.1:5434/specbridge_test`、公开一次性测试账号，沿用 `infra/compose.test.yml` + `/tmp/specbridge-r01-test-host.yml`；未访问开发/生产库。测试 SQL 仅应用既有已批准迁移。
+- PASS：`pnpm --filter specbridge-api test` 93；`test:integration` 90；`test:e2e:reads` 9（七 GET、角色/跨项目/父子拼接、裁剪、分页、聚合、capabilities、真实 HTTP Schema 与 UTC 日期）；DB 命令均前置 `env TEST_DATABASE_URL=postgresql://specbridge_test:local_test_only@127.0.0.1:5434/specbridge_test`。
+- PASS：同环境 `test:e2e:requirements` 9、`test:e2e:changes` 8、`test:e2e:deliveries` 7、`test:e2e:rbac` 13，均包含编译 API/Next Rewrite；日期修复后另 `exec vitest run --config vitest.config.integration.ts test/database/rbac.integration-spec.ts` 12。
+- PASS：API `typecheck`、`lint`、`openapi:generate`、`openapi:check`（含 API build）、`db:check`；Web `exec tsc --noEmit --incremental false`、`lint`；`git diff --check`。数据库 Schema/历史迁移/Auth 目录未改。
+- 已处理失败：沙箱连接/下载限制后获准运行；Swagger 子路径导出改为公开入口；Dashboard asOf 与 R03 日期规范化；Audit 同 tx 改为顺序查询；异常指针 fixture 先断言数据库 FK 拒绝，再验证可表示的缺失指针。审计回归中的安全 500 为预期故障注入。
+- 限制：`openapi-typescript 7.10.1` 声明 TS5 peer，API 当前 TS6，安装有 peer warning；实际生成/漂移/Web 类型验证通过，未调整现有编译器。Dashboard 当前按授权全集 CTE 聚合，未做大数据量性能基准；未新增索引。
+- NOT RUN：远程 CI、正式浏览器 E2E、Web 生产构建、人工视觉/安全评审；未改认证生产逻辑，未重复完整 auth/base HTTP 套件；新增 HTTP 已覆盖登录/注册/me/退出响应契约。
+- 清理：`docker compose -f infra/compose.test.yml -f /tmp/specbridge-r01-test-host.yml down` PASS，仅本轮测试容器已关闭移除；构建生成的已跟踪 tsbuildinfo 恢复开工值。
+- 下一 Session：C，先读取生成契约与 `R07_DESIGN`，建立真实 Web Shell/认证/Query 隔离及可复用浏览器 fixture；不重做 A 原型。无需新增人工决策，H-09 等现有人工状态不变。
+- 建议提交摘要（不执行）：`feat(r07): add scoped read APIs, capabilities and generated HTTP contracts`。
 
 ## 9. 每个新 Session 的提示词（可单独复制）
 

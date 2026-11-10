@@ -1,3 +1,4 @@
+import type { DeliveryListDto } from '../http/read.dto.js';
 import {
   ConflictException,
   Inject,
@@ -12,6 +13,9 @@ import {
 import type { Connection } from '../authorization/authorization.repository.js';
 import type { PageDto } from '../authorization/rbac.dto.js';
 import {
+  requirements,
+  changeRequests,
+  requirementRevisions,
   deliveries,
   deliveryReviews,
   changeRequestVersions,
@@ -20,6 +24,54 @@ export type Delivery = typeof deliveries.$inferSelect;
 @Injectable()
 export class DeliveriesRepository {
   constructor(@Inject(DatabaseService) readonly database: DatabaseService) {}
+  list(db: Connection, projectId: string, input: DeliveryListDto) {
+    return db
+      .select({
+        delivery: deliveries,
+        review: deliveryReviews,
+        changeRequestId: changeRequests.id,
+        versionNo: changeRequestVersions.versionNo,
+        projectId: requirements.projectId,
+        requirementId: requirements.id,
+        requirementTitle: requirements.title,
+      })
+      .from(deliveries)
+      .innerJoin(
+        changeRequestVersions,
+        eq(changeRequestVersions.id, deliveries.changeRequestVersionId),
+      )
+      .innerJoin(
+        changeRequests,
+        eq(changeRequests.id, changeRequestVersions.changeRequestId),
+      )
+      .innerJoin(
+        requirements,
+        eq(requirements.id, changeRequests.requirementId),
+      )
+      .innerJoin(
+        requirementRevisions,
+        and(
+          eq(
+            requirementRevisions.id,
+            changeRequestVersions.requirementRevisionId,
+          ),
+          eq(requirementRevisions.requirementId, requirements.id),
+        ),
+      )
+      .leftJoin(deliveryReviews, eq(deliveryReviews.deliveryId, deliveries.id))
+      .where(
+        and(
+          eq(requirements.projectId, projectId),
+          input.changeRequestId
+            ? eq(changeRequests.id, input.changeRequestId.toLowerCase())
+            : undefined,
+          input.status ? eq(deliveries.status, input.status) : undefined,
+        ),
+      )
+      .orderBy(desc(deliveries.createdAt), desc(deliveries.id))
+      .limit(input.limit + 1)
+      .offset(input.offset);
+  }
   async get(db: Connection, id: string, lock = false) {
     const query = db.select().from(deliveries).where(eq(deliveries.id, id));
     const [row] = await (lock ? query.for('update') : query);

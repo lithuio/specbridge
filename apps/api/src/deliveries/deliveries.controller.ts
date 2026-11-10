@@ -1,3 +1,4 @@
+import { DeliveryListDto, EmptyQueryDto } from '../http/read.dto.js';
 import {
   Body,
   Controller,
@@ -12,7 +13,7 @@ import {
   Req,
 } from '@nestjs/common';
 import type { AuthRequest } from '../auth/auth.types.js';
-import { dtoPipe, PageDto } from '../authorization/rbac.dto.js';
+import { dtoPipe, page, PageDto } from '../authorization/rbac.dto.js';
 import { CreateDeliveryDto, ReviewDeliveryDto } from './deliveries.dto.js';
 import { DeliveriesService } from './deliveries.service.js';
 @Controller('api/v1')
@@ -20,6 +21,31 @@ export class DeliveriesController {
   constructor(
     @Inject(DeliveriesService) private readonly service: DeliveriesService,
   ) {}
+  @Get('deliveries/:id')
+  @Header('Cache-Control', 'no-store')
+  async detail(
+    @Req() req: AuthRequest,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Query(dtoPipe(EmptyQueryDto)) _query: EmptyQueryDto,
+  ) {
+    return {
+      data: await this.service.detail(req.auth!.user.id, id),
+      meta: { requestId: req.requestId },
+    };
+  }
+  @Get('projects/:id/deliveries')
+  @Header('Cache-Control', 'no-store')
+  async list(
+    @Req() req: AuthRequest,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Query(dtoPipe(DeliveryListDto)) input: DeliveryListDto,
+  ) {
+    return page(
+      await this.service.list(req.auth!.user.id, id, input),
+      input,
+      req.requestId,
+    );
+  }
   @Post('change-requests/:id/deliveries')
   @Header('Cache-Control', 'no-store')
   async create(
