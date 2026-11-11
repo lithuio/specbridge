@@ -1,6 +1,22 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-12。R07 Phase H 本地最终集成完成；远程 CI 与人工评审 NOT RUN。下方保留历史检查点。
+> 更新时间：2026-11-12。本地使用反馈的 UI 细化与完整回归完成，待负责人视觉检查/提交；远程 CI 与独立人工评审 NOT RUN。下方保留历史检查点。
+
+## 本地使用反馈 — UI 细化与完整本地回归完成，未提交
+
+2026-11-12；按负责人要求仅调整 Web 视觉与交互呈现，未提交/推送。开工已有的 `apps/api/tsconfig.build.tsbuildinfo` 未跟踪缓存保留，不属于本次源码改动。
+
+- 刷新图标保留可访问名称、44px 点击区域、原事件/禁用和弹窗返回焦点；登录/注册居中、品牌微调、创建入口增强。
+- 侧栏复用授权/会话隔离查询，原生展开分区，第一页12项+更多入口、错误重试、手机 Drawer；项目 ID 稳定配色、彩色分区图标与标题强化。首页统计/待办/状态分布与账号区重排。
+- 无 API/数据库/迁移/写入逻辑/审批权限变更，无依赖新增。新增 presentation 浏览器场景并加入全量入口；Playwright 运行产物与跨阶段截图分目录，H 也支持统一证据根目录，原 C–H 图片未覆盖。
+- PASS：`pnpm run lint`、`pnpm run test`、`pnpm run build`、`pnpm --filter specbridge-api typecheck`、`pnpm --filter web typecheck`、`pnpm run db:check`、`pnpm --filter specbridge-api openapi:check`（30 paths）、`pnpm run test:integration`（90）、`pnpm run test:e2e`（5）、`pnpm run test:e2e:db`（62：16/13/9/8/7/9）、`git diff --check`。
+- PASS：`pnpm run test:browser` 完整入口连续通过，包含生产构建及 C–H + presentation 共16场景（6/2/2/2/2/1/1）。审批拒绝重提、交付退回重交、未知结果、409、跨项目与会话隔离均保留。最后 Web lint/typecheck/diff 通过。
+- [本轮截图与验证记录](ux/evidence/ui-polish/README.md)：6张正式截图已自检；H17状态 + 新界面10状态共27状态，axe自动违规0，未判定项原样保留并补充对比度检查。320/390/720/768/900/1440 CSS px、键盘展开、Drawer关闭焦点、刷新与主题一致性已覆盖。
+- 已解决的验证阻碍：首次集成沙箱 EPERM，获准重跑通过；用户停止3000/4000开发服务后继续；新增用例修正 Drawer 重开需展开、切换账号保留旧项目 return path 的测试假设；截图复位滚动并隔离输出目录。无未解决测试失败。
+- 测试仅访问5434隔离库；自建 HTTP 服务随测试退出。开发数据库/数据未修改。远程CI、Firefox/WebKit、真实设备/读屏和人工视觉/安全评审 NOT RUN，本轮不宣称发布DoD完成。
+- 人工：负责人本地查看页面与截图后自行 commit。建议摘要 `style(web): refine workspace navigation and visual hierarchy`。
+
+---
 
 ## R07 Phase H — 本地最终集成完成，未提交
 

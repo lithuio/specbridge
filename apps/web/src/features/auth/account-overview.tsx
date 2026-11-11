@@ -6,11 +6,11 @@ import {
   FileText,
   GitPullRequestArrow,
   PackageCheck,
-  RefreshCw,
+  UserRound,
 } from "lucide-react";
 import { useSession } from "./provider";
 import { privateKey } from "@/lib/query/keys";
-import { Button } from "@/components/ui/button";
+import { RefreshButton } from "@/components/shared/refresh-button";
 import { ErrorNotice } from "@/components/shared/async-state";
 
 export function AccountOverview() {
@@ -35,8 +35,11 @@ export function AccountOverview() {
         <p>欢迎回来，{user?.displayName}。让需求、确认与交付保持连贯。</p>
       </div>
       <Dashboard />
-      <details className="account-details" open>
-        <summary>当前账号与会话</summary>
+      <details className="account-details" id="account-session" open>
+        <summary>
+          <UserRound size={16} aria-hidden="true" />
+          当前账号与会话
+        </summary>
         <section className="account-panel" aria-labelledby="account-title">
           <div className="section-heading">
             <h2 id="account-title">当前账号</h2>
@@ -56,14 +59,12 @@ export function AccountOverview() {
               <dd className="account-explanation">由工作空间与项目分别授予</dd>
             </dl>
           )}
-          <Button
-            variant="outline"
+          <RefreshButton
+            label="刷新账号信息"
+            busy={account.isFetching}
             onClick={() => void account.refetch()}
             disabled={account.isFetching}
-          >
-            <RefreshCw aria-hidden="true" />
-            {account.isFetching ? "正在刷新…" : "刷新账号信息"}
-          </Button>
+          />
         </section>
       </details>
       <section

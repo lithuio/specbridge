@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpRight, FolderOpen, Plus } from "lucide-react";
 import { useProjects, useWorkspaces, roleLabel } from "./queries";
+import { projectTone } from "./presentation";
 import { EmptyState, Pagination, QueryState } from "./shared";
 import { WorkspacePicker } from "./workspace-picker";
 
@@ -76,6 +77,7 @@ export function ProjectList() {
               {query.data.data.map((project) => (
                 <Link
                   className="project-card"
+                  data-tone={projectTone(project.id)}
                   href={`/app/projects/${project.id}`}
                   key={project.id}
                 >

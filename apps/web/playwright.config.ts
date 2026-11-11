@@ -2,6 +2,8 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  // Each phase clears its run artifacts; keep cross-phase review evidence intact.
+  outputDir: "./test-results/runs",
   fullyParallel: false,
   workers: 1,
   retries: 0,

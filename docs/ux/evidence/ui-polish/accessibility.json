@@ -1,0 +1,181 @@
+[
+  {
+    "name": "login",
+    "violations": [],
+    "passedRules": 25,
+    "supplementalComputedContrast": [],
+    "incomplete": []
+  },
+  {
+    "name": "project-desktop",
+    "violations": [],
+    "passedRules": 25,
+    "supplementalComputedContrast": [],
+    "incomplete": []
+  },
+  {
+    "name": "dashboard-desktop",
+    "violations": [],
+    "passedRules": 29,
+    "supplementalComputedContrast": [],
+    "incomplete": []
+  },
+  {
+    "name": "projects-drawer",
+    "violations": [],
+    "passedRules": 24,
+    "supplementalComputedContrast": [
+      {
+        "target": [
+          "#_r_0_ > .sidebar-scroll > .sidebar-projects[aria-label=\"项目快捷导航\"] > .sidebar-project:nth-child(6) > summary[title=\"设计规范与组件库\"] > .sidebar-project-name"
+        ],
+        "ratio": 16.03,
+        "threshold": 4.5
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "aria-hidden-focus",
+        "nodes": [
+          {
+            "target": [
+              "div[data-base-ui-inert=\"\"]:nth-child(12)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(3)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(5)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          }
+        ]
+      },
+      {
+        "id": "color-contrast",
+        "nodes": [
+          {
+            "target": [
+              "#_r_0_ > .sidebar-scroll > .sidebar-projects[aria-label=\"项目快捷导航\"] > .sidebar-project:nth-child(6) > summary[title=\"设计规范与组件库\"] > .sidebar-project-name"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "project-320",
+    "violations": [],
+    "passedRules": 22,
+    "supplementalComputedContrast": [
+      {
+        "target": [
+          "nav[aria-label=\"项目导航\"] > a:nth-child(4)"
+        ],
+        "ratio": 5.94,
+        "threshold": 4.5
+      },
+      {
+        "target": [
+          "nav[aria-label=\"项目导航\"] > a:nth-child(5)"
+        ],
+        "ratio": 5.94,
+        "threshold": 4.5
+      },
+      {
+        "target": [
+          "nav[aria-label=\"项目导航\"] > a:nth-child(6)"
+        ],
+        "ratio": 5.94,
+        "threshold": 4.5
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": [
+          {
+            "target": [
+              "nav[aria-label=\"项目导航\"] > a:nth-child(4)"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "target": [
+              "nav[aria-label=\"项目导航\"] > a:nth-child(5)"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "target": [
+              "nav[aria-label=\"项目导航\"] > a:nth-child(6)"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dashboard-320",
+    "violations": [],
+    "passedRules": 28,
+    "supplementalComputedContrast": [
+      {
+        "target": [
+          ".bg-primary"
+        ],
+        "ratio": 7.9,
+        "threshold": 4.5
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": [
+          {
+            "target": [
+              ".bg-primary"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "project-768",
+    "violations": [],
+    "passedRules": 22,
+    "supplementalComputedContrast": [],
+    "incomplete": []
+  },
+  {
+    "name": "dashboard-768",
+    "violations": [],
+    "passedRules": 28,
+    "supplementalComputedContrast": [],
+    "incomplete": []
+  },
+  {
+    "name": "project-900",
+    "violations": [],
+    "passedRules": 22,
+    "supplementalComputedContrast": [],
+    "incomplete": []
+  },
+  {
+    "name": "dashboard-900",
+    "violations": [],
+    "passedRules": 27,
+    "supplementalComputedContrast": [],
+    "incomplete": []
+  }
+]

@@ -4,7 +4,7 @@ import type { Page } from "@playwright/test";
 import { test, expect, login, origin } from "./fixtures";
 import { accessibility } from "./accessibility";
 
-const evidence = resolve(process.cwd(), "../../docs/ux/evidence/r07-h");
+const evidence = resolve(process.cwd(), process.env.R07_EVIDENCE_ROOT ?? "../../docs/ux/evidence", "r07-h");
 const title = "按月份导出已确认需求与规格编号";
 const specification =
   "按创建月份导出本项目 UTF-8 CSV。\n包含标题、状态与已确认规格编号；空月份显示无数据。\n" +

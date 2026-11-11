@@ -33,7 +33,8 @@
     "test:browser:changes": "node scripts/with-env.mjs .env.test pnpm --filter web test:e2e changes.spec.ts",
     "test:browser:deliveries": "node scripts/with-env.mjs .env.test pnpm --filter web test:e2e deliveries.spec.ts",
     "test:browser:run": "R07_EVIDENCE_ROOT=test-results/evidence pnpm run test:browser:phases",
-    "test:browser:phases": "pnpm run test:browser:auth && pnpm run test:browser:projects && pnpm run test:browser:requirements && pnpm run test:browser:changes && pnpm run test:browser:deliveries && pnpm run test:browser:integration",
+    "test:browser:phases": "pnpm run test:browser:auth && pnpm run test:browser:projects && pnpm run test:browser:requirements && pnpm run test:browser:changes && pnpm run test:browser:deliveries && pnpm run test:browser:integration && pnpm run test:browser:presentation",
+    "test:browser:presentation": "node scripts/with-env.mjs .env.test pnpm --filter web test:e2e presentation.spec.ts",
     "test:browser:integration": "node scripts/with-env.mjs .env.test pnpm --filter web test:e2e integration.spec.ts"
   }
 }

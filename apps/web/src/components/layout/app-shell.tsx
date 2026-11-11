@@ -13,6 +13,7 @@ import {
   X,
   FolderOpen,
 } from "lucide-react";
+import { ProjectNavigation } from "./project-navigation";
 import { Brand } from "@/components/shared/brand";
 import { Button } from "@/components/ui/button";
 import {
@@ -93,7 +94,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Brand compact={collapsed} />
         </Link>
         <p className="nav-caption">协作空间</p>
-        {navigation}
+        <div className="sidebar-scroll">
+          {navigation}
+          <ProjectNavigation onNavigate={() => setDrawer(false)} />
+        </div>
         <div className="sidebar-bottom">
           <Link
             className="nav-item"
@@ -149,7 +153,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 >
                   <X />
                 </DialogClose>
-                {navigation}
+                <div className="sidebar-scroll">
+                  {navigation}
+                  <ProjectNavigation onNavigate={() => setDrawer(false)} />
+                </div>
                 <div className="drawer-account">{account}</div>
               </DialogContent>
             </Dialog>
@@ -157,10 +164,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="breadcrumb-divider">/</span>
             <strong>{section}</strong>
           </div>
-          <span className="header-account">
+          <Link
+            className="header-account"
+            href="/app#account-session"
+            title="查看当前账号"
+          >
             <span className="connection-dot" />
             {user?.displayName}
-          </span>
+          </Link>
         </header>
         <main id="main-content" className="app-main" tabIndex={-1}>
           {children}

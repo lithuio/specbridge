@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { RefreshButton } from "@/components/shared/refresh-button";
 import { Button } from "@/components/ui/button";
 import { ErrorNotice } from "@/components/shared/async-state";
 import { useCurrentProject } from "@/features/projects/project-detail";
@@ -69,13 +70,12 @@ function Detail({ id }: { id: string }) {
             · 编辑版本 {r.draftVersion}
           </p>
         </div>
-        <Button
-          variant="outline"
+        <RefreshButton
+          label="刷新需求"
+          busy={query.isFetching}
           disabled={query.isFetching}
           onClick={() => void query.refetch()}
-        >
-          刷新需求
-        </Button>
+        />
       </div>
       {query.error && <ErrorNotice error={query.error} />}
       {saved && (

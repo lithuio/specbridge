@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
+import { RefreshButton } from "@/components/shared/refresh-button";
 import { Button } from "@/components/ui/button";
 import { ErrorNotice } from "@/components/shared/async-state";
 import { useCurrentProject } from "@/features/projects/project-detail";
@@ -101,14 +102,13 @@ function Detail({ id }: { id: string }) {
             关联需求 →
           </Link>
         </div>
-        <Button
-          variant="outline"
+        <RefreshButton
+          label="刷新变更"
+          busy={query.isFetching}
           disabled={query.isFetching}
           ref={refreshButton}
           onClick={() => void query.refetch()}
-        >
-          刷新变更
-        </Button>
+        />
       </div>
       {query.error && <ErrorNotice error={query.error} />}
       {saved && (
@@ -357,13 +357,12 @@ export function FrozenVersionDetail() {
         <Link className="text-link" href={changePath(project.id, changeId)}>
           ← 当前变更与全部版本
         </Link>
-        <Button
-          variant="outline"
+        <RefreshButton
+          label="刷新历史"
+          busy={query.isFetching}
           disabled={query.isFetching}
           onClick={() => void query.refetch()}
-        >
-          刷新历史
-        </Button>
+        />
       </div>
       <QueryState query={query} />
       {query.data && !query.error && (

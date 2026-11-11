@@ -6,6 +6,12 @@
 
 ## 复用入口
 
+本次界面细化：刷新操作统一为有可访问名称/title 的 44px 图标按钮，沿用原 handler、disabled 与弹窗返回焦点 ref。侧栏复用 `useProjects("", 0)` 的授权查询与会话隔离，最多显示第一页 12 个项目，可展开各项目入口，更多项目进入完整列表。错误时隐藏旧列表并提供重试；手机 Drawer 使用相同入口，桌面折叠/平板窄导航隐藏项目树。
+
+项目 ID 决定稳定的六色标记，列表/侧栏/详情/首页一致；颜色不代表权限或状态，不新增数据库主题字段。登录/注册主按钮居中、品牌略放大，项目标题与创建入口增强；首页账号区改为紧凑可折叠布局。
+
+`pnpm run test:browser:presentation` 验证导航/键盘/配色/刷新/分页入口/错误与账号隔离，以及桌面、手机、320px、axe 和实际对比度；需要最新 API/Web 生产构建。完整浏览器入口已纳入该套件，所有阶段（包括 H）重跑证据写入忽略的 `apps/web/test-results/evidence`。定向运行可加 `R07_EVIDENCE_ROOT=test-results/evidence`，保留 C–H 原始证据。
+
 - `src/app/tokens.css`：正式语义 Tokens；`globals.css`：响应式页面与 Shell。
 - `components/layout/app-shell.tsx`：桌面/平板导航、手机 Base UI Drawer、工作概览/我的项目入口。
 - `features/auth/provider.tsx`、`session.ts`：每个 Provider 独立 SessionStore；启动/刷新、重新聚焦、其他标签账号变更时通过 `/me` 确认身份。

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLayoutEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { RefreshButton } from "@/components/shared/refresh-button";
 import { Button } from "@/components/ui/button";
 import { ErrorNotice } from "@/components/shared/async-state";
 import { useCurrentProject } from "@/features/projects/project-detail";
@@ -75,13 +76,12 @@ export function ChangeList() {
             清除需求筛选
           </Link>
         )}
-        <Button
-          variant="outline"
+        <RefreshButton
+          label="刷新列表"
+          busy={query.isFetching}
           disabled={query.isFetching}
           onClick={() => void query.refetch()}
-        >
-          刷新列表
-        </Button>
+        />
       </div>
       <QueryState query={query} />
       {query.data && !query.error && (

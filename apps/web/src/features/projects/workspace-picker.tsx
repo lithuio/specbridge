@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkspaces, roleLabel } from "./queries";
 import { QueryState } from "./shared";
@@ -58,7 +59,8 @@ export function WorkspacePicker({
           尚未加入供应方工作空间。客户可直接从“我的全部项目”进入。
         </p>
       )}
-      <Link className="text-link" href="/app/workspaces/new">
+      <Link className="secondary-link" href="/app/workspaces/new">
+        <Plus size={16} aria-hidden="true" />
         创建工作空间
       </Link>
     </div>

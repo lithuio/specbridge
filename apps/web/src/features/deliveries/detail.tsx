@@ -7,6 +7,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { RefreshButton } from "@/components/shared/refresh-button";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -93,14 +94,12 @@ function Loaded({
           <h2>交付详情 · D{delivery.deliveryNo}</h2>
           <p>{delivery.requirementTitle}</p>
         </div>
-        <Button
-          variant="outline"
+        <RefreshButton
+          label="刷新交付"
           disabled={!available && !error}
           ref={refreshButton}
           onClick={() => void refresh()}
-        >
-          刷新交付
-        </Button>
+        />
       </div>
       {error ? <ErrorNotice error={error} /> : null}
       {saved && (

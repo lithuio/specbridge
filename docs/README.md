@@ -26,6 +26,7 @@
 | R07 商业评估/顺序审批/拒绝重提与真实浏览器证据（Phase F 本地完成） | `../apps/web/README.md`, `ux/evidence/r07-f/README.md` |
 | R07 交付/验收、真实 Dashboard/Audit 与浏览器证据（Phase G 本地完成） | `../apps/web/README.md`, `ux/evidence/r07-g/README.md` |
 | R07 最终三角色集成、集中回归与正式可访问性证据（H 本地完成） | `ux/evidence/r07-h/README.md`, `ux/evidence/r07-h/accessibility.json` |
+| 本地 UI 细化、项目侧栏和完整回归截图 | `ux/evidence/ui-polish/README.md` |
 | R07 总规划、当前进度、跨 Session 提示词与精简验证 | `engineering/R07_PLAN.md` |
 
 **权威优先级**：负责人确认的业务决策 → 已接受 PRD/ADR → 状态机、数据、API 契约 → 当前 Issue。

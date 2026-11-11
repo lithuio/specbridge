@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { RefreshButton } from "@/components/shared/refresh-button";
 import { useCurrentProject } from "@/features/projects/project-detail";
 import { EmptyState, Pagination, QueryState } from "@/features/projects/shared";
 import { offsetValue, PersonTime } from "@/features/requirements/shared";
@@ -42,13 +42,12 @@ export function DeliveryList() {
           <h2>项目交付</h2>
           <p>每次交付独立留档，始终关联双方批准的规格。</p>
         </div>
-        <Button
-          variant="outline"
+        <RefreshButton
+          label="刷新交付列表"
+          busy={query.isFetching}
           disabled={query.isFetching}
           onClick={() => void query.refetch()}
-        >
-          刷新交付列表
-        </Button>
+        />
       </div>
       <div className="change-filters">
         <label htmlFor="delivery-status">交付状态</label>

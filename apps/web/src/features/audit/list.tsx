@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
+import { RefreshButton } from "@/components/shared/refresh-button";
 import { useProjectApi, pageSize } from "@/features/projects/queries";
 import { useCurrentProject } from "@/features/projects/project-detail";
 import { QueryState, Pagination, EmptyState } from "@/features/projects/shared";
@@ -113,13 +113,12 @@ export function AuditList() {
           <h2>项目活动记录</h2>
           <p>按你的项目权限显示操作人、动作与版本，可返回原始记录核对。</p>
         </div>
-        <Button
-          variant="outline"
+        <RefreshButton
+          label="刷新活动记录"
+          busy={query.isFetching}
           disabled={query.isFetching}
           onClick={() => void query.refetch()}
-        >
-          刷新活动记录
-        </Button>
+        />
       </div>
       <div className="change-filters">
         <label htmlFor="audit-event">活动类型</label>

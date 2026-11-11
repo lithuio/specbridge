@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { createContext, useContext } from "react";
-import { Button } from "@/components/ui/button";
+import { RefreshButton } from "@/components/shared/refresh-button";
+import { FolderOpen } from "lucide-react";
+import { projectSections, projectTone } from "./presentation";
 import { roleLabel, useProject, type Project } from "./queries";
 import { QueryState } from "./shared";
 
@@ -34,10 +36,18 @@ export function ProjectBoundary({ children }: { children: React.ReactNode }) {
       <Link className="text-link" href="/app/projects">
         ← 我的项目
       </Link>
-      <div className="page-heading heading-actions project-heading">
+      <div
+        className="page-heading heading-actions project-heading"
+        data-tone={projectTone(project.id)}
+      >
         <div>
           <p className="eyebrow">PROJECT / 项目空间</p>
-          <h1>{project.name}</h1>
+          <h1>
+            <span className="project-swatch">
+              <FolderOpen aria-hidden="true" />
+            </span>
+            {project.name}
+          </h1>
           <p>
             你在此项目：
             <strong data-testid="project-role">
@@ -47,54 +57,35 @@ export function ProjectBoundary({ children }: { children: React.ReactNode }) {
             {project.status === "ACTIVE" ? "进行中" : "已归档"}
           </p>
         </div>
-        <Button
-          variant="outline"
+        <RefreshButton
+          label="刷新项目"
+          busy={query.isFetching}
           disabled={query.isFetching}
           onClick={() => void query.refetch()}
-        >
-          刷新项目
-        </Button>
+        />
       </div>
       <nav className="project-nav" aria-label="项目导航">
-        <Link href={base} aria-current={pathname === base ? "page" : undefined}>
-          项目概览
-        </Link>
-        <Link
-          href={`${base}/members`}
-          aria-current={pathname === `${base}/members` ? "page" : undefined}
-        >
-          项目成员
-        </Link>
-        <Link
-          href={`${base}/requirements`}
-          aria-current={
-            pathname.startsWith(`${base}/requirements`) ? "page" : undefined
-          }
-        >
-          项目需求
-        </Link>
-        <Link
-          href={`${base}/changes`}
-          aria-current={
-            pathname.startsWith(`${base}/changes`) ? "page" : undefined
-          }
-        >
-          变更与审批
-        </Link>
-        <Link
-          href={`${base}/deliveries`}
-          aria-current={
-            pathname.startsWith(`${base}/deliveries`) ? "page" : undefined
-          }
-        >
-          交付与验收
-        </Link>
-        <Link
-          href={`${base}/audit`}
-          aria-current={pathname === `${base}/audit` ? "page" : undefined}
-        >
-          活动记录
-        </Link>
+        {projectSections.map(({ path, label, icon: Icon, tone }) => {
+          const href = `${base}${path}`;
+          const current = path
+            ? pathname === href || pathname.startsWith(`${href}/`)
+            : pathname === href;
+          return (
+            <Link
+              key={path}
+              href={href}
+              aria-current={current ? "page" : undefined}
+            >
+              <Icon
+                size={17}
+                className="section-icon"
+                data-tone={tone}
+                aria-hidden="true"
+              />
+              {label}
+            </Link>
+          );
+        })}
       </nav>
       {children}
     </ProjectContext.Provider>

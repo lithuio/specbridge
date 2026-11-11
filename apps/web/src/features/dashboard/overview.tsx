@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { FolderOpen, CircleDot, Clock3, PackageCheck } from "lucide-react";
+import { projectTone } from "@/features/projects/presentation";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { RefreshButton } from "@/components/shared/refresh-button";
 import { Button } from "@/components/ui/button";
 import {
   useProjectApi,
@@ -16,6 +19,11 @@ import { offsetValue } from "@/features/requirements/shared";
 import type { components } from "@/lib/api/generated/schema";
 
 type Item = components["schemas"]["Dashboard"]["items"][number];
+const bucketIcons = {
+  mine: CircleDot,
+  waiting: Clock3,
+  completed: PackageCheck,
+};
 const bucketLabel = {
   mine: "待我处理",
   waiting: "等待他人",
@@ -123,33 +131,41 @@ export function Dashboard() {
             </Button>
           </div>
         )}
-        <Button
-          variant="outline"
+        <RefreshButton
+          label="刷新工作概览"
+          busy={query.isFetching}
           disabled={query.isFetching}
           onClick={() => {
             void query.refetch();
             void projects.refetch();
           }}
-        >
-          刷新工作概览
-        </Button>
+        />
       </section>
       <QueryState query={query} />
       {data && !query.error && (
         <>
           <dl className="metric-strip" aria-label="真实工作统计">
             <div>
-              <dt>参与项目</dt>
+              <dt>
+                <FolderOpen size={18} aria-hidden="true" />
+                参与项目
+              </dt>
               <dd data-testid="project-count">{data.summary.projectCount}</dd>
             </div>
-            {Object.entries(bucketLabel).map(([b, label]) => (
-              <div key={b}>
-                <dt>{label}</dt>
-                <dd data-testid={`count-${b}`}>
-                  {data.summary.buckets[b as keyof typeof bucketLabel]}
-                </dd>
-              </div>
-            ))}
+            {Object.entries(bucketLabel).map(([b, label]) => {
+              const Icon = bucketIcons[b as keyof typeof bucketIcons];
+              return (
+                <div key={b} data-bucket={b}>
+                  <dt>
+                    <Icon size={18} aria-hidden="true" />
+                    {label}
+                  </dt>
+                  <dd data-testid={`count-${b}`}>
+                    {data.summary.buckets[b as keyof typeof bucketLabel]}
+                  </dd>
+                </div>
+              );
+            })}
           </dl>
           <div className="dashboard-grid">
             <section className="surface-panel" aria-label="工作事项">
@@ -280,18 +296,23 @@ export function Dashboard() {
             {projects.data.data.length ? (
               <ul className="work-items">
                 {projects.data.data.map((p) => (
-                  <li key={p.id}>
-                    <div>
-                      <Link
-                        className="text-link"
-                        href={`/app/projects/${p.id}`}
-                      >
-                        {p.name}
-                      </Link>
-                      <p className="record-meta">
-                        {roleLabel[p.projectRole]} ·{" "}
-                        {p.status === "ACTIVE" ? "进行中" : "已归档"}
-                      </p>
+                  <li key={p.id} data-tone={projectTone(p.id)}>
+                    <div className="dashboard-project-name">
+                      <span className="project-swatch">
+                        <FolderOpen size={20} aria-hidden="true" />
+                      </span>
+                      <div>
+                        <Link
+                          className="text-link"
+                          href={`/app/projects/${p.id}`}
+                        >
+                          {p.name}
+                        </Link>
+                        <p className="record-meta">
+                          {roleLabel[p.projectRole]} ·{" "}
+                          {p.status === "ACTIVE" ? "进行中" : "已归档"}
+                        </p>
+                      </div>
                     </div>
                     <Button
                       variant="outline"
