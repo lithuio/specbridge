@@ -1,7 +1,7 @@
 # R07 总规划与跨 Session 交接
 
 > 核心交接入口。新 Session 先读本文件，再按阶段读取必要源码/契约；不依赖聊天历史。  
-> 更新：2026-11-11。负责人批准总体规划后追加：**B–H 分别在新的 Session 实施，精简过程与重复验证，保留核心质量测试**。Phase D 已完成本地实施与验证；下一新 Session 执行 E。
+> 更新：2026-11-11。负责人批准总体规划后追加：**B–H 分别在新的 Session 实施，精简过程与重复验证，保留核心质量测试**。Phase E 已完成本地实施与验证；下一新 Session 执行 F。
 
 ## 1. 任务、范围和授权
 
@@ -24,20 +24,20 @@
 | B 只读 API / 能力 / 契约 | COMPLETE（本地） | 七 GET、四类详情 capabilities、OpenAPI/生成类型/CI 漂移检查；真实 DB/HTTP 已验证 |
 | C Web 基础 / 认证 | COMPLETE（本地） | 正式 Tokens/Shell、Typed Client、Query 隔离、认证；生产 Web/真实 API/隔离 DB 浏览器 6 场景通过 |
 | D 项目 / 成员 | COMPLETE（本地） | Workspace/Project、两级成员、唯一 Client；真实浏览器准备与权限/锁定分支通过 |
-| E 需求 / Revision | NOT STARTED | D 后实现问答、冻结规格、Ready |
+| E 需求 / Revision | COMPLETE（本地） | 需求创建/限定编辑、问答、不可变 Revision/分页历史/Ready；真实流程及冲突/权限分支通过 |
 | F 变更 / 审批 | NOT STARTED | E 后实现商业评估、顺序决定、拒绝重提 |
 | G 交付 / Dashboard / Audit | NOT STARTED | F 后接通交付闭环和真实聚合 |
 | H 最终集成 | NOT STARTED | G 后统一浏览器主流程、全量回归与视觉收尾 |
 
-**实际代码状态**：R01–R06 后端源码已存在；apps/web 已有正式 `/login`、`/register`、`/app`，含 Tokens/Shell、Typed Client、会话生命周期与 Query 缓存隔离。当前 `/app` 展示真实账号信息、协作说明与项目入口；D 已有 `/app/projects`、空间/项目创建、项目详情/成员及供应方成员管理。业务聚合仍留 G。packages 为空。API 已实现七项读取与必要 capabilities；离线 Swagger 导出在 `apps/api/src/openapi`，契约为 `docs/architecture/openapi.json`，前端类型为 `apps/web/src/lib/api/generated/schema.d.ts`。现有 Vitest/HTTP/Next Rewrite 测试不是浏览器 E2E。
+**实际代码状态**：R01–R06 后端源码已存在；apps/web 已有正式 `/login`、`/register`、`/app`，含 Tokens/Shell、Typed Client、会话生命周期与 Query 缓存隔离。当前 `/app` 展示真实账号信息、协作说明与项目入口；D 已有 `/app/projects`、空间/项目创建、项目详情/成员及供应方成员管理。E 已有项目下需求列表/创建/详情、澄清问答、Revision 创建/只读历史与 Ready；业务聚合仍留 G。packages 为空。API 已实现七项读取与必要 capabilities；离线 Swagger 导出在 `apps/api/src/openapi`，契约为 `docs/architecture/openapi.json`，前端类型为 `apps/web/src/lib/api/generated/schema.d.ts`。现有 Vitest/HTTP/Next Rewrite 测试不是浏览器 E2E。
 
 **依赖审计基线**：Web 本地 Next 16.4.3、React 19.3.0、TS 5.9.3、Tailwind 4.3.3、Base UI 1.9.0、shadcn 4.23.0、Query 5.105.0、Zod 4.6.7、RHF 7.91.0。这些是 Phase A 观察值，新 Session 用 package.json/根 lockfile 核对，不升级无关依赖。Web package name 为 `web`，API 为 `specbridge-api`。Web 子目录另有 lockfile/workspace 配置，优先沿用根工作区约定，不顺手清理。
 
-**工作区连续性**：D 开工实际分支 `feat/15-web-integration`、HEAD `200c54f`、工作区干净。C 已由负责人提交在 `200c54f`；B 在 `544e4b8`，本地环境在 `9499618`。历史交接的“未提交”只描述当时。D 成果保留未提交；前阶段源码及 C 历史截图保留，不 stash/reset/clean，不自动 Commit/Push/PR。
+**工作区连续性**：E 开工实际分支 `feat/15-web-integration`、HEAD `7e5beb4`、工作区干净。D 已由负责人提交在 `7e5beb4`，C 在 `200c54f`；历史“未提交”只描述当时。E 成果保留未提交；前阶段源码及 C/D 历史截图保留，不 stash/reset/clean，不自动 Commit/Push/PR。
 
-**证据**：A 的 [verification.json](../ux/prototypes/r07/evidence/verification.json) 仅证明独立原型。B 的精确命令/结果见下方交接与 STATE：93 单元、90 DB 集成、9 R07 HTTP 契约场景，以及受影响 R03–R06 HTTP/代理回归通过；UTC 日期小修后另重跑 R03 12 项 DB 回归。C 新增证据：Web 生产构建、真实 Chromium/编译 API/隔离 DB 的 6 场景、R02 HTTP/Rewrite 16 项通过，B 契约漂移仍通过。截图见 [C evidence](../ux/evidence/r07-c/README.md)。D 新增 2 个真实浏览器场景，根入口分别启动 C 6/D 2 场景均通过；Web lint/typecheck、API/Web build 通过，3 张代表截图见 [D evidence](../ux/evidence/r07-d/README.md)。远程 CI/人工评审未运行。
+**证据**：A 的 [verification.json](../ux/prototypes/r07/evidence/verification.json) 仅证明独立原型。B 的精确命令/结果见下方交接与 STATE：93 单元、90 DB 集成、9 R07 HTTP 契约场景，以及受影响 R03–R06 HTTP/代理回归通过；UTC 日期小修后另重跑 R03 12 项 DB 回归。C 新增证据：Web 生产构建、真实 Chromium/编译 API/隔离 DB 的 6 场景、R02 HTTP/Rewrite 16 项通过，B 契约漂移仍通过。截图见 [C evidence](../ux/evidence/r07-c/README.md)。D 新增 2 个真实浏览器场景，根入口分别启动 C 6/D 2 场景均通过；Web lint/typecheck、API/Web build 通过，3 张代表截图见 [D evidence](../ux/evidence/r07-d/README.md)。E 新增2条真实浏览器场景最终通过（17.1s），Web lint/typecheck/build 通过，2张正式截图见 [E evidence](../ux/evidence/r07-e/README.md)。E 未重复 C/D 或无关后端回归。远程 CI/人工评审未运行。
 
-**下个 Session 的第一步**：执行 E；先读本文件最新 D 交接、STATE、`apps/web/README.md`、`features/projects/{queries,project-detail,shared}.tsx/ts`、生成契约及 R04 API。核对 Git，保留 D 未提交成果；在已有 ProjectBoundary 下实现需求/Revision，复用 Session API、私有 keys、分页/表单与浏览器 fixture。当前机器临时浏览器库见 D evidence；本 Session 到 D 结束，不进入 E。
+**下个 Session 的第一步**：执行 F；先读本文件最新 E 交接、STATE、Web README、`features/requirements/{queries,detail,editor}.tsx/ts`、生成契约及 R05 API。核对 Git 并保留 E 未提交成果，复用 ProjectBoundary/Session API/私有 keys/浏览器 fixture。CR lockVersion 初始0，与需求正整数版本区分；Submit/决定后须刷新需求 capabilities。当前 Session 到 E 结束，不进入 F。
 
 ## 3. 最少必要阅读与权威来源
 
@@ -252,6 +252,21 @@ git diff --check
 - NOT RUN：未改后端，未重复 R01–R06 全量回归或契约生成；完整业务链留 H。远程 CI、人工视觉/安全评审、生产 HTTPS/多浏览器未运行，H-09 不标通过。
 - 下一 Session：E；先读本交接、Web README、ProjectBoundary/queries/shared、R04 精确契约与生成类型。在项目 layout 内接需求、问答、Revision/Ready，注意 expectedVersion。只运行新增定向浏览器流程，最终全量回归仍留 H。
 - 人工事项：无新增阻塞；负责人可审阅 D 截图。建议摘要（不执行）：`feat(r07): add workspace and project setup with scoped member management`。
+
+### Session 2026-11-11 — Phase E — COMPLETE（本地）
+
+- 分支/HEAD：`feat/15-web-integration` / `7e5beb4`；开工干净，D 已由负责人提交。在线核对 Issue #15 与 D 源码/历史验证；保留前阶段成果，未 Commit/Push/创建 PR/Merge/部署，未进入 F。
+- 完成：Requirement 列表/创建、仅 DRAFT 作者或 Owner 编辑；三角色 QUESTION/ANSWER；供应方新建不可变 Revision、增删验收标准、独立历史 GET/深链接与分页；Mark Ready 显示最新版本/未答数/标准数并显式确认。
+- 入口：`apps/web/src/features/requirements/{queries,shared,list-create,detail,editor}`；项目导航；`/app/projects/[projectId]/requirements`、`new`、`[requirementId]`、`[requirementId]/revisions/[revisionId]`。keys 含会话/项目/需求/历史分页；真实父 ID 与嵌套 URL 不符即安全404。
+- 冲突：表单固定打开时的 expectedVersion；409/背景刷新保留输入，能力刷新后必须人工核对才允许手动重提，不自动重放；Pending 禁修订、Client 无 Revision/Ready；未知写结果禁重发并先查实际状态。Next Activity 只清除已成功创建表单，保留未提交/未知状态；会话隔离复用 C。
+- 契约/设计差异：无新增 API/后端写规则、表、Migration、依赖或生成契约变更。Revision 可暂存空标准，但 Ready 仍要求非空标准与所有问题有答；历史不混入当前问答。只补 Web 错误文案及响应式样式。
+- PASS：`env LD_LIBRARY_PATH=/tmp/specbridge-browser-libs/root/usr/lib/x86_64-linux-gnu FONTCONFIG_FILE=/tmp/specbridge-browser-libs/fonts.conf pnpm run test:browser:requirements` → 最终2场景/17.1s，无 pageerror；真实 Client 创建/编辑/回答→Developer Revision→Ready；草稿/Ready stale、403/404、未答/无标准、两个 Pending 状态、保留输入、不可变旧版、父子 URL 拼接、两种分页/刷新、未知创建不重放及320px。截图：[E evidence](../ux/evidence/r07-e/README.md)，2张已查看。
+- PASS：`pnpm --filter web build`、`pnpm --filter web typecheck`、`pnpm --filter web lint`、`git diff --check`；新增根定向脚本 `test:browser:requirements`，全量 `test:browser` 已纳入 E 并继续按套件分开启动 API，但本轮未执行根全量入口。
+- 已处理失败：澄清输入 union 类型收窄；并发构建生成路由造成临时 typecheck 失败后顺序检查通过；沙箱端口/失败缓存移至 `/tmp/specbridge-r07-e-build-813w9xcj/next` 后获准构建；测试 `getByLabel` 命中 Activity 隐藏表单改可见 role；vendor-decision 断言按契约改200。修复成功创建页返回时残留状态并验证。
+- 环境：复用现有 API 构建、隔离库5434/specbridge_test与临时浏览器 libs/fonts；无新下载，不读开发配置/访问开发库，不清表/禁触发器。自建 API/Web 由原启动器回收，原数据库保持运行；/tmp 不作为交接依赖，标准复现见 Web README。
+- NOT RUN：C/D 浏览器回归、R01–R06 全量回归、契约重生成（未改后端/契约）；远程 CI、人工视觉/安全评审、生产 HTTPS/多浏览器、全量可访问性与审批交付全链路留 H。无未解决测试失败，无新增人工决策；H-09 仍未记录人工结论。
+- 下一 Session：F；读取 R05 精确契约、生成类型、需求 queries/editor 和 E 浏览器 fixture。实现商业评估/顺序审批/拒绝重提及冻结历史；CR 版本从0开始，Submit/决定后失效需求详情 capabilities（draftVersion 不随 CR 写入推进）；沿用409保留输入/明确核对，不能自动重放审批。
+- 建议摘要（不执行）：`feat(r07): integrate requirement clarification, immutable revisions and readiness`。
 
 ## 9. 每个新 Session 的提示词（可单独复制）
 

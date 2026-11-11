@@ -65,6 +65,12 @@ export function ProjectBoundary({ children }: { children: React.ReactNode }) {
         >
           项目成员
         </Link>
+        <Link
+          href={`${base}/requirements`}
+          aria-current={pathname.startsWith(`${base}/requirements`) ? "page" : undefined}
+        >
+          项目需求
+        </Link>
       </nav>
       {children}
     </ProjectContext.Provider>

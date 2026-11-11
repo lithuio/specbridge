@@ -1,6 +1,6 @@
 # SpecBridge Web
 
-正式 Next App Router / React / Base UI 应用。当前完成 R07 C/D：认证、Shell、Workspace/Project 创建与列表、项目详情/成员、供应方成员及唯一 Client 绑定。根路径跳转 `/app`；工作概览提供真实账号、协作说明和项目入口，业务 Dashboard 留 G。
+正式 Next App Router / React / Base UI 应用。当前完成 R07 C/D/E：认证、Shell、项目准备与成员、Requirement 创建/限定草稿编辑、澄清问答、不可变 Revision 历史与 Mark Ready。根路径跳转 `/app`；工作概览提供真实账号、协作说明和项目入口，业务 Dashboard 留 G。
 
 从仓库根目录运行 `pnpm run dev:api` 与 `pnpm run dev:web`，打开 `http://localhost:3000`。数据库配置与启动见 [DEVELOPMENT](../../docs/engineering/DEVELOPMENT.md)，不要改用 Web 子目录的独立锁文件安装。
 
@@ -17,6 +17,16 @@
 - `features/projects/shared.tsx`：Field、分页/空/错误状态与名称/邮箱输入校验；创建、成员表单沿用 RHF/Zod 和现有 Input/Button。
 
 项目准备入口为 `/app/projects`（URL 中 `workspaceId`/`offset` 筛选）、`/app/projects/new`、`/app/workspaces/new`、`/app/settings/members?workspaceId=…`、`/app/projects/[projectId]`、`…/members`。Client 默认从“我的全部项目”进入，不依赖供应方 Workspace 成员身份。同一账号在不同项目可拥有不同角色。创建结果未知时先回列表核对；客户更正遇到正式提交锁定时保留输入、刷新能力并禁提交。
+
+## 需求与规格
+
+项目导航“项目需求”进入 `/app/projects/[projectId]/requirements`；`new` 创建，`[requirementId]` 查看原文/问答/最新规格及分页历史，`[requirementId]/revisions/[revisionId]` 独立只读详情。列表 `offset`、历史 `revisionOffset` 保存在 URL，刷新可恢复。历史页只显示冻结正文与标准，不将今天的问答拼入旧版本。
+
+- `features/requirements/queries.ts`：生成类型、项目/需求/Revision 私有 keys、真实父链核对与 capability 原因文案。403/404 移除私有详情，暂时读取失败保留当前表单并禁写。
+- `list-create.tsx`、`detail.tsx`、`editor.tsx`、`shared.tsx`：复用项目布局、Session API、RHF/Zod；三角色可创建及问答，原文仅 DRAFT 作者/Owner 可编辑，供应方整理不可变版本与可增删验收标准，Ready 显示最新编号/未答数/标准数并明确不是商业审批。
+- 表单打开时固定 `expectedVersion`；后台数据更新或409不替换输入、不自动重放。刷新后对照最新原文/问答/规格，点击“已核对最新内容，使用当前版本”才可再次手动提交。Pending CR 刷新后禁新 Revision；Client 无 Revision/Ready 动作，最终权限仍在 API。
+- 创建或版本写入结果未知时保留输入并禁重发，先查实际状态。Next Activity 隐藏创建页时只清除已确认成功的表单，未提交和未知结果保留；会话边界仍清空全部私有状态。
+- F 的 Submit/决定会影响需求的 `createRevision` 能力，但不推进 `draftVersion`；后续写成功需失效 `key("requirement", projectId, requirementId)`，不得只刷新 CR。
 
 ## 会话边界
 
@@ -39,8 +49,8 @@ pnpm run test:browser
 
 `test:browser` 编译 API/Web 并运行 Next 生产服务器，只读取 `.env.test`，Playwright 启动器复用已审迁移和现有隔离库身份校验（5434 / specbridge_test），端口 3000/4000 被占用即失败，绝不复用开发服务。结束只关闭自己启动的 API/Web；数据库沿用原状态，不能自动 down 共享测试实例。无需重置表、关闭不可变触发器或读取开发 `.env`。
 
-根入口分别调用 `test:browser:auth` 与 `test:browser:projects`，每次复用同一启动器启动独立 API 进程，避免跨套件叠加真实登录配额。**已有最新构建时，D 定向验证用 `pnpm run test:browser:projects`**；也可 `node scripts/with-env.mjs .env.test pnpm --filter web test:e2e projects.spec.ts`。不要把两个套件合在一次无文件参数的 Playwright 调用中；服务端限流没有放宽。后续阶段继续定向验证，H 再统一全量。
+根入口分别调用 `test:browser:auth`、`test:browser:projects` 与 `test:browser:requirements`，每次复用同一启动器启动独立 API 进程，避免跨套件叠加真实登录配额。**已有最新构建时，D 定向验证用 `pnpm run test:browser:projects`，E 用 `pnpm run test:browser:requirements`**；也可 `node scripts/with-env.mjs .env.test pnpm --filter web test:e2e projects.spec.ts`。不要把多个套件合在一次无文件参数的 Playwright 调用中；服务端限流没有放宽。后续阶段继续定向验证，H 再统一全量。
 
 `e2e/fixtures.ts` 提供 worker 级三个 UUID 账号、真实注册与登录 helpers；账号名字不是全局角色，后续通过正式 API 建立 Workspace/Project 关系。用例串行、无自动重试；首次失败即停止，避免新 worker 再注册触发真实限流。账号仅留在隔离 tmpfs，不删历史。
 
-只对网络故障/延迟做 transport 控制；正常数据与延迟载荷均由真实 API 返回。认证 trace/HAR/video/storageState 均关闭，避免保存 Cookie/密码；截图不拍密码并遮盖随机邮箱。截图及本机依赖说明见 [C evidence](../../docs/ux/evidence/r07-c/README.md)、[D evidence](../../docs/ux/evidence/r07-d/README.md)。运行边界及精确结果见 [R07_PLAN](../../docs/engineering/R07_PLAN.md) 与 [STATE](../../docs/STATE.md)。
+只对网络故障/延迟做 transport 控制；正常数据与延迟载荷均由真实 API 返回。认证 trace/HAR/video/storageState 均关闭，避免保存 Cookie/密码；截图不拍密码并遮盖随机邮箱。截图及本机依赖说明见 [C evidence](../../docs/ux/evidence/r07-c/README.md)、[D evidence](../../docs/ux/evidence/r07-d/README.md)、[E evidence](../../docs/ux/evidence/r07-e/README.md)。运行边界及精确结果见 [R07_PLAN](../../docs/engineering/R07_PLAN.md) 与 [STATE](../../docs/STATE.md)。

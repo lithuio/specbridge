@@ -22,6 +22,7 @@
 | R07 视觉规范、交互原型与浏览器截图 | `ux/R07_DESIGN.md`, `ux/prototypes/r07/README.md` |
 | R07 正式 Web 认证/Shell 与生产浏览器证据（Phase C 本地完成） | `../apps/web/README.md`, `ux/evidence/r07-c/README.md` |
 | R07 项目准备/两级成员/唯一客户与真实浏览器证据（Phase D 本地完成） | `../apps/web/README.md`, `ux/evidence/r07-d/README.md` |
+| R07 需求/问答/Revision/Ready 与真实浏览器证据（Phase E 本地完成） | `../apps/web/README.md`, `ux/evidence/r07-e/README.md` |
 | R07 总规划、当前进度、跨 Session 提示词与精简验证 | `engineering/R07_PLAN.md` |
 
 **权威优先级**：负责人确认的业务决策 → 已接受 PRD/ADR → 状态机、数据、API 契约 → 当前 Issue。

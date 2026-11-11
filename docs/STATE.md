@@ -1,8 +1,29 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-11。本机开发环境已配置并验证；R07 Phase D 本地完成，下一业务阶段为 E。下方保留历史检查点。
+> 更新时间：2026-11-11。本机开发环境已配置并验证；R07 Phase E 本地完成，下一业务阶段为 F。下方保留历史检查点。
 
-## R07 Phase D — 本地完成，未提交
+## R07 Phase E — 本地完成，未提交
+
+`feat/15-web-integration` / HEAD `7e5beb4`；开工干净，D 已由负责人提交。已在线核对 Issue #15、R04 实施契约与 D 成果。只执行 E，保留前阶段源码/截图；未 Commit/Push/创建 PR/Merge/部署，未进入 F。
+
+- 已实现 Requirement 列表/创建、仅 DRAFT 作者或 Owner 编辑；Clarification 问答；不可变 Revision 创建/可增删验收标准、分页历史和独立深链接；Mark Ready 显式核对最新版本、问题与标准。对应 AC-06/07/08/16/25 核心浏览器行为，含跨项目父链边界。
+- 复用 ProjectBoundary、Session API、生成类型和服务端 capabilities；expectedVersion 固定为表单打开时版本，409/刷新保留输入，核对后手动重提；Pending 禁修订、Client 禁 Revision/Ready、READY 禁问答。未知写结果禁重发并查实际对象。Next Activity 成功创建后返回表单可继续新建，失败输入不清空。
+- 新模块 `apps/web/src/features/requirements`、项目下四类需求路由与 `e2e/requirements.spec.ts`；无后端逻辑/依赖/数据库/契约变更。根浏览器入口追加 E，仍按阶段独立 API 进程避免真实登录配额叠加。
+
+| 命令 / 检查 | 实际结果 |
+|---|---|
+| `env LD_LIBRARY_PATH=/tmp/specbridge-browser-libs/root/usr/lib/x86_64-linux-gnu FONTCONFIG_FILE=/tmp/specbridge-browser-libs/fonts.conf pnpm run test:browser:requirements` | PASS；最终2场景/17.1s，真实 Next/Nest/隔离 PostgreSQL/Chromium，三角色独立 Context，无 pageerror；问答→Revision→Ready、stale保留输入/手动重提、403/404、未答/空标准、Submit及VendorApproved修订阻断、旧版不变、URL父链、两种分页/刷新、未知创建不重放、320px |
+| `pnpm --filter web build` | PASS；四类新增路由生产构建 |
+| `pnpm --filter web typecheck`、`pnpm --filter web lint`、`git diff --check` | PASS；无 lint 警告 |
+| [E 正式截图与复现](ux/evidence/r07-e/README.md) | 2张桌面/手机图已查看；C/D历史截图保留 |
+
+已处理：生成契约 QUESTION/ANSWER union、并发构建路由类型暂态、沙箱端口/缓存、Next Activity 隐藏页面测试定位、vendor-decision 成功码断言；Activity 成功创建表单重置已验证。缓存保存在 `/tmp/specbridge-r07-e-build-813w9xcj/next`；浏览器沿用本机临时库，标准复现见 Web README。启动器只连接5434隔离库并校验身份、复用已审迁移；未访问开发库或重置数据，自建 HTTP 子进程已结束。
+
+未运行：C/D浏览器回归、未受影响 R01–R06全量回归、契约重生成、远程CI、人工视觉/安全Review、生产HTTPS/多浏览器、全量可访问性与完整业务链，按计划留H。无未解决测试失败或新增人工决策；H-09不标通过。下一新Session按 [E交接](engineering/R07_PLAN.md) 执行 F；Submit/决定需刷新需求capabilities，CR lockVersion初始0。本轮结束于E。建议摘要：`feat(r07): integrate requirement clarification, immutable revisions and readiness`。
+
+---
+
+## R07 Phase D — 历史交接（后续已提交在 7e5beb4）
 
 `feat/15-web-integration` / HEAD `200c54f`；开工干净，C 已由负责人提交。已在线核对 Issue #15。本轮只执行 D，前阶段成果保留；未 Commit/Push/创建 PR/Merge/部署，未进入 E。
 
