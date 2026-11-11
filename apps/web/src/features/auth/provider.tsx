@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     store.setAnnounce(() => channel?.postMessage("changed"));
     if (channel)
       channel.onmessage = () => {
-        void store.restore();
+        store.sessionChanged();
       };
     const visibility = () => {
       if (document.visibilityState === "hidden") store.suspend();

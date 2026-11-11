@@ -11,19 +11,41 @@ type Status =
   | "unavailable"
   | "signing-out"
   | "logout-failed";
-function runtime(epoch: number, unauthorized: () => void) {
+function runtime(
+  epoch: number,
+  unauthorized: () => void,
+  available: () => boolean,
+) {
   const controller = new AbortController();
+  let requests = new AbortController();
+  controller.signal.addEventListener("abort", () => requests.abort(), {
+    once: true,
+  });
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false, staleTime: 30_000, refetchOnWindowFocus: false },
       mutations: { retry: false },
     },
   });
+  const api: ReturnType<typeof createApiClient> = (method, route, options) => {
+    if (!available())
+      return Promise.reject(new ApiError(503, "SESSION_UNAVAILABLE"));
+    return createApiClient(requests.signal, unauthorized)(
+      method,
+      route,
+      options,
+    );
+  };
   return {
     epoch,
     controller,
     queryClient,
-    api: createApiClient(controller.signal, unauthorized),
+    api,
+    pause: () => {
+      requests.abort();
+      requests = new AbortController();
+      void queryClient.cancelQueries();
+    },
   };
 }
 type Snapshot = {
@@ -39,6 +61,7 @@ export class SessionStore {
   private listeners = new Set<() => void>();
   private epoch = 0;
   private snapshot: Snapshot;
+  private identityCheck?: AbortController;
   private announce: () => void = () => {};
   setAnnounce(callback: () => void) {
     this.announce = callback;
@@ -52,11 +75,17 @@ export class SessionStore {
   }
   private newRuntime() {
     const epoch = ++this.epoch;
-    return runtime(epoch, () => {
-      if (this.snapshot.runtime.epoch === epoch) {
-        this.replace("anonymous", "会话已失效，请重新登录。");
-      }
-    });
+    return runtime(
+      epoch,
+      () => {
+        if (this.snapshot.runtime.epoch === epoch) {
+          this.replace("anonymous", "会话已失效，请重新登录。");
+        }
+      },
+      () =>
+        this.snapshot.runtime.epoch === epoch &&
+        this.snapshot.status === "authenticated",
+    );
   }
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -70,6 +99,7 @@ export class SessionStore {
     this.listeners.forEach((listener) => listener());
   }
   private replace(status: Status, notice?: string) {
+    this.identityCheck?.abort();
     const old = this.snapshot.runtime;
     old.controller.abort();
     void old.queryClient.cancelQueries();
@@ -97,23 +127,45 @@ export class SessionStore {
     });
   }
   restore = async () => {
-    const wasAuthenticated = this.snapshot.status === "authenticated";
-    const value = this.replace("restoring");
+    // Only a known identity has private state to preserve. Initial/anonymous
+    // restoration and Strict Mode's setup-after-dispose need a fresh runtime.
+    if (!this.snapshot.user || this.snapshot.runtime.controller.signal.aborted)
+      this.replace("restoring");
+    this.identityCheck?.abort();
+    const check = new AbortController();
+    this.identityCheck = check;
+    const { runtime: value, user } = this.snapshot;
+    // A recheck is not an identity change. Keep this user's isolated forms and
+    // cache, but cancel old traffic and disallow private requests until verified.
+    this.publish({ ...this.snapshot, status: "restoring", error: undefined });
+    value.pause();
+    const current = () => this.current(value) && !check.signal.aborted;
     try {
-      const result = await createApiClient(value.controller.signal)(
+      // replace/dispose/suspend already cancel this check explicitly. A single
+      // lifetime avoids aborting the same identity fetch through two roots.
+      const result = await createApiClient(check.signal)(
         "get",
         "/api/v1/me",
         {},
       );
-      this.authenticate(value, result);
+      if (!current()) return;
+      if (user && user.id !== result.data.user.id) {
+        this.authenticate(this.replace("restoring"), result);
+      } else {
+        // Revalidate resource permissions when the preserved tree resumes.
+        await value.queryClient.invalidateQueries({ refetchType: "none" });
+        if (current()) this.authenticate(value, result);
+      }
     } catch (error) {
-      if (!this.current(value)) return;
+      if (!current()) return;
       if (error instanceof ApiError && error.status === 401)
         this.replace(
           "anonymous",
-          wasAuthenticated ? "会话已失效，请重新登录。" : undefined,
+          user ? "会话已失效，请重新登录。" : undefined,
         );
       else this.publish({ ...this.snapshot, status: "unavailable", error });
+    } finally {
+      if (this.identityCheck === check) this.identityCheck = undefined;
     }
   };
   login = async (body: { email: string; password: string }) => {
@@ -154,9 +206,20 @@ export class SessionStore {
       void this.restore();
   };
   suspend = () => {
-    if (this.snapshot.status === "authenticated") this.replace("restoring");
+    if (this.snapshot.user) {
+      this.identityCheck?.abort();
+      this.publish({ ...this.snapshot, status: "restoring", error: undefined });
+      this.snapshot.runtime.pause();
+    }
+  };
+  sessionChanged = () => {
+    // An explicit login/logout notification is a real session boundary, even
+    // when the next login happens to use the same account.
+    this.replace("restoring");
+    void this.restore();
   };
   dispose = () => {
+    this.identityCheck?.abort();
     this.snapshot.runtime.controller.abort();
     void this.snapshot.runtime.queryClient.cancelQueries();
     this.snapshot.runtime.queryClient.clear();

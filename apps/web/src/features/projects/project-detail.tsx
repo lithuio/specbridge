@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { createContext, useContext } from "react";
+import { Activity, createContext, useContext, useState } from "react";
+import { ApiError } from "@/lib/api/client";
 import { RefreshButton } from "@/components/shared/refresh-button";
 import { FolderOpen } from "lucide-react";
 import { projectSections, projectTone } from "./presentation";
@@ -18,10 +19,32 @@ export function useCurrentProject() {
 
 export function ProjectBoundary({ children }: { children: React.ReactNode }) {
   const { projectId } = useParams<{ projectId: string }>();
+  return (
+    <ProjectScope key={projectId} projectId={projectId}>
+      {children}
+    </ProjectScope>
+  );
+}
+
+function ProjectScope({
+  projectId,
+  children,
+}: {
+  projectId: string;
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const query = useProject(projectId);
   const project = query.data;
-  if (!project || query.error)
+  const [denied, setDenied] = useState(false);
+  const authorizationLost =
+    query.error instanceof ApiError &&
+    [401, 403, 404].includes(query.error.status);
+  // Once access is lost, a subsequent network failure must not reveal the old
+  // cached project. Only a successful authorized read can open it again.
+  if (authorizationLost && !denied) setDenied(true);
+  if (query.isSuccess && denied) setDenied(false);
+  if (!project || authorizationLost || (denied && !query.isSuccess))
     return (
       <>
         <Link className="text-link" href="/app/projects">
@@ -87,7 +110,15 @@ export function ProjectBoundary({ children }: { children: React.ReactNode }) {
           );
         })}
       </nav>
-      {children}
+      {query.error && (
+        <>
+          <p className="notice">
+            暂时无法读取项目，未保存的输入已保留。重新加载成功后可继续操作。
+          </p>
+          <QueryState query={query} />
+        </>
+      )}
+      <Activity mode={query.error ? "hidden" : "visible"}>{children}</Activity>
     </ProjectContext.Provider>
   );
 }

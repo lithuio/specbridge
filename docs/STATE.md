@@ -1,6 +1,29 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-12。本地使用反馈的 UI 细化与完整回归完成，待负责人视觉检查/提交；远程 CI 与独立人工评审 NOT RUN。下方保留历史检查点。
+> 更新时间：2026-11-12。Web review 的表单保留/重置修复与完整浏览器回归完成，待负责人审阅/提交；远程 CI 与独立人工评审 NOT RUN。下方保留历史检查点。
+
+## Web review — 表单状态保留与创建页复用修复完成，未提交
+
+2026-11-12；核对 Issue #15、AC-01/02/03/06/08/09/10/16 与安装版 Next Activity 指南。仅 Web、测试入口和相关文档变更；无 API、依赖、数据库结构或契约变更，构建产生的已跟踪 API tsbuildinfo 已恢复。
+
+- P1：已确认用户的聚焦/可见性复核保留同一 epoch、QueryClient 和隐藏的表单/弹窗状态，暂停私有 API 并取消旧请求。同用户恢复后重查资源；网络失败可重试；换号、401、明确会话变更仍销毁旧私有状态。初始/匿名恢复仍创建新运行时，兼容 Provider 清理后恢复。
+- P2：项目临时读取失败用 Activity 保留编辑区并暂停操作；403/404 卸载表单，后续失败不能再显示旧授权缓存，直到成功读取。包含商业草稿保存失败后项目失效查询的路径。
+- P2：工作空间/项目创建成功后隐藏页面时清空表单与成功状态，可连续创建；未完成及未知结果继续保留。隐藏的项目创建页不会因其他页面 URL 参数更新而丢失草稿，实际切换目标工作空间仍重建表单。
+- 新增 `e2e/form-preservation.spec.ts`，通过 `test:browser:forms` 纳入全量入口：需求/Revision/商业草稿/审批评论、500/断网、403/404、真实换号/过期、成功/未提交/未知创建结果、旧身份响应与 Provider 生命周期；含 30 次匿名登录页挂载。
+
+| 实际命令 / 检查 | 最终结果 |
+|---|---|
+| `pnpm run lint`、最后 `pnpm --filter web lint` | PASS |
+| `pnpm run test` | PASS；现有 API 单元测试 |
+| `pnpm --filter specbridge-api typecheck`、`pnpm --filter web typecheck` | PASS |
+| `pnpm run test:browser` | PASS；API/Web 生产构建，C–H + presentation + forms 全入口连续通过，共 22 项（21 Chromium 场景 + 1 会话状态测试），新增 6 项 |
+| `git diff --check` | PASS |
+
+验证中已解决：沙箱限制和 Turbopack 失败缓存；新增用例的导航等待、选择器及 API 状态码预期；匿名恢复复用运行时造成的登录挂载卡顿。对照旧会话代码后，将保留限定为已知用户，最终临时 100 次挂载诊断通过，并在正式回归保留 30 次检查。前次全量失败保留为诊断记录，以上 PASS 来自最终完整重跑，未使用自动重试掩盖失败。
+
+测试仅使用既有 5434 隔离库；测试 HTTP 进程已随入口退出，既有测试 DB 保持运行，开发数据未访问。证据输出到忽略的 `apps/web/test-results/evidence`，历史截图未覆盖。远程 CI、Firefox/WebKit、真实设备和独立人工评审 NOT RUN。人工：审阅 diff 后自行提交，无配置或迁移操作要求。建议摘要：`fix(web): preserve drafts across revalidation and reset completed creation forms`。
+
+---
 
 ## 本地使用反馈 — UI 细化与完整本地回归完成，未提交
 

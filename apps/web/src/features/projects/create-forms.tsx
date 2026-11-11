@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useLayoutEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -40,6 +41,7 @@ export function CreateWorkspace() {
     resolver: zodResolver(workspaceSchema),
     defaultValues: { name: "" },
   });
+  const resetAfterSuccess = useRef(false);
   const mutation = useMutation({
     mutationFn: (body: z.infer<typeof workspaceSchema>) =>
       api("post", "/api/v1/workspaces", { body }),
@@ -51,9 +53,24 @@ export function CreateWorkspace() {
         queryClient.invalidateQueries({ queryKey: key("audit") }),
       ]);
       await queryClient.invalidateQueries({ queryKey: key("workspaces") });
+      resetAfterSuccess.current = true;
       router.push(`/app/projects?workspaceId=${result.data.id}`);
     },
   });
+  const resetForm = form.reset;
+  const resetMutation = mutation.reset;
+  useLayoutEffect(
+    () => () => {
+      if (resetAfterSuccess.current) {
+        resetAfterSuccess.current = false;
+        resetForm({ name: "" });
+        resetMutation();
+      }
+    },
+    [resetForm, resetMutation],
+  );
+  const disabled =
+    mutation.isPending || mutation.isSuccess || uncertain(mutation.error);
   return (
     <div className="narrow-page">
       <Link className="text-link" href="/app/projects">
@@ -67,7 +84,9 @@ export function CreateWorkspace() {
       <form
         className="surface-panel"
         noValidate
-        onSubmit={form.handleSubmit((v) => mutation.mutate(v))}
+        onSubmit={form.handleSubmit((v) => {
+          if (!disabled) mutation.mutate(v);
+        })}
       >
         <Field
           id="name"
@@ -91,14 +110,7 @@ export function CreateWorkspace() {
             ，避免重复创建。
           </p>
         )}
-        <Button
-          type="submit"
-          disabled={
-            mutation.isPending ||
-            mutation.isSuccess ||
-            uncertain(mutation.error)
-          }
-        >
+        <Button type="submit" disabled={disabled}>
           {mutation.isPending ? "正在创建…" : "创建工作空间"}
         </Button>
       </form>
@@ -108,13 +120,14 @@ export function CreateWorkspace() {
 
 export function CreateProject() {
   const params = useSearchParams();
-  // Re-mount when the URL scope changes, so no draft follows a different space.
-  return (
-    <ProjectForm
-      key={params.get("workspaceId") ?? ""}
-      initialWorkspace={params.get("workspaceId") ?? ""}
-    />
-  );
+  const pathname = usePathname();
+  const target = params.get("workspaceId") ?? "";
+  const [workspace, setWorkspace] = useState(target);
+  // Hidden Activity pages also receive URL updates. Only a navigation to this
+  // creation page can change its scope; another route must not erase its draft.
+  if (pathname === "/app/projects/new" && target !== workspace)
+    setWorkspace(target);
+  return <ProjectForm key={workspace} initialWorkspace={workspace} />;
 }
 
 function ProjectForm({ initialWorkspace }: { initialWorkspace: string }) {
@@ -133,6 +146,7 @@ function ProjectForm({ initialWorkspace }: { initialWorkspace: string }) {
   const owner = spaces.data?.pages.some((p) =>
     p.data.some((w) => w.id === workspaceId && w.workspaceRole === "OWNER"),
   );
+  const resetAfterSuccess = useRef(false);
   const mutation = useMutation({
     mutationFn: (body: z.infer<typeof projectSchema>) =>
       api("post", "/api/v1/projects", { body }),
@@ -143,9 +157,33 @@ function ProjectForm({ initialWorkspace }: { initialWorkspace: string }) {
         queryClient.invalidateQueries({ queryKey: key("audit") }),
       ]);
       await queryClient.invalidateQueries({ queryKey: key("projects") });
+      resetAfterSuccess.current = true;
       router.push(`/app/projects/${result.data.id}`);
     },
   });
+  const resetForm = form.reset;
+  const resetMutation = mutation.reset;
+  // Activity preserves unfinished drafts and uncertain outcomes. Only a known
+  // successful creation should become a fresh form when the page is hidden.
+  useLayoutEffect(
+    () => () => {
+      if (resetAfterSuccess.current) {
+        resetAfterSuccess.current = false;
+        resetForm({
+          workspaceId: initialWorkspace,
+          name: "",
+          baselineScope: "",
+        });
+        resetMutation();
+      }
+    },
+    [initialWorkspace, resetForm, resetMutation],
+  );
+  const disabled =
+    !owner ||
+    mutation.isPending ||
+    mutation.isSuccess ||
+    uncertain(mutation.error);
   return (
     <div className="narrow-page">
       <Link className="text-link" href="/app/projects">
@@ -160,7 +198,7 @@ function ProjectForm({ initialWorkspace }: { initialWorkspace: string }) {
         className="surface-panel"
         noValidate
         onSubmit={form.handleSubmit((v) => {
-          if (owner) mutation.mutate(v);
+          if (!disabled) mutation.mutate(v);
         })}
       >
         <WorkspacePicker
@@ -213,15 +251,7 @@ function ProjectForm({ initialWorkspace }: { initialWorkspace: string }) {
             ，避免重复创建。
           </p>
         )}
-        <Button
-          type="submit"
-          disabled={
-            !owner ||
-            mutation.isPending ||
-            mutation.isSuccess ||
-            uncertain(mutation.error)
-          }
-        >
+        <Button type="submit" disabled={disabled}>
           {mutation.isPending ? "正在创建…" : "创建项目"}
         </Button>
       </form>

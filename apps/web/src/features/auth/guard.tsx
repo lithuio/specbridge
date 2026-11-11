@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Activity, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "./provider";
 import { loginReturnPath } from "./return-path";
@@ -13,7 +13,7 @@ export function AuthGate({
   children: React.ReactNode;
   publicOnly?: boolean;
 }) {
-  const { status, error, store, runtime } = useSession();
+  const { status, error, store, runtime, user } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   useEffect(() => {
@@ -22,6 +22,21 @@ export function AuthGate({
     if (!publicOnly && status === "anonymous")
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
   }, [status, publicOnly, router, pathname]);
+  if (!publicOnly && user)
+    return (
+      <>
+        {status === "unavailable" && (
+          <RetryState error={error} retry={() => void store.restore()} />
+        )}
+        {status === "restoring" && <LoadingState />}
+        <Activity
+          key={runtime.epoch}
+          mode={status === "authenticated" ? "visible" : "hidden"}
+        >
+          <div>{children}</div>
+        </Activity>
+      </>
+    );
   if (status === "logout-failed")
     return (
       <RetryState
@@ -44,9 +59,5 @@ export function AuthGate({
     ) : (
       <LoadingState label="正在进入工作概览…" />
     );
-  return status === "authenticated" ? (
-    <div key={runtime.epoch}>{children}</div>
-  ) : (
-    <LoadingState label="正在前往登录…" />
-  );
+  return <LoadingState label="正在前往登录…" />;
 }
