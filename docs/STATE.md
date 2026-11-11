@@ -1,8 +1,34 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-12。R07 Phase G 本地完成，下一阶段为 H 最终集成。下方保留历史检查点。
+> 更新时间：2026-11-12。R07 Phase H 本地最终集成完成；远程 CI 与人工评审 NOT RUN。下方保留历史检查点。
 
-## R07 Phase G — 本地完成，未提交
+## R07 Phase H — 本地最终集成完成，未提交
+
+`feat/15-web-integration` / 开工 HEAD `92f4a99`；工作区干净。已在线核对 Issue #15，B–G 成果齐备，G 已由负责人提交；前阶段源码/历史截图保留。未 Commit/Push/创建 PR/Merge/部署。
+
+- 真实 Next 生产构建 / 编译 Nest / 5434隔离PostgreSQL / 三个独立Chromium Context，业务写入全由 UI 完成：项目准备、澄清/Revision/Ready、拒绝重提、v2双方顺序批准、D1退回/D2接受、历史/Audit与三角色Dashboard。C–G既有会话/跨项目/409/重复/未知结果风险回归保留。
+- 修复正式页面品牌可访问名称、金额定义列表、审批/交付焦点恢复、稳定表单错误描述；适配D旧测试入口。仅Web及验证/CI文档改动，无后端、数据库结构、迁移或契约变化。固定既有axe为直接测试依赖，未升级其他锁定版本。
+- [H完整证据与5张截图](ux/evidence/r07-h/README.md)：17状态0 axe自动违规，原始未判定项保留；对层叠/裁剪元素补充实际颜色对比5.94–16.03:1，键盘双向Tab/返回焦点/320px导航与重排通过，最终截图已逐张自检。
+
+| 实际命令 / 检查 | 最终结果 |
+|---|---|
+| `pnpm run lint` / `pnpm run build` / `pnpm run test` | PASS；构建首轮沙箱端口失败，获准干净构建通过 |
+| `pnpm --filter specbridge-api typecheck` / `pnpm --filter web typecheck` | PASS |
+| `pnpm run test:integration` / `pnpm run test:e2e` | PASS；90 PostgreSQL / 5基础HTTP |
+| `pnpm run test:e2e:db` | PASS；auth/rbac/requirements/changes/deliveries/reads=16/13/9/8/7/9，含真实Next代理 |
+| API `openapi:check` / `db:check` | PASS；30 paths无漂移 / 迁移元数据 |
+| 浏览器 C–H | 最终15场景PASS，分段运行：C6、D/E/F/G各2、H1（最终20.5s）；根全量入口首轮FAIL及修复后续跑记录见H evidence |
+| 最后UI修复后Web `build` / `lint` / `typecheck`、H定向浏览器 | PASS；未重复无关后端检查 |
+| `git diff --check` / 本轮文档链接 | PASS |
+| 远程CI、独立人工视觉/API集成/安全评审 | NOT RUN；不伪造通过或自动推送 |
+
+已解决：沙箱/离线元数据限制、D旧链接定位、金额文本节点回归、弹窗焦点丢失与表单悬空ARIA引用。最终无未解决FAIL/BLOCKED。CI追加Web类型与Chromium真实浏览器入口，但远程未运行；已有C–G截图不覆盖。测试启动器自建HTTP进程已退出，既有隔离测试DB保持运行，开发/生产库未访问。
+
+后续人工：按H-09评审H截图、可访问性补充和diff并记录结论；远程CI/PR/合并需未来授权。Firefox/WebKit、真实设备/读屏/实际200%zoom、生产HTTPS、性能与备份恢复NOT RUN；本地H完成不代表发布DoD或全部AC-17通过。本轮到H结束，详情见 [最终交接](engineering/R07_PLAN.md)。建议摘要：`fix(r07): complete browser integration and accessible workflow verification`。
+
+---
+
+## R07 Phase G — 历史交接（后续已提交在 92f4a99）
 
 `feat/15-web-integration` / HEAD `55b53df`；开工干净，F 已由负责人提交。已在线核对 Issue #15、F 成果及 R06/读取契约，保留前阶段源码与截图。只执行 G；未 Commit/Push/创建 PR/Merge/部署，未进入 H。
 

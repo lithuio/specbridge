@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ErrorNotice } from "@/components/shared/async-state";
 import { useCurrentProject } from "@/features/projects/project-detail";
@@ -38,6 +38,8 @@ function Detail({ id }: { id: string }) {
   const query = useChange(project.id, id, offset);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [saved, setSaved] = useState(false);
+  const opener = useRef<HTMLButtonElement>(null);
+  const refreshButton = useRef<HTMLButtonElement>(null);
   const change = query.data?.data;
   if (
     !change ||
@@ -56,7 +58,12 @@ function Detail({ id }: { id: string }) {
       : project.projectRole === "CLIENT"
         ? "clientDecision"
         : null;
-  const open = (kind: Selection["kind"], decision?: Selection["decision"]) => {
+  const open = (
+    target: HTMLButtonElement,
+    kind: Selection["kind"],
+    decision?: Selection["decision"],
+  ) => {
+    opener.current = target;
     setSaved(false);
     setSelection({ kind, decision, snapshot: change });
   };
@@ -97,6 +104,7 @@ function Detail({ id }: { id: string }) {
         <Button
           variant="outline"
           disabled={query.isFetching}
+          ref={refreshButton}
           onClick={() => void query.refetch()}
         >
           刷新变更
@@ -204,7 +212,7 @@ function Detail({ id }: { id: string }) {
                     !!selection ||
                     !change.capabilities.editDraft.allowed
                   }
-                  onClick={() => open("editDraft")}
+                  onClick={(event) => open(event.currentTarget, "editDraft")}
                 >
                   编辑商业草稿
                 </Button>
@@ -220,7 +228,7 @@ function Detail({ id }: { id: string }) {
                     !!selection ||
                     !change.capabilities.submit.allowed
                   }
-                  onClick={() => open("submit")}
+                  onClick={(event) => open(event.currentTarget, "submit")}
                 >
                   正式提交审批
                 </Button>
@@ -239,7 +247,7 @@ function Detail({ id }: { id: string }) {
                     !!selection ||
                     !change.capabilities.reopen.allowed
                   }
-                  onClick={() => open("reopen")}
+                  onClick={(event) => open(event.currentTarget, "reopen")}
                 >
                   重开评估
                 </Button>
@@ -254,14 +262,18 @@ function Detail({ id }: { id: string }) {
               <>
                 <Button
                   disabled={!available || !!selection}
-                  onClick={() => open(canDecide, "APPROVED")}
+                  onClick={(event) =>
+                    open(event.currentTarget, canDecide, "APPROVED")
+                  }
                 >
                   批准此版本
                 </Button>
                 <Button
                   variant="outline"
                   disabled={!available || !!selection}
-                  onClick={() => open(canDecide, "REJECTED")}
+                  onClick={(event) =>
+                    open(event.currentTarget, canDecide, "REJECTED")
+                  }
                 >
                   拒绝此版本
                 </Button>
@@ -321,7 +333,12 @@ function Detail({ id }: { id: string }) {
         </aside>
       </div>
       {editorProps && selection?.kind !== "editDraft" && (
-        <ChangeConfirmation {...editorProps} />
+        <ChangeConfirmation
+          {...editorProps}
+          finalFocus={() =>
+            opener.current?.isConnected ? opener.current : refreshButton.current
+          }
+        />
       )}
     </>
   );

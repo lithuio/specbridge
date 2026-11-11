@@ -36,6 +36,9 @@ jobs:
       - name: API typecheck (including tests and Drizzle configuration)
         run: pnpm --filter specbridge-api typecheck
 
+      - name: Web typecheck (including browser tests)
+        run: pnpm --filter web typecheck
+
       - name: API route regression
         run: pnpm --filter specbridge-api test:e2e
 
@@ -95,3 +98,14 @@ jobs:
 
       - name: R07 reads and HTTP schema contracts
         run: pnpm --filter specbridge-api test:e2e:reads
+
+      - name: Install Chromium and system dependencies
+        run: pnpm --filter web exec playwright install --with-deps --only-shell chromium
+
+      - name: Build production Web for browser acceptance
+        run: pnpm --filter web build
+
+      - name: R07 browser regression and three-role integration
+        run: |
+          cp .env.test.example .env.test
+          pnpm run test:browser:run

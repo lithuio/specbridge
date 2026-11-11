@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import type { APIRequestContext } from "@playwright/test";
 import { test, expect, login, origin, writeHeaders } from "./fixtures";
 
-const evidence = resolve(process.cwd(), "../../docs/ux/evidence/r07-d");
+const evidence = resolve(process.cwd(), process.env.R07_EVIDENCE_ROOT ?? "../../docs/ux/evidence", "r07-d");
 async function write(
   api: APIRequestContext,
   method: "post" | "put" | "patch",
@@ -26,7 +26,7 @@ test("Owner 浏览器项目准备、两级成员、Client 独立入口和当前�
 }) => {
   await mkdir(evidence, { recursive: true });
   await login(page, accounts.a);
-  await page.getByRole("link", { name: "进入我的项目" }).click();
+  await page.getByRole("link", { name: "管理与查看全部项目 →", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "还没有获授权的项目" }),
   ).toBeVisible();
@@ -160,7 +160,7 @@ test("Owner 浏览器项目准备、两级成员、Client 独立入口和当前�
   await expect(page.getByLabel("客户邮箱")).toHaveCount(0);
   await page.getByRole("button", { name: "退出登录" }).click();
   await login(page, accounts.client);
-  await page.getByRole("link", { name: "进入我的项目" }).click();
+  await page.getByRole("link", { name: "管理与查看全部项目 →", exact: true }).click();
   await expect(page.locator(".project-card")).toHaveCount(1);
   expect(
     (await (await page.request.get("/api/v1/workspaces")).json()).data,

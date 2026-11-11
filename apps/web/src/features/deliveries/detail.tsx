@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -68,6 +68,8 @@ function Loaded({
     snapshot: DeliveryData;
   } | null>(null);
   const [saved, setSaved] = useState(false);
+  const opener = useRef<HTMLButtonElement>(null);
+  const refreshButton = useRef<HTMLButtonElement>(null);
   const version = useFrozenVersion(
     delivery.projectId,
     delivery.changeRequestId,
@@ -94,6 +96,7 @@ function Loaded({
         <Button
           variant="outline"
           disabled={!available && !error}
+          ref={refreshButton}
           onClick={() => void refresh()}
         >
           刷新交付
@@ -145,7 +148,8 @@ function Loaded({
                     !!version.error ||
                     !!selection
                   }
-                  onClick={() => {
+                  onClick={(event) => {
+                    opener.current = event.currentTarget;
                     setSaved(false);
                     setSelection({ decision: "ACCEPTED", snapshot: delivery });
                   }}
@@ -160,7 +164,8 @@ function Loaded({
                     !!version.error ||
                     !!selection
                   }
-                  onClick={() => {
+                  onClick={(event) => {
+                    opener.current = event.currentTarget;
                     setSaved(false);
                     setSelection({
                       decision: "CHANGES_REQUESTED",
@@ -190,6 +195,9 @@ function Loaded({
       </div>
       {selection && (
         <ReviewDialog
+          finalFocus={() =>
+            opener.current?.isConnected ? opener.current : refreshButton.current
+          }
           selection={selection}
           current={delivery}
           available={available}
@@ -204,12 +212,14 @@ function Loaded({
   );
 }
 function ReviewDialog({
+  finalFocus,
   selection,
   current,
   available,
   onClose,
   onDone,
 }: {
+  finalFocus: () => HTMLElement | null;
   selection: {
     decision: "ACCEPTED" | "CHANGES_REQUESTED";
     snapshot: DeliveryData;
@@ -268,7 +278,11 @@ function ReviewDialog({
         if (!open && !mutation.isPending) onClose();
       }}
     >
-      <DialogContent className="change-confirmation" showCloseButton={false}>
+      <DialogContent
+        className="change-confirmation"
+        showCloseButton={false}
+        finalFocus={finalFocus}
+      >
         <DialogTitle>
           {returned ? "退回修改" : "接受交付"} · D
           {selection.snapshot.deliveryNo}

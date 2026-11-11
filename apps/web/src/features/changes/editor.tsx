@@ -389,7 +389,9 @@ const decisionSchema = z.object({
     .trim()
     .refine((v) => Array.from(v).length <= 10000, "评论最多 10,000 个字符"),
 });
-export function ChangeConfirmation(props: Props) {
+export function ChangeConfirmation(
+  props: Props & { finalFocus: () => HTMLElement | null },
+) {
   const { api } = useProjectApi();
   const { kind, snapshot, decision } = props.selection;
   const isDecision = kind === "vendorDecision" || kind === "clientDecision";
@@ -441,7 +443,11 @@ export function ChangeConfirmation(props: Props) {
         if (!open && !action.isPending) props.onCancel();
       }}
     >
-      <DialogContent className="change-confirmation" showCloseButton={false}>
+      <DialogContent
+        className="change-confirmation"
+        showCloseButton={false}
+        finalFocus={props.finalFocus}
+      >
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>
           {kind === "submit"

@@ -1,6 +1,6 @@
 # SpecBridge Web
 
-正式 Next App Router / React / Base UI 应用。当前完成 R07 C–G：认证、Shell、项目准备与成员、Requirement/Revision/Ready、商业草稿与顺序审批/拒绝重提、交付与验收历史、真实 Dashboard/Audit。根路径跳转 `/app`；工作概览提供授权统计、三类事项与项目入口，保留真实账号和协作说明。最终集成留 H。
+正式 Next App Router / React / Base UI 应用。当前完成 R07 C–H（本地）：认证、Shell、项目准备与成员、Requirement/Revision/Ready、商业草稿与顺序审批/拒绝重提、交付与验收历史、真实 Dashboard/Audit。根路径跳转 `/app`；工作概览提供授权统计、三类事项与项目入口，保留真实账号和协作说明。H已完成三角色UI全链路与集中回归；独立人工评审、远程CI仍未运行。
 
 从仓库根目录运行 `pnpm run dev:api` 与 `pnpm run dev:web`，打开 `http://localhost:3000`。数据库配置与启动见 [DEVELOPMENT](../../docs/engineering/DEVELOPMENT.md)，不要改用 Web 子目录的独立锁文件安装。
 
@@ -67,10 +67,18 @@ pnpm run test:browser
 
 `test:browser` 编译 API/Web 并运行 Next 生产服务器，只读取 `.env.test`，Playwright 启动器复用已审迁移和现有隔离库身份校验（5434 / specbridge_test），端口 3000/4000 被占用即失败，绝不复用开发服务。结束只关闭自己启动的 API/Web；数据库沿用原状态，不能自动 down 共享测试实例。无需重置表、关闭不可变触发器或读取开发 `.env`。
 
-根入口分别调用 `test:browser:auth`、`test:browser:projects`、`test:browser:requirements`、`test:browser:changes` 与 `test:browser:deliveries`，每次复用同一启动器启动独立 API 进程，避免跨套件叠加真实登录配额。**已有最新构建时，D 定向验证用 `pnpm run test:browser:projects`，E 用 `pnpm run test:browser:requirements`，F 用 `pnpm run test:browser:changes`，G 用 `pnpm run test:browser:deliveries`**；也可 `node scripts/with-env.mjs .env.test pnpm --filter web test:e2e projects.spec.ts`。不要把多个套件合在一次无文件参数的 Playwright 调用中；服务端限流没有放宽。后续阶段继续定向验证，H 再统一全量。
+根入口分别调用 `test:browser:auth`、`test:browser:projects`、`test:browser:requirements`、`test:browser:changes`、`test:browser:deliveries` 与 `test:browser:integration`，每次复用同一启动器启动独立 API 进程，避免跨套件叠加真实登录配额。**已有最新构建时，D 定向验证用 `pnpm run test:browser:projects`，E 用 `pnpm run test:browser:requirements`，F 用 `pnpm run test:browser:changes`，G 用 `pnpm run test:browser:deliveries`**；也可 `node scripts/with-env.mjs .env.test pnpm --filter web test:e2e projects.spec.ts`。不要把多个套件合在一次无文件参数的 Playwright 调用中；服务端限流没有放宽。H统一回归结果见[最终证据](../../docs/ux/evidence/r07-h/README.md)。已有最新API/Web构建时可运行 `pnpm run test:browser:run`，避免重复构建；根完整入口保留构建。全量入口将C–G重跑截图写入忽略的 `test-results/evidence`，保留阶段历史图。
 
 `e2e/fixtures.ts` 提供 worker 级三个 UUID 账号、真实注册与登录 helpers；账号名字不是全局角色，后续通过正式 API 建立 Workspace/Project 关系。用例串行、无自动重试；首次失败即停止，避免新 worker 再注册触发真实限流。账号仅留在隔离 tmpfs，不删历史。
 
 只对网络故障/延迟做 transport 控制；正常数据与延迟载荷均由真实 API 返回。认证 trace/HAR/video/storageState 均关闭，避免保存 Cookie/密码；截图不拍密码并遮盖随机邮箱。截图及本机依赖说明见 [C evidence](../../docs/ux/evidence/r07-c/README.md)、[D evidence](../../docs/ux/evidence/r07-d/README.md)、[E evidence](../../docs/ux/evidence/r07-e/README.md)、[F evidence](../../docs/ux/evidence/r07-f/README.md)、[G evidence](../../docs/ux/evidence/r07-g/README.md)。F 本机系统库/中文字体已齐备，直接运行，无需历史临时库前缀。运行边界及精确结果见 [R07_PLAN](../../docs/engineering/R07_PLAN.md) 与 [STATE](../../docs/STATE.md)。
 
 G发现本机Turbopack增量构建可能沿用沙箱失败/旧CSS缓存；若源码和截图不符，先保留 `.next` 到临时目录再干净构建，检查产物和实际页面后重跑受影响用例，不只看build退出码。G最终干净构建与截图一致，测试DB保留运行。
+
+## H 最终集成与可访问性
+
+`e2e/integration.spec.ts` 从Owner创建空间/项目/成员开始，三个独立Context通过UI完成需求问答、Revision/Ready、拒绝重提、同版顺序批准、退回重交、验收及历史/Audit/Dashboard。业务无API写前置；沿用账号注册fixture和少量只读持久化核对。C–G已有负向仍独立运行，避免复写组合矩阵。
+
+`e2e/accessibility.ts` 使用固定axe-core，记录17代表状态A/AA违规及未判定项；对层叠/裁剪导致的颜色未判定补充计算样式检查，不删除原报告。UI修复包含品牌名称、金额定义列表、稳定错误描述ID与模态焦点返回。关闭审批/验收时使用事件中捕获的发起按钮；不能在清理阶段提前按disabled选择备用目标，因为DOM尚未恢复。真正移除原按钮时返回刷新按钮。
+
+H的5张正式截图、完整命令/失败与剩余人工事项见[H evidence](../../docs/ux/evidence/r07-h/README.md)。本地最终各套件15场景PASS为分段运行后的结果，不代表首次全量命令一次通过、远程CI或人工视觉/安全评审通过。

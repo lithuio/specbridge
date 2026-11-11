@@ -39,11 +39,9 @@ export function Field({
           {hint}
         </p>
       )}
-      {error && (
-        <p className="field-error" role="alert" id={`${id}-error`}>
-          {error}
-        </p>
-      )}
+      <p className="field-error" role="alert" id={`${id}-error`} hidden={!error}>
+        {error}
+      </p>
     </div>
   );
 }

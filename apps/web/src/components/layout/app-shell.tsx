@@ -88,7 +88,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Link
           href="/app"
           className="sidebar-brand"
-          aria-label="SpecBridge 工作概览"
+          aria-label="SpecBridge 需求 · 确认 · 交付，工作概览"
         >
           <Brand compact={collapsed} />
         </Link>

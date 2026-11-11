@@ -10,7 +10,7 @@ import {
   type Account,
 } from "./fixtures";
 
-const evidence = resolve(process.cwd(), "../../docs/ux/evidence/r07-f");
+const evidence = resolve(process.cwd(), process.env.R07_EVIDENCE_ROOT ?? "../../docs/ux/evidence", "r07-f");
 async function write(
   api: APIRequestContext,
   method: "post" | "patch" | "put",

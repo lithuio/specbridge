@@ -102,13 +102,15 @@ export function CommercialFacts({
       <div>
         <dt>费用变化</dt>
         <dd>
-          {value.costDeltaMinor !== null && value.currency
-            ? money(value.costDeltaMinor, value.currency)
-            : "未完整填写"}
+          <span>
+            {value.costDeltaMinor !== null && value.currency
+              ? money(value.costDeltaMinor, value.currency)
+              : "未完整填写"}
+          </span>
+          {value.costDeltaMinor !== null && (
+            <small className="block">{value.costDeltaMinor} 最小单位</small>
+          )}
         </dd>
-        {value.costDeltaMinor !== null && (
-          <small>{value.costDeltaMinor} 最小单位</small>
-        )}
       </div>
       <div>
         <dt>工期变化</dt>

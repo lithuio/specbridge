@@ -2,7 +2,7 @@ import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { test, expect, login, newAccount, writeHeaders } from "./fixtures";
 
-const evidence = resolve(process.cwd(), "../../docs/ux/evidence/r07-c");
+const evidence = resolve(process.cwd(), process.env.R07_EVIDENCE_ROOT ?? "../../docs/ux/evidence", "r07-c");
 test("真实注册、登录错误、刷新恢复、Cookie/CSRF 与退出撤销", async ({
   page,
   context,

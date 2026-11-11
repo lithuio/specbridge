@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import type { APIRequestContext, Page } from "@playwright/test";
 import { test, expect, login, origin, writeHeaders } from "./fixtures";
 
-const evidence = resolve(process.cwd(), "../../docs/ux/evidence/r07-e");
+const evidence = resolve(process.cwd(), process.env.R07_EVIDENCE_ROOT ?? "../../docs/ux/evidence", "r07-e");
 async function write(
   api: APIRequestContext,
   method: "post" | "put" | "patch",

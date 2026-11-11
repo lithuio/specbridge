@@ -32,6 +32,7 @@ export function DeliveryEntry({
   available: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
   const resetAfterSuccess = useRef(false);
   const [snapshot, setSnapshot] = useState(change);
   const { api } = useProjectApi();
@@ -99,6 +100,7 @@ export function DeliveryEntry({
         <>
           {cap.allowed && (
             <Button
+              ref={trigger}
               disabled={
                 !available ||
                 mutation.isPending ||
@@ -148,7 +150,11 @@ export function DeliveryEntry({
             setOpen(false);
         }}
       >
-        <DialogContent className="change-confirmation" showCloseButton={false}>
+        <DialogContent
+          className="change-confirmation"
+          showCloseButton={false}
+          finalFocus={trigger}
+        >
           <DialogTitle>
             提交新交付 · v{snapshot.activeVersion?.versionNo}
           </DialogTitle>
