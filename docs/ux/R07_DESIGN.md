@@ -132,3 +132,7 @@ Server Components 保持结构和边界，私有数据由认证后 Client Query 
 ## Phase C 正式页面落实
 
 正式路由为 `/login`、`/register`、`/app`，复用浅色 Tokens 与 Base UI。使用本机字体栈，不在构建时下载 Google 字体。工作概览当前显示真实 `/me` 账号与协作流程说明，不显示占位项目、统计、待办或不可用入口；D 增加项目/工作空间上下文，G 接入 Dashboard 聚合。桌面 240px/可折叠 76px、平板 76px、手机 Dialog Drawer，320px 重排与键盘返回焦点由浏览器测试验证。正式证据见 [C 截图](evidence/r07-c/README.md)，不以 A 的静态原型替代本阶段实现。
+
+## Phase D 正式页面落实
+
+已增加工作概览至“我的项目”的真实入口、可分页的供应方空间选择与项目卡片、窄屏创建表单、项目概览/成员导航。详情显示当前项目角色、只读初始范围、真实成员与客户绑定提示；Owner 独立管理供应方成员并从分页名册分配 Developer，Client 无名册入口。绑定更正说明原客户会失去访问权，正式提交后锁定并禁用表单；竞争409保留输入并读取最新状态。正式 [D 截图](evidence/r07-d/README.md) 来自真实 Next/API/DB，覆盖 Owner 成员管理、Client 手机详情和客户锁定；无占位业务数据。后续 E–G 扩展项目导航，G 再接 Dashboard 聚合。

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
   FileText,
@@ -51,6 +52,7 @@ export function AccountOverview() {
             <ShieldCheck size={18} aria-hidden="true" />
             <span>供应方与客户分别确认，批准记录可追溯。</span>
           </div>
+          <Link className="text-link overview-project-link" href="/app/projects">进入我的项目 →</Link>
         </section>
         <section className="account-panel" aria-labelledby="account-title">
           <div className="section-heading">

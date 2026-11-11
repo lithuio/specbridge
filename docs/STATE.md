@@ -1,8 +1,29 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-11。本机开发环境已配置并验证；R07 Phase C 本地完成，下一业务阶段为 D。下方保留历史检查点。
+> 更新时间：2026-11-11。本机开发环境已配置并验证；R07 Phase D 本地完成，下一业务阶段为 E。下方保留历史检查点。
 
-## R07 Phase C — 本地完成，未提交
+## R07 Phase D — 本地完成，未提交
+
+`feat/15-web-integration` / HEAD `200c54f`；开工干净，C 已由负责人提交。已在线核对 Issue #15。本轮只执行 D，前阶段成果保留；未 Commit/Push/创建 PR/Merge/部署，未进入 E。
+
+- 已实现 Workspace 创建/分页选择、Project 创建/分页列表/详情、Owner 供应方成员管理、Developer 项目分配、唯一 Client 绑定/更正及提交后锁定提示；Client 从自己的项目列表进入，权限由当前项目 role/capabilities 决定。
+- 复用 Shell、Session API、私有 Query、Base UI/RHF/Zod。初始范围只读；写后刷新相关数据，409 保留输入并核对锁定；创建结果未知先查列表，不自动重试。没有后端、数据库、契约或依赖变更。
+- `features/projects` 与项目 layout 为 E 提供项目上下文；根浏览器命令按 C/D 分别启动原 API/Web fixture，避免两个套件累积真实登录限流配额，没有修改服务端限流。
+
+| 命令 / 检查 | 实际结果 |
+|---|---|
+| `env LD_LIBRARY_PATH=/tmp/specbridge-browser-libs/root/usr/lib/x86_64-linux-gnu FONTCONFIG_FILE=/tmp/specbridge-browser-libs/fonts.conf node scripts/with-env.mjs .env.test pnpm --filter web test:e2e projects.spec.ts` | PASS；D 2场景/6.5s；Owner真实UI准备、两级成员/Client、分页、403/404/422、替换后旧Client失权、Submit竞争409/刷新锁定、未知创建不重放、混合角色及320px |
+| 相同环境前缀 `pnpm run test:browser` | PASS；最终 API/Web production build，C 6场景/6.3s + D 2场景/6.6s，真实 Next/Nest/隔离 PostgreSQL/Chromium，无 pageerror |
+| `pnpm --filter web typecheck`、`pnpm --filter web lint`、`git diff --check` | PASS；无 lint 警告，最终差异检查 |
+| [D 正式截图与复现](ux/evidence/r07-d/README.md) | 3张代表桌面/手机图逐张查看，随机邮箱遮罩；C历史截图原样保留 |
+
+已处理：类型路径参数名、RHF useWatch、沙箱端口限制、测试导航/reload竞争、截图平滑滚动错位。5434 隔离测试库通过原启动器身份校验；Docker socket 状态读取缺权，未操作容器；未读取开发配置/访问开发库、清表或禁触发器。测试 HTTP 子进程已结束，API 生成缓存移至 /tmp。
+
+未运行：未受影响的 R01–R06 全量回归、契约重生成、远程 CI、人工视觉/安全 Review、生产 HTTPS/多浏览器和完整三角色业务链。无新增人工决策阻塞；H-09 等既有人工结论不变。下一 Session 按 [D 交接](engineering/R07_PLAN.md) 启动 E，保留本地修改。建议摘要：`feat(r07): add workspace and project setup with scoped member management`。
+
+---
+
+## R07 Phase C — 历史交接（后续已提交在 200c54f）
 
 `feat/15-web-integration` / HEAD `9499618`；开工工作区干净，B 实际已在 `544e4b8`，环境配置已在 `9499618`。已核对在线 Issue #15 与 B 生成契约；仅执行 C，未进入 D。当前修改全部保留本地，未 Commit/Push/创建 PR/Merge/部署。
 

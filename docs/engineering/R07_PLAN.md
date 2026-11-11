@@ -1,7 +1,7 @@
 # R07 总规划与跨 Session 交接
 
 > 核心交接入口。新 Session 先读本文件，再按阶段读取必要源码/契约；不依赖聊天历史。  
-> 更新：2026-11-11。负责人批准总体规划后追加：**B–H 分别在新的 Session 实施，精简过程与重复验证，保留核心质量测试**。Phase C 已完成本地实施与验证；下一新 Session 执行 D。
+> 更新：2026-11-11。负责人批准总体规划后追加：**B–H 分别在新的 Session 实施，精简过程与重复验证，保留核心质量测试**。Phase D 已完成本地实施与验证；下一新 Session 执行 E。
 
 ## 1. 任务、范围和授权
 
@@ -23,21 +23,21 @@
 | A 契约与视觉 | 已交付；人工视觉结论未记录 | 三份规格/计划、独立原型、9 张截图、40 项原型检查通过 |
 | B 只读 API / 能力 / 契约 | COMPLETE（本地） | 七 GET、四类详情 capabilities、OpenAPI/生成类型/CI 漂移检查；真实 DB/HTTP 已验证 |
 | C Web 基础 / 认证 | COMPLETE（本地） | 正式 Tokens/Shell、Typed Client、Query 隔离、认证；生产 Web/真实 API/隔离 DB 浏览器 6 场景通过 |
-| D 项目 / 成员 | NOT STARTED | C 后实现项目准备全过程 |
+| D 项目 / 成员 | COMPLETE（本地） | Workspace/Project、两级成员、唯一 Client；真实浏览器准备与权限/锁定分支通过 |
 | E 需求 / Revision | NOT STARTED | D 后实现问答、冻结规格、Ready |
 | F 变更 / 审批 | NOT STARTED | E 后实现商业评估、顺序决定、拒绝重提 |
 | G 交付 / Dashboard / Audit | NOT STARTED | F 后接通交付闭环和真实聚合 |
 | H 最终集成 | NOT STARTED | G 后统一浏览器主流程、全量回归与视觉收尾 |
 
-**实际代码状态**：R01–R06 后端源码已存在；apps/web 已有正式 `/login`、`/register`、`/app`，含 Tokens/Shell、Typed Client、会话生命周期与 Query 缓存隔离。当前 `/app` 仅真实账号信息和协作说明；项目准备/业务聚合仍留 D/G。packages 为空。API 已实现七项读取与必要 capabilities；离线 Swagger 导出在 `apps/api/src/openapi`，契约为 `docs/architecture/openapi.json`，前端类型为 `apps/web/src/lib/api/generated/schema.d.ts`。现有 Vitest/HTTP/Next Rewrite 测试不是浏览器 E2E。
+**实际代码状态**：R01–R06 后端源码已存在；apps/web 已有正式 `/login`、`/register`、`/app`，含 Tokens/Shell、Typed Client、会话生命周期与 Query 缓存隔离。当前 `/app` 展示真实账号信息、协作说明与项目入口；D 已有 `/app/projects`、空间/项目创建、项目详情/成员及供应方成员管理。业务聚合仍留 G。packages 为空。API 已实现七项读取与必要 capabilities；离线 Swagger 导出在 `apps/api/src/openapi`，契约为 `docs/architecture/openapi.json`，前端类型为 `apps/web/src/lib/api/generated/schema.d.ts`。现有 Vitest/HTTP/Next Rewrite 测试不是浏览器 E2E。
 
 **依赖审计基线**：Web 本地 Next 16.4.3、React 19.3.0、TS 5.9.3、Tailwind 4.3.3、Base UI 1.9.0、shadcn 4.23.0、Query 5.105.0、Zod 4.6.7、RHF 7.91.0。这些是 Phase A 观察值，新 Session 用 package.json/根 lockfile 核对，不升级无关依赖。Web package name 为 `web`，API 为 `specbridge-api`。Web 子目录另有 lockfile/workspace 配置，优先沿用根工作区约定，不顺手清理。
 
-**工作区连续性**：C 开工实际分支 `feat/15-web-integration`、HEAD `9499618`、工作区干净。已核对 B 在 `544e4b8`、本地环境在 `9499618`，此前“B 未提交”仅描述历史 Session。C 成果保留未提交；不 stash/reset/clean，不自动 Commit/Push/PR。
+**工作区连续性**：D 开工实际分支 `feat/15-web-integration`、HEAD `200c54f`、工作区干净。C 已由负责人提交在 `200c54f`；B 在 `544e4b8`，本地环境在 `9499618`。历史交接的“未提交”只描述当时。D 成果保留未提交；前阶段源码及 C 历史截图保留，不 stash/reset/clean，不自动 Commit/Push/PR。
 
-**证据**：A 的 [verification.json](../ux/prototypes/r07/evidence/verification.json) 仅证明独立原型。B 的精确命令/结果见下方交接与 STATE：93 单元、90 DB 集成、9 R07 HTTP 契约场景，以及受影响 R03–R06 HTTP/代理回归通过；UTC 日期小修后另重跑 R03 12 项 DB 回归。C 新增证据：Web 生产构建、真实 Chromium/编译 API/隔离 DB 的 6 场景、R02 HTTP/Rewrite 16 项通过，B 契约漂移仍通过。截图见 [C evidence](../ux/evidence/r07-c/README.md)。远程 CI/人工评审未运行。
+**证据**：A 的 [verification.json](../ux/prototypes/r07/evidence/verification.json) 仅证明独立原型。B 的精确命令/结果见下方交接与 STATE：93 单元、90 DB 集成、9 R07 HTTP 契约场景，以及受影响 R03–R06 HTTP/代理回归通过；UTC 日期小修后另重跑 R03 12 项 DB 回归。C 新增证据：Web 生产构建、真实 Chromium/编译 API/隔离 DB 的 6 场景、R02 HTTP/Rewrite 16 项通过，B 契约漂移仍通过。截图见 [C evidence](../ux/evidence/r07-c/README.md)。D 新增 2 个真实浏览器场景，根入口分别启动 C 6/D 2 场景均通过；Web lint/typecheck、API/Web build 通过，3 张代表截图见 [D evidence](../ux/evidence/r07-d/README.md)。远程 CI/人工评审未运行。
 
-**下个 Session 的第一步**：执行 D；先读本文件最新 C 交接、STATE、`apps/web/README.md`、`e2e/fixtures.ts`、生成契约及 R07_DESIGN。核对 Git，保留 C 未提交成果；复用 `useSession().runtime.api`、`privateKey`、Shell 与 Playwright 启动器实现项目/空间准备。当前机器的浏览器临时库环境见 C evidence；本 Session 已结束，不进入 D。
+**下个 Session 的第一步**：执行 E；先读本文件最新 D 交接、STATE、`apps/web/README.md`、`features/projects/{queries,project-detail,shared}.tsx/ts`、生成契约及 R04 API。核对 Git，保留 D 未提交成果；在已有 ProjectBoundary 下实现需求/Revision，复用 Session API、私有 keys、分页/表单与浏览器 fixture。当前机器临时浏览器库见 D evidence；本 Session 到 D 结束，不进入 E。
 
 ## 3. 最少必要阅读与权威来源
 
@@ -235,6 +235,23 @@ git diff --check
 - 下一 Session：D；复用当前 Shell/typed client/Query keys/fixture，先 Workspace/Project/成员与唯一 Client 准备流程；详情权限继续以 API/capabilities 为准，不创建全局 role。
 - 人工事项：无新增实施阻塞；负责人可审阅本阶段正式截图，既有 H-09 状态保持未记录；本 Session 到 C 结束。
 - 建议提交摘要（不执行）：`feat(r07): implement authenticated web shell and isolated session queries`。
+
+### Session 2026-11-11 — Phase D — COMPLETE（本地）
+
+- 分支/HEAD：`feat/15-web-integration` / `200c54f`；开工干净，C 已由负责人提交。在线核对 Issue #15；保留前阶段成果，本轮未 Commit/Push/创建 PR/Merge/部署。
+- 完成：Workspace 创建/分页选择；Project 创建/分页列表/详情；Owner 供应方已注册邮箱添加 Developer、项目分页分配、唯一 Client 绑定/更正与正式提交锁定提示。Client 从不带空间筛选的“我的项目”进入，不要求加入供应方空间。
+- 权限：每个项目使用服务端 `projectRole/capabilities`；供应方名册只由管理页面/Owner 分配面板读取，非 Owner 项目页不请求名册。服务端最终 403/404 与角色冲突沿用 R03。初始范围只读并明确不是客户签署。
+- 入口：`apps/web/src/features/projects/{queries,shared,workspace-picker,create-forms,project-list,project-detail,members}`；新增 `/app/projects`、`/app/projects/new`、`/app/workspaces/new`、`/app/settings/members?workspaceId=…`、`/app/projects/[projectId]`、`…/members`。ProjectBoundary/useCurrentProject 为 E 后续页面提供真实项目上下文。
+- Query 按 epoch/userId/资源/空间或项目/分页隔离；切换项目卸载旧表单；写后失效相关列表/详情。创建未知结果禁重发并先查列表；绑定 409 保留输入、重新获取锁定能力并禁提交；所有写操作不自动重试。
+- 契约/设计差异：无新增 API、后端逻辑、表、迁移、依赖或生成类型变更。只补 Web 错误文案与响应式页面。需求/CR API 仅在锁定测试中建立真实前置状态，未实现 E/F UI。
+- PASS：`env LD_LIBRARY_PATH=/tmp/specbridge-browser-libs/root/usr/lib/x86_64-linux-gnu FONTCONFIG_FILE=/tmp/specbridge-browser-libs/fonts.conf node scripts/with-env.mjs .env.test pnpm --filter web test:e2e projects.spec.ts` → D 两场景 / 6.5s；真实 Owner UI 准备、Developer 分配前404/分配后200、Client 独立入口、403/404、未注册/角色冲突、同账号跨项目角色、13项目分页/切换筛选、Client 更正后旧账号失权、Submit 竞争409/刷新锁定、创建响应丢失不重放、320px。
+- PASS：最终相同环境前缀 `pnpm run test:browser` → API/Web build + C 6场景/6.3s + D 2场景/6.6s，均无 pageerror。C/D 复用原启动器/fixture，但分两次 Playwright 调用启动 API，避免真实登录配额叠加；未改限流或重建测试工具。新增根 `test:browser:auth` / `test:browser:projects` 用于已有构建的定向验证。
+- PASS：最终 `pnpm --filter web typecheck`、`pnpm --filter web lint`（无警告）、`git diff --check`；3 张截图见 [D evidence](../ux/evidence/r07-d/README.md)，已逐张查看；C 历史截图恢复原值。
+- 已处理失败：首轮 typecheck 的生成路由参数名应为 `{id}`；RHF watch 改 useWatch 消除编译器 warning；沙箱内部端口/启动限制后获准重跑；首次测试点击项目后立即 reload 抢在导航前，增加目标就绪断言后通过；整页截图用即时滚到顶部避免平滑滚动中的 fixed 导航错位。
+- 环境：原 5434/specbridge_test 已可用，启动器校验真实库/角色并沿用已审迁移；不访问开发库，不清表/删历史。Docker ps 即使沙箱外仍缺 socket 访问权，未依赖它启动或更改容器；实际 DB/HTTP 由已通过的启动器验证。无新依赖下载，自建 API/Web 已退出，生成 API tsbuildinfo 移至 /tmp。
+- NOT RUN：未改后端，未重复 R01–R06 全量回归或契约生成；完整业务链留 H。远程 CI、人工视觉/安全评审、生产 HTTPS/多浏览器未运行，H-09 不标通过。
+- 下一 Session：E；先读本交接、Web README、ProjectBoundary/queries/shared、R04 精确契约与生成类型。在项目 layout 内接需求、问答、Revision/Ready，注意 expectedVersion。只运行新增定向浏览器流程，最终全量回归仍留 H。
+- 人工事项：无新增阻塞；负责人可审阅 D 截图。建议摘要（不执行）：`feat(r07): add workspace and project setup with scoped member management`。
 
 ## 9. 每个新 Session 的提示词（可单独复制）
 

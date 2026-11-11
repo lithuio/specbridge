@@ -822,3 +822,316 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Project preparation reuses the Shell and semantic tokens. */
+.text-link {
+  color: var(--brand);
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 550;
+}
+.overview-project-link {
+  margin-top: 12px;
+}
+.surface-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  padding: 26px;
+  min-width: 0;
+}
+.surface-panel h2 {
+  margin-bottom: 10px;
+}
+.surface-panel .panel-kicker {
+  display: block;
+  margin-bottom: 10px;
+}
+.heading-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+.heading-actions p:last-child {
+  color: var(--text-muted);
+  margin-top: 10px;
+}
+.heading-actions .primary-link {
+  gap: 12px;
+  flex: none;
+}
+.heading-actions h1 {
+  overflow-wrap: anywhere;
+}
+.scope-panel {
+  margin-bottom: 28px;
+}
+.workspace-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.workspace-picker label {
+  font-size: 12px;
+  font-weight: 600;
+}
+.workspace-picker .form-control {
+  width: min(100%, 360px);
+}
+.workspace-picker .field-hint {
+  flex-basis: 100%;
+}
+.form-control {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 10px 12px;
+  min-height: 46px;
+  font: inherit;
+}
+textarea.form-control {
+  resize: vertical;
+}
+.form-control[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.form-control:disabled {
+  opacity: 0.6;
+}
+.narrow-page {
+  max-width: 720px;
+  margin-inline: auto;
+}
+.narrow-page > .text-link {
+  margin-bottom: 18px;
+}
+.narrow-page .workspace-picker {
+  margin-bottom: 24px;
+}
+.narrow-page .workspace-picker label {
+  flex-basis: 100%;
+}
+.query-state {
+  padding: 24px 0;
+  color: var(--text-muted);
+}
+.query-state .notice {
+  margin-bottom: 12px;
+}
+.workspace-picker .query-state {
+  padding: 0;
+}
+.empty-state {
+  text-align: center;
+  padding: 64px 24px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-panel);
+  color: var(--text-muted);
+}
+.empty-state svg {
+  margin: 0 auto 20px;
+  color: var(--brand);
+}
+.empty-state h2 {
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.project-card {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  padding: 24px;
+  overflow-wrap: anywhere;
+}
+.project-card:hover {
+  border-color: var(--brand);
+}
+.project-icon {
+  color: var(--brand);
+  background: var(--brand-soft);
+  padding: 12px;
+  border-radius: 10px;
+}
+.project-card h2 {
+  margin-top: 28px;
+}
+.project-card p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 10px;
+}
+.project-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  margin-top: 28px;
+  padding-top: 16px;
+  color: var(--brand);
+  font-size: 12px;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+  font-size: 12px;
+}
+.project-heading {
+  margin-top: 18px;
+}
+.role-separator {
+  margin-inline: 12px;
+}
+.project-nav {
+  display: flex;
+  gap: 28px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
+}
+.project-nav a {
+  min-height: 48px;
+  padding: 10px 0;
+  color: var(--text-muted);
+}
+.project-nav a[aria-current="page"] {
+  color: var(--brand);
+  border-bottom: 2px solid var(--brand);
+  font-weight: 600;
+}
+.project-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.member-management-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+.stack-panels {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+.scope-content {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-top: 28px;
+  line-height: 2;
+}
+.muted-copy {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-bottom: 24px;
+}
+.facts-list {
+  margin-block: 20px;
+}
+.facts-list dt {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-top: 16px;
+}
+.facts-list dd {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.guidance-panel {
+  background: var(--brand-soft);
+  border-color: #dce1f5;
+}
+.guidance-panel p {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.9;
+}
+.people-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 16px;
+}
+.people-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.people-list li:last-child {
+  border-bottom: 0;
+}
+.people-list li > div,
+.people-list li > strong {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.people-list p {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.role-badge {
+  color: var(--text-muted);
+  background: var(--subtle);
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  white-space: nowrap;
+  margin-left: auto;
+}
+@media (max-width: 1199px) {
+  .project-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 767px) {
+  .heading-actions {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .project-grid,
+  .project-detail-grid,
+  .member-management-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .surface-panel,
+  .project-card {
+    padding: 20px;
+  }
+  .workspace-picker {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .workspace-picker .form-control {
+    width: 100%;
+  }
+  .header-context {
+    min-width: 0;
+  }
+  .header-context strong {
+    white-space: nowrap;
+  }
+  .header-context > span:first-of-type,
+  .header-context .breadcrumb-divider {
+    display: none;
+  }
+}

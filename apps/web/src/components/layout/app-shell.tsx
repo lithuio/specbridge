@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   LayoutDashboard,
@@ -10,6 +11,7 @@ import {
   LogOut,
   BookOpen,
   X,
+  FolderOpen,
 } from "lucide-react";
 import { Brand } from "@/components/shared/brand";
 import { Button } from "@/components/ui/button";
@@ -25,19 +27,37 @@ import { useSession } from "@/features/auth/provider";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, store } = useSession();
+  const pathname = usePathname();
+  const section = pathname.startsWith("/app/settings")
+    ? "供应方成员"
+    : pathname.startsWith("/app/workspaces")
+      ? "创建工作空间"
+      : pathname.startsWith("/app/projects")
+        ? "我的项目"
+        : "工作概览";
   const [collapsed, setCollapsed] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const navigation = (
     <nav aria-label="主导航">
       <Link
-        className="nav-item active"
+        className={`nav-item${pathname === "/app" ? " active" : ""}`}
         href="/app"
         aria-label="工作概览"
-        aria-current="page"
+        aria-current={pathname === "/app" ? "page" : undefined}
         onClick={() => setDrawer(false)}
       >
         <LayoutDashboard size={19} aria-hidden="true" />
         <span className="nav-label">工作概览</span>
+      </Link>
+      <Link
+        className={`nav-item${pathname.startsWith("/app/projects") ? " active" : ""}`}
+        href="/app/projects"
+        aria-label="我的项目"
+        aria-current={pathname.startsWith("/app/projects") ? "page" : undefined}
+        onClick={() => setDrawer(false)}
+      >
+        <FolderOpen size={19} aria-hidden="true" />
+        <span className="nav-label">我的项目</span>
       </Link>
     </nav>
   );
@@ -75,10 +95,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <p className="nav-caption">协作空间</p>
         {navigation}
         <div className="sidebar-bottom">
-          <a className="nav-item" href="#workflow-guide" aria-label="使用说明">
+          <Link
+            className="nav-item"
+            href="/app#workflow-guide"
+            aria-label="使用说明"
+          >
             <BookOpen size={19} aria-hidden="true" />
             <span className="nav-label">使用说明</span>
-          </a>
+          </Link>
           {account}
         </div>
       </aside>
@@ -129,9 +153,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <div className="drawer-account">{account}</div>
               </DialogContent>
             </Dialog>
-            <span>个人空间</span>
+            <span>协作空间</span>
             <span className="breadcrumb-divider">/</span>
-            <strong>工作概览</strong>
+            <strong>{section}</strong>
           </div>
           <span className="header-account">
             <span className="connection-dot" />

@@ -45,6 +45,19 @@ export function errorMessage(error: unknown): string {
     return "暂时无法使用这些信息注册，请核对邮箱或尝试登录。";
   if (error.code === "STALE_VERSION")
     return "内容已更新，请保留输入并核对最新版后再操作。";
+  const projectErrors: Record<string, string> = {
+    USER_NOT_REGISTERED: "该邮箱尚未注册，请先让对方创建账号，再添加成员。",
+    WORKSPACE_DEVELOPER_REQUIRED:
+      "只能分配本工作空间已有的开发成员，请先添加到供应方成员。",
+    ROLE_CONFLICT: "此账号与供应方或客户身份冲突，同一工作空间内不能兼任。",
+    CLIENT_ASSIGNMENT_LOCKED:
+      "项目已有正式提交历史，客户绑定已锁定，不能更换账号。请核对当前项目。",
+  };
+  if (
+    (error.status === 422 || error.status === 409) &&
+    projectErrors[error.code]
+  )
+    return projectErrors[error.code];
   return (
     (
       {
