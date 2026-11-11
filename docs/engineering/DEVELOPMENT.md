@@ -226,3 +226,11 @@ pnpm --filter web exec tsc --noEmit --incremental false
 生成器只在脚本中运行，先编译 API；输出 `docs/architecture/openapi.json` 和 `apps/web/src/lib/api/generated/schema.d.ts`。check 在系统临时目录重生成后逐字比较，不改工作区产物。不要手改生成文件。Swagger 仅加载 Controller 元数据并以空 provider 导出，不导入 AppModule、启动认证/DB/Observe、读取 .env 或监听端口。
 
 固定开发依赖为 openapi-typescript 7.10.1、Ajv 8.17.1、ajv-formats 3.0.1；生成器声明 TS5 peer，与 API 的 TS6 有安装警告，本地实际生成与类型检查通过。CI 沿用根 pnpm-lock.yaml；未改 Web 子目录 lockfile。
+
+## R07 正式 Web 与浏览器测试（Phase C）
+
+`pnpm run dev:api` / `pnpm run dev:web` 后打开 `http://localhost:3000`，从真实注册/登录进入 `/app`。没有内置演示账号或全局角色；项目/空间流程待 D。现有 Cookie/CSRF 与 `/api/v1` Rewrite 保持。
+
+浏览器环境首次执行 `pnpm --filter web exec playwright install --only-shell chromium`，Linux 缺系统库时在有 sudo 权限的终端运行 `pnpm --filter web exec playwright install-deps chromium`，截图建议安装 Noto CJK。随后 `pnpm run db:test:up` 与 `pnpm run test:browser`；后者构建 API/Web，运行 Next 生产服务器，按 `.env.test` 启动隔离链路。不要与占用 3000/4000 的开发/HTTP 测试并行。
+
+本机 sudo 未完成安装，C 使用临时解包系统库和字体，通过的精确环境前缀见 [C evidence](../ux/evidence/r07-c/README.md)。该目录不保证重启后存在；无需改变应用源码来适配。Web 结构、typed client 与后续 Query 隔离约定见 [apps/web/README](../../apps/web/README.md)。

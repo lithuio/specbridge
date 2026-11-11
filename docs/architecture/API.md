@@ -1,6 +1,6 @@
 # SpecBridge REST API 契约（设计基线）
 
-> R07 Phase A 增量读取契约另见 [R07_READ_MODELS.md](R07_READ_MODELS.md)：七个 GET、capabilities、Audit 白名单和 Dashboard 定义。负责人已批准总体范围，Phase A 细化待验收；**这些增量尚未实现**，不改变下文 R02–R06 已有写契约。
+> R07 Phase A 增量读取契约另见 [R07_READ_MODELS.md](R07_READ_MODELS.md)：七个 GET、capabilities、Audit 白名单和 Dashboard 定义。这些增量已在 Phase B 本地实现并生成 OpenAPI；不改变下文 R02–R06 已有写契约。
 
 > v0.2（P0 需求基线已确认）｜Base Path：`/api/v1`｜API-01～30、API-32 与 Client 绑定已有本地实现；其余业务接口仍为设计基线。后续 NestJS 生成 OpenAPI，必须与本文保持一致。
 

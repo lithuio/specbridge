@@ -1,7 +1,7 @@
 # R07 总规划与跨 Session 交接
 
 > 核心交接入口。新 Session 先读本文件，再按阶段读取必要源码/契约；不依赖聊天历史。  
-> 更新：2026-11-10。负责人批准总体规划后追加：**B–H 分别在新的 Session 实施，精简过程与重复验证，保留核心质量测试**。Phase B 已完成本地实施与验证；下一新 Session 执行 C。
+> 更新：2026-11-11。负责人批准总体规划后追加：**B–H 分别在新的 Session 实施，精简过程与重复验证，保留核心质量测试**。Phase C 已完成本地实施与验证；下一新 Session 执行 D。
 
 ## 1. 任务、范围和授权
 
@@ -22,22 +22,22 @@
 |---|---|---|
 | A 契约与视觉 | 已交付；人工视觉结论未记录 | 三份规格/计划、独立原型、9 张截图、40 项原型检查通过 |
 | B 只读 API / 能力 / 契约 | COMPLETE（本地） | 七 GET、四类详情 capabilities、OpenAPI/生成类型/CI 漂移检查；真实 DB/HTTP 已验证 |
-| C Web 基础 / 认证 | NOT STARTED | B 后实现真实 Shell、API Client、Query 隔离、认证 |
+| C Web 基础 / 认证 | COMPLETE（本地） | 正式 Tokens/Shell、Typed Client、Query 隔离、认证；生产 Web/真实 API/隔离 DB 浏览器 6 场景通过 |
 | D 项目 / 成员 | NOT STARTED | C 后实现项目准备全过程 |
 | E 需求 / Revision | NOT STARTED | D 后实现问答、冻结规格、Ready |
 | F 变更 / 审批 | NOT STARTED | E 后实现商业评估、顺序决定、拒绝重提 |
 | G 交付 / Dashboard / Audit | NOT STARTED | F 后接通交付闭环和真实聚合 |
 | H 最终集成 | NOT STARTED | G 后统一浏览器主流程、全量回归与视觉收尾 |
 
-**实际代码状态**：R01–R06 后端源码已存在；apps/web 仍为 Next 默认首页与六个基础 UI 组件，没有真实业务页面/API Client/认证 UI。packages 为空。API 已实现七项读取与必要 capabilities；离线 Swagger 导出在 `apps/api/src/openapi`，契约为 `docs/architecture/openapi.json`，前端类型为 `apps/web/src/lib/api/generated/schema.d.ts`。现有 Vitest/HTTP/Next Rewrite 测试不是浏览器 E2E。
+**实际代码状态**：R01–R06 后端源码已存在；apps/web 已有正式 `/login`、`/register`、`/app`，含 Tokens/Shell、Typed Client、会话生命周期与 Query 缓存隔离。当前 `/app` 仅真实账号信息和协作说明；项目准备/业务聚合仍留 D/G。packages 为空。API 已实现七项读取与必要 capabilities；离线 Swagger 导出在 `apps/api/src/openapi`，契约为 `docs/architecture/openapi.json`，前端类型为 `apps/web/src/lib/api/generated/schema.d.ts`。现有 Vitest/HTTP/Next Rewrite 测试不是浏览器 E2E。
 
 **依赖审计基线**：Web 本地 Next 16.4.3、React 19.3.0、TS 5.9.3、Tailwind 4.3.3、Base UI 1.9.0、shadcn 4.23.0、Query 5.105.0、Zod 4.6.7、RHF 7.91.0。这些是 Phase A 观察值，新 Session 用 package.json/根 lockfile 核对，不升级无关依赖。Web package name 为 `web`，API 为 `specbridge-api`。Web 子目录另有 lockfile/workspace 配置，优先沿用根工作区约定，不顺手清理。
 
-**工作区连续性**：B 开工实际分支 `feat/15-web-integration`、HEAD `c472d78`、工作区干净，A 成果已纳入当前 Git 基线（此前“未提交”为历史描述）。B 成果保留在未提交工作区；不 stash/reset/clean，不自动 Commit/Push/PR。
+**工作区连续性**：C 开工实际分支 `feat/15-web-integration`、HEAD `9499618`、工作区干净。已核对 B 在 `544e4b8`、本地环境在 `9499618`，此前“B 未提交”仅描述历史 Session。C 成果保留未提交；不 stash/reset/clean，不自动 Commit/Push/PR。
 
-**证据**：A 的 [verification.json](../ux/prototypes/r07/evidence/verification.json) 仅证明独立原型。B 的精确命令/结果见下方交接与 STATE：93 单元、90 DB 集成、9 R07 HTTP 契约场景，以及受影响 R03–R06 HTTP/代理回归通过；UTC 日期小修后另重跑 R03 12 项 DB 回归。远程 CI/正式浏览器/Web 生产构建未运行。
+**证据**：A 的 [verification.json](../ux/prototypes/r07/evidence/verification.json) 仅证明独立原型。B 的精确命令/结果见下方交接与 STATE：93 单元、90 DB 集成、9 R07 HTTP 契约场景，以及受影响 R03–R06 HTTP/代理回归通过；UTC 日期小修后另重跑 R03 12 项 DB 回归。C 新增证据：Web 生产构建、真实 Chromium/编译 API/隔离 DB 的 6 场景、R02 HTTP/Rewrite 16 项通过，B 契约漂移仍通过。截图见 [C evidence](../ux/evidence/r07-c/README.md)。远程 CI/人工评审未运行。
 
-**下个 Session 的第一步**：执行 C；先读本文件最新 B 交接、STATE、生成契约、R07_DESIGN 与 Web AGENTS。保留 B 未提交成果，用既有 Cookie/CSRF/Rewrite 实现 Shell、Typed Client、Query 会话隔离和认证 UI；本 Session 不进入 C。
+**下个 Session 的第一步**：执行 D；先读本文件最新 C 交接、STATE、`apps/web/README.md`、`e2e/fixtures.ts`、生成契约及 R07_DESIGN。核对 Git，保留 C 未提交成果；复用 `useSession().runtime.api`、`privateKey`、Shell 与 Playwright 启动器实现项目/空间准备。当前机器的浏览器临时库环境见 C evidence；本 Session 已结束，不进入 D。
 
 ## 3. 最少必要阅读与权威来源
 
@@ -217,6 +217,24 @@ git diff --check
 - 清理：`docker compose -f infra/compose.test.yml -f /tmp/specbridge-r01-test-host.yml down` PASS，仅本轮测试容器已关闭移除；构建生成的已跟踪 tsbuildinfo 恢复开工值。
 - 下一 Session：C，先读取生成契约与 `R07_DESIGN`，建立真实 Web Shell/认证/Query 隔离及可复用浏览器 fixture；不重做 A 原型。无需新增人工决策，H-09 等现有人工状态不变。
 - 建议提交摘要（不执行）：`feat(r07): add scoped read APIs, capabilities and generated HTTP contracts`。
+
+### Session 2026-11-11 — Phase C — COMPLETE（本地）
+
+- 分支/HEAD：`feat/15-web-integration` / `9499618`；开工干净。已在线核对 Issue #15；B 已在 `544e4b8`，原“未提交”交接已更正为历史状态。C 不提交/推送/建 PR/合并/部署。
+- 完成：正式 Next/React/Base UI `/login`、`/register`、`/app`；Tokens、品牌、响应式 Shell、手机 Dialog Drawer、RHF/Zod 表单与统一加载/错误。`/app` 仅真实账号/流程说明，未进入项目准备或 Dashboard 聚合。
+- 入口：`apps/web/src/{app,components/layout,components/shared,features/auth,lib/api/client.ts,lib/query}`；现有 Button 最小触控尺寸、Dialog 新增 drawer 变体；生成 schema 原样复用。
+- 会话：注册不自动登录；登录/退出、`/me` 恢复、保护请求 401；每个 epoch 新 QueryClient，abort/cancel/clear、私有子树卸载，旧 200/401 不污染新账号；不持久化私有数据。焦点/可见性/其他标签通知重新确认身份，退出未知结果保留重试界面。
+- 契约/范围：无新增 API/业务写、Schema/Migration；服务端 Auth、Cookie/CSRF/Rewrite 未改。API.md 顶部过时的“B 未实现”状态已纠正；设计源提升到正式 tokens.css，原型保留历史。
+- 可复用浏览器：固定 Playwright 1.61.1；根 `test:browser` 构建 API/Web，`scripts/browser-stack.mjs` 运行 Next 生产服务器/Nest + 5434 隔离库；只加载 `.env.test`，验证库/角色、沿用已审迁移；3000/4000 占用即失败，关闭自建 HTTP 进程。UUID 账号 fixture 不清库/不禁 trigger。
+- PASS：`env LD_LIBRARY_PATH=/tmp/specbridge-browser-libs/root/usr/lib/x86_64-linux-gnu FONTCONFIG_FILE=/tmp/specbridge-browser-libs/fonts.conf pnpm run test:browser` → API/Web build + 6 浏览器场景通过（最终浏览器 6.2s）；包含真实注册/登录/刷新/退出、旧 Cookie 撤销、CSRF、延迟旧 200/401、共享 Cookie 切换、网络失败、429、手机焦点与320px；无未捕获浏览器异常。
+- PASS：`node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:auth` → 2 文件/16 项，真实 HTTP/Next Rewrite；`pnpm --filter specbridge-api openapi:check` → 30 paths 无漂移。
+- PASS：`pnpm --filter web typecheck`、`pnpm --filter web lint`、`pnpm --filter web build`、`node --check scripts/browser-stack.mjs`、`git diff --check`；精确环境和截图见 [C evidence](../ux/evidence/r07-c/README.md)。5 张正式桌面/手机截图已逐张检查。
+- 已处理失败：沙箱网络/监听限制；Chromium 完整包 TLS 下载失败后 Headless Shell 下载成功；sudo 缺密码后获准在 /tmp 解包缺失系统库及 Noto CJK；alert 选择器撞 Next announcer；截图发现 Drawer 继承居中动画/输入高度/桌面手机按钮，修正并增加边界断言后全部通过。
+- 环境限制：本机临时 libs/fonts 不保证重启后保留；标准安装依赖命令与当前测试前缀见 Web README / C evidence。测试容器原已运行，保持其状态，未访问开发库；构建产生的受跟踪 tsbuildinfo 恢复开工值。
+- NOT RUN：未受影响的 R03–R06 全量回归留 H；远程 CI、人工视觉/安全 Review、生产 HTTPS、多浏览器与完整三角色业务链未运行；不据本阶段宣称全 R07 DoD。
+- 下一 Session：D；复用当前 Shell/typed client/Query keys/fixture，先 Workspace/Project/成员与唯一 Client 准备流程；详情权限继续以 API/capabilities 为准，不创建全局 role。
+- 人工事项：无新增实施阻塞；负责人可审阅本阶段正式截图，既有 H-09 状态保持未记录；本 Session 到 C 结束。
+- 建议提交摘要（不执行）：`feat(r07): implement authenticated web shell and isolated session queries`。
 
 ## 9. 每个新 Session 的提示词（可单独复制）
 

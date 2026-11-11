@@ -92,3 +92,11 @@ CI 本身成功不等于端到端业务全部通过；从未运行的测试不�
 `test:e2e:reads` 在真实隔离 PostgreSQL 与 Nest HTTP 上执行：七 GET 的角色/跨项目/父子 ID 拼接；Client 商业字段与 Audit 裁剪；过滤先于分页/hasMore；Dashboard 工作项、独立计数与稳定顺序；capabilities 与原写路径一致；业务快照无读取副作用。复用 R03–R06 fixtures，不使用 Mock Dashboard。
 
 响应使用 Ajv 校验已生成 OpenAPI，并严格检查 UTC JSON 日期；覆盖 R07 使用的既有认证、项目准备、需求、顺序审批/拒绝重提、交付验收路径。`openapi:check` 在临时目录重生成并比较机器契约与前端类型，CI 保留所有旧检查并追加该步骤及读取测试。已跑命令/结果与未跑项以 STATE 和 R07_PLAN 交接为准。
+
+## R07 Phase C Web 认证与缓存
+
+根 `pnpm run test:browser` 构建 API/Web，使用 `scripts/browser-stack.mjs` 启动真实 Next 生产服务器与 Nest API；只读 `.env.test`，复用 `testDatabaseUrl` 和已批准迁移的库/角色校验。先 `pnpm run db:test:up`；3000/4000 必须空闲，不复用开发进程。测试不清库、不关闭测试 DB，只回收自建 HTTP 进程；账号 fixtures 是 UUID 注册用户，后续角色关系通过正式 API 建立。
+
+`apps/web/e2e/auth.spec.ts` 六个风险场景覆盖 AC-01/02、R07 Cookie/CSRF、错误输入、刷新/401/网络恢复、A→B 和旧 200/401 隔离、共享 Cookie 变化重新确认、退出失败、真实 429、手机 Drawer/焦点/320px。延迟载荷由真实 API 取得；禁止用 mock 成功认证或静态页面替代。认证 trace/HAR/video/storageState 关闭，截图仅保留非敏感 UI。
+
+C 未改服务端认证、授权、业务状态机、Schema 或 Rewrite；扩大验证到 R02 `test:e2e:auth`，不重复无关 R03–R06 全量回归。H 再做完整三角色业务链与全量检查。精确结果、截图和本机临时浏览器依赖见 [C evidence](../ux/evidence/r07-c/README.md) 和 STATE。

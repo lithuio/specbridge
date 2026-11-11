@@ -10,7 +10,7 @@
 
 ## 2. Design Tokens
 
-可执行 Token 源为 [tokens.css](prototypes/r07/tokens.css)，本表解释用途，不另维护第二套颜色。
+正式可执行 Token 源为 [apps/web/src/app/tokens.css](../../apps/web/src/app/tokens.css)，由 A 的 [原型 tokens.css](prototypes/r07/tokens.css) 提升；原型保留历史快照。正式 `--text-muted` 对应表中的 muted，避免与 shadcn 的 muted 背景语义混淆。
 
 | Token | 值 | 使用 |
 |---|---|---|
@@ -128,3 +128,7 @@ Server Components 保持结构和边界，私有数据由认证后 Client Query 
 ## 7. Phase A 视觉评审材料
 
 桌面 1440×1000、手机 390×844 的登录/Dashboard/项目详情截图，及可交互原型和验证脚本存放于 `prototypes/r07/`。实际运行结果由该目录 README 记录，未运行项不得标 PASS。人工视觉结论尚未记录。后续阶段入口和精简验证遵循最新 [R07_PLAN](../engineering/R07_PLAN.md)：在新 Session 明确启动 B 即沿用已交付基线，不重复请求例行批准；这不代表人工视觉验收已通过。
+
+## Phase C 正式页面落实
+
+正式路由为 `/login`、`/register`、`/app`，复用浅色 Tokens 与 Base UI。使用本机字体栈，不在构建时下载 Google 字体。工作概览当前显示真实 `/me` 账号与协作流程说明，不显示占位项目、统计、待办或不可用入口；D 增加项目/工作空间上下文，G 接入 Dashboard 聚合。桌面 240px/可折叠 76px、平板 76px、手机 Dialog Drawer，320px 重排与键盘返回焦点由浏览器测试验证。正式证据见 [C 截图](evidence/r07-c/README.md)，不以 A 的静态原型替代本阶段实现。

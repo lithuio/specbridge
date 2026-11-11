@@ -20,6 +20,7 @@
 | 竞品调研 | `research/COMPETITOR_RESEARCH.md` |
 | R07 只读契约、Audit/Dashboard 与生成 OpenAPI（Phase B 本地完成） | `architecture/R07_READ_MODELS.md`, `architecture/openapi.json` |
 | R07 视觉规范、交互原型与浏览器截图 | `ux/R07_DESIGN.md`, `ux/prototypes/r07/README.md` |
+| R07 正式 Web 认证/Shell 与生产浏览器证据（Phase C 本地完成） | `../apps/web/README.md`, `ux/evidence/r07-c/README.md` |
 | R07 总规划、当前进度、跨 Session 提示词与精简验证 | `engineering/R07_PLAN.md` |
 
 **权威优先级**：负责人确认的业务决策 → 已接受 PRD/ADR → 状态机、数据、API 契约 → 当前 Issue。

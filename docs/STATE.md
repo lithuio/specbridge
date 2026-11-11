@@ -1,6 +1,29 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-11。本机开发环境已配置并验证；产品进度仍为 R07 Phase B 本地完成，下一业务阶段为 C。下方保留历史检查点。
+> 更新时间：2026-11-11。本机开发环境已配置并验证；R07 Phase C 本地完成，下一业务阶段为 D。下方保留历史检查点。
+
+## R07 Phase C — 本地完成，未提交
+
+`feat/15-web-integration` / HEAD `9499618`；开工工作区干净，B 实际已在 `544e4b8`，环境配置已在 `9499618`。已核对在线 Issue #15 与 B 生成契约；仅执行 C，未进入 D。当前修改全部保留本地，未 Commit/Push/创建 PR/Merge/部署。
+
+- 正式 `/login`、`/register`、`/app`，Next/React/Base UI Tokens、Shell、手机 Drawer；Typed API Client 从 B schema 推导 path/method/参数/body/响应，TanStack Query 会话隔离、RHF/Zod 表单。`/app` 当前展示真实账号和协作说明，没有伪造项目、计数或待办。
+- 复用 Cookie/CSRF/Rewrite：注册不自动登录、`GET /me` 恢复、退出撤销、保护请求 401、网络错误与 429。账号边界 abort/cancel/clear 并新建 QueryClient/epoch，旧 200/401 不得污染 B；不持久化私有数据。退出结果未知时隐藏私有 UI 并提供重试。
+- 新增 Playwright 最小生产 Web/真实 API/隔离 DB 启动器与 UUID 账号 fixture，后续 D–H 复用；不新增后端业务、表或迁移，不修改服务端认证/授权。DB 仅 5434/specbridge_test，真实角色/库校验后应用已有审阅迁移；原测试容器保持运行。
+
+| 命令 / 检查 | 实际结果 |
+|---|---|
+| `env LD_LIBRARY_PATH=/tmp/specbridge-browser-libs/root/usr/lib/x86_64-linux-gnu FONTCONFIG_FILE=/tmp/specbridge-browser-libs/fonts.conf pnpm run test:browser` | PASS；先 API/Web build，Next 生产服务器 + Nest + PostgreSQL + Chromium，6 浏览器场景 / 6.2s；认证闭环、CSRF、401/429、延迟旧响应、账号切换、退出网络失败、手机焦点/320px，无未捕获浏览器异常 |
+| `node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:auth` | PASS；2 文件 / 16 项真实 HTTP 与 Next Rewrite 受影响回归 |
+| `pnpm --filter specbridge-api openapi:check` | PASS；B 的 30 paths / 38 operations 与 Web 生成类型无漂移 |
+| `pnpm --filter web typecheck`、`pnpm --filter web lint`、`pnpm --filter web build` | PASS；生产路由 `/`、`/app`、`/login`、`/register` 与 icon |
+| `node --check scripts/browser-stack.mjs`、`git diff --check` | PASS；最终差异与范围检查 |
+| [正式截图与复现](ux/evidence/r07-c/README.md) | 5 张桌面/手机图已查看；业务数据均来自真实 API，随机邮箱遮罩；不是 A 静态原型 |
+
+已处理：沙箱下载/监听限制；完整 Chromium 下载 TLS 错误改用 Headless Shell；系统缺库且 sudo 需密码，获准临时解包 libnspr4/libnss3/libasound2 与中文字体，无系统目录修改；Next announcer 导致测试选择器冲突；截图发现 Drawer 居中动画及控件尺寸，修复后新增视口断言通过。当前 `/tmp/specbridge-browser-libs` 可能随重启丢失，标准安装与临时复现见截图 README。
+
+未运行：R03–R06 全量回归（未改相关后端，留 H）、远程 CI、人工视觉/安全 Review、生产 HTTPS、多浏览器和完整三角色业务链。不虚构 H-09 通过。测试 HTTP 子进程已回收；生成的受跟踪 tsbuildinfo 恢复，开发数据库不受影响。下一 Session 读取 [R07_PLAN C 交接](engineering/R07_PLAN.md) 和 [Web README](../apps/web/README.md)，启动 D；无新增阻塞人工决策。建议摘要：`feat(r07): implement authenticated web shell and isolated session queries`。
+
+---
 
 ## 本地开发环境 — 2026-11-11 已验证
 
@@ -31,7 +54,7 @@
 
 ---
 
-## R07 Phase B — 本地完成，未提交
+## R07 Phase B — 历史检查点（后于 544e4b8 提交）
 
 分支 `feat/15-web-integration`，开工/当前 HEAD `c472d78`；开工工作区干净，A 成果已在基线中。已在线读取 Issue #15，按用户授权只实施 B，未进入 C。
 
