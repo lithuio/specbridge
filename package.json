@@ -8,18 +8,23 @@
   },
   "scripts": {
     "dev:web": "pnpm --filter ./apps/web dev",
-    "dev:api": "PORT=4000 pnpm --filter ./apps/api start:dev",
+    "dev:api": "PORT=4000 node scripts/with-env.mjs .env pnpm --filter ./apps/api start:dev",
     "build": "pnpm -r --if-present build",
     "lint": "pnpm -r --if-present lint",
     "test": "pnpm -r --if-present test",
-    "db:up": "docker compose --env-file .env -f infra/compose.dev.yml up -d",
+    "db:up": "docker compose --env-file .env -f infra/compose.dev.yml up -d --wait",
     "db:down": "docker compose --env-file .env -f infra/compose.dev.yml down",
     "db:logs": "docker compose --env-file .env -f infra/compose.dev.yml logs -f db",
     "db:generate": "pnpm --filter specbridge-api db:generate",
     "db:check": "pnpm --filter specbridge-api db:check",
     "db:migrate": "pnpm --filter specbridge-api db:migrate",
+    "db:migrate:test": "node scripts/with-env.mjs .env.test pnpm --filter specbridge-api db:migrate:test",
+    "db:migrate:verify": "TEST_DATABASE_URL=postgresql://specbridge_test:local_test_only@127.0.0.1:5434/specbridge_dev_verify pnpm --filter specbridge-api db:migrate:verify",
     "db:test:up": "docker compose -f infra/compose.test.yml up -d --wait",
     "db:test:down": "docker compose -f infra/compose.test.yml down",
-    "test:integration": "pnpm --filter specbridge-api test:integration"
+    "test:integration": "node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:integration",
+    "test:e2e": "pnpm --filter specbridge-api test:e2e",
+    "test:e2e:db": "node scripts/with-env.mjs .env.test pnpm run test:e2e:db:run",
+    "test:e2e:db:run": "pnpm --filter specbridge-api test:e2e:auth && pnpm --filter specbridge-api test:e2e:rbac && pnpm --filter specbridge-api test:e2e:requirements && pnpm --filter specbridge-api test:e2e:changes && pnpm --filter specbridge-api test:e2e:deliveries && pnpm --filter specbridge-api test:e2e:reads"
   }
 }

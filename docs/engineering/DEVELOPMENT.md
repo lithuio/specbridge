@@ -1,21 +1,81 @@
 # SpecBridge — Local Development
 
-## 已有环境（由项目负责人验证）
-- Ubuntu 22.04 on WSL2，工作目录 `/home/lumi/projects/specbriage`
-- 本机原生 Docker Engine；PostgreSQL 17 Docker Compose 容器
-- pnpm Monorepo：`apps/web`, `apps/api`; MCP 未来作为独立应用（P1）
-- DeepSeek API 密钥仅保存在本地 `.env`，不提交。
+## 本地环境（2026-11-11）
 
-## 启动（在项目根目录）
+沿用仓库和 CI：Node **22.23.4**（`.nvmrc`）、pnpm **10.34.9**、PostgreSQL **17-alpine**、根目录 `pnpm-lock.yaml`。当前工作目录为 `/home/lenovo/projects/specbriage`；命令均在仓库根目录执行，不使用 `apps/web` 的独立锁文件安装。
+
+### 首次配置
+
+本次机器已创建 `.env` 和 `.env.test`，权限均为 600，且被 Git 忽略。`.env` 的开发密码为本机随机生成值；不要覆盖已有文件或将内容贴入日志。新机器可执行：
+
 ```bash
-cd /home/lumi/projects/specbriage
 nvm use
 pnpm install --frozen-lockfile
-pnpm run db:up
-pnpm run dev:api    # 终端 B；默认 http://localhost:4000
-pnpm run dev:web    # 终端 C；默认 http://localhost:3000
+# 仅在文件不存在时复制，然后在编辑器中配置密码：
+test -e .env || cp .env.example .env
+test -e .env.test || cp .env.test.example .env.test
+chmod 600 .env .env.test
 ```
-以上脚本已按仓库 `package.json` 核对。仅验证健康检查时无需 `pnpm run db:up`，也无需数据库或 AI 凭据。
+
+新机器须将 `.env` 中两处 `replace_me` 改为同一个本地密码；建议使用十六进制随机值，特殊字符需要在 DATABASE_URL 中做 URL 编码。开发库用户/库名均为 `specbridge`。已有卷不会因修改 POSTGRES_PASSWORD 自动更新数据库密码，认证失败时先排查配置，不删卷重建。
+
+`.env` 只存开发数据库和认证配置；`.env.test` 只存公开的一次性测试 URL 与 `NODE_ENV=test`。无需 DeepSeek 或 Observe 密钥即可开发 P0；不要向 Web 环境变量复制数据库凭据。
+
+### 启动开发
+
+```bash
+pnpm run db:up       # 等待 PostgreSQL 健康；保留开发持久卷
+pnpm run db:migrate  # 应用已审阅的 0000～0003，重复运行不会重复应用
+pnpm run dev:api     # 终端 A；显式加载根 .env，监听 4000
+pnpm run dev:web     # 终端 B；http://localhost:3000
+```
+
+`dev:api` 通过 `scripts/with-env.mjs` 注入环境，现有进程变量优先；API 本身仍不隐式加载文件。直接执行 `pnpm --filter specbridge-api start:dev` 时须自行注入变量和 `PORT=4000`。如终端曾导出其他环境的 DATABASE_URL，应先 `unset DATABASE_URL` 再运行本地命令。仅健康检查不访问数据库，不能据此认定迁移或认证可用。
+
+### Docker 用户组
+
+本机账号已在 `docker` 组，但启动本次会话时组权限尚未生效。重新登录终端后可使用普通命令；当前终端也可执行 `newgrp docker`，或临时：
+
+```bash
+sg docker -c 'pnpm run db:up'
+sg docker -c 'pnpm run db:test:up'
+```
+
+无需修改 socket 权限或重装 Docker。所有 `db:up/down/logs` 与 `db:test:up/down` 都需要 Docker 权限；迁移和测试只需连通本机端口。
+
+### 测试库与常用命令
+
+```bash
+pnpm run db:test:up
+pnpm run db:migrate:test
+pnpm run db:migrate:verify   # 5434 上独立 specbridge_dev_verify 空库验证
+pnpm run db:migrate:verify   # 重复执行，验证幂等
+pnpm run test               # 单元测试，不需要数据库
+pnpm run test:integration   # 根命令只加载 .env.test
+pnpm run test:e2e           # 基础 HTTP 回归
+# 先停止自己的 dev:api/dev:web，确保 3000/4000 空闲：
+pnpm run test:e2e:db        # 顺序执行 auth/rbac/requirements/changes/deliveries/reads
+pnpm run db:test:down       # 测试 tmpfs 数据随容器移除而消失
+```
+
+直接运行 API 子包命令/CI 时仍需显式导出 TEST_DATABASE_URL；它们不读取 `.env` 或 `.env.test`。根测试命令允许已导出的 TEST_DATABASE_URL 优先，但现有保护仍拒绝非本机、非 5434、非测试账号/库名。测试与开发可同时启动，只有真实 Next 代理 E2E 要求开发 HTTP 端口空闲。不要并行运行多个数据库测试套件。
+
+| 用途 | 地址 | 库名 / 用户 | 存储 |
+|---|---|---|---|
+| 开发 | `127.0.0.1:5433` | `specbridge` / `specbridge` | `specbridge-dev_pgdata` 持久卷 |
+| 测试 | `127.0.0.1:5434` | `specbridge_test` / `specbridge_test` | tmpfs |
+| 迁移验证 | `127.0.0.1:5434` | `specbridge_dev_verify` / `specbridge_test` | 同测试实例，独立库 |
+
+数据库客户端的开发密码从本地 `.env` 读取；连接本机容器无需 TLS。测试密码为模板中的公开一次性值。正常停止开发库使用 `pnpm run db:down`，保留卷；不要执行 `down -v`。
+
+### 后续数据库版本变更
+
+1. 在 API persistence 层修改 `apps/api/src/database/schema/index.ts`。
+2. 执行 `pnpm run db:generate` 和 `pnpm run db:check`；一起审查新增 SQL、snapshot 和 journal。触发器需要单独审核，生成器不包含它们。
+3. 新 SQL 经人工审核后，先 `pnpm run db:migrate:test` 并运行集成测试，再执行 `pnpm run db:migrate`。不要使用 schema push 或修改已应用的历史迁移。
+4. 迁移版本记录在目标数据库的 `drizzle.__drizzle_migrations`；SQL 按 journal 顺序应用。无自动 down/回滚命令，修正应新增迁移；已有数据先备份，不能清库解决冲突。
+
+现有版本依次为 `0000_database_foundation`、`0001_immutable_history`、`0002_session_activity`、`0003_requirement_draft_version`。以下 R01/R02 章节保留历史实施细节；当时“开发库未迁移”是历史状态，当前验证结果见 `docs/STATE.md` 顶部。
 
 ## 常见检查
 ```bash
@@ -57,9 +117,9 @@ Next.js 将 `/api/v1/:path*` 代理到固定开发地址 `http://127.0.0.1:4000/
 
 ## R01 数据库基础
 
-**0000/0001 两份迁移已于 2026-11-08 经负责人批准，并在隔离库验证通过。未来新增或修改 SQL 仍须先人工审核；现有开发库/生产库尚未迁移。**
+**历史记录：0000/0001 两份迁移已于 2026-11-08 经负责人批准，并在隔离库验证通过。未来新增或修改 SQL 仍须先人工审核；当时开发库/生产库尚未迁移。**
 
-已有依赖足够，不需新增安装。API 运行时从进程环境读取 `DATABASE_URL`，不会主动加载开发 `.env`；启动涉及数据库的业务时由启动环境注入。DatabaseModule 延迟创建连接池，现有 `/` 和 `/api/v1/health` 不访问数据库。首次 DB 访问缺少配置会明确失败，禁止使用 pg 隐式默认库。当前连接 URL 不接受 query 参数；生产 TLS/角色部署另行设计。
+已有依赖足够，不需新增安装。API 运行时从进程环境读取 `DATABASE_URL`，不会主动加载开发 `.env`；启动涉及数据库的业务时由启动环境注入；当前根 `dev:api` 命令负责加载 `.env`。DatabaseModule 延迟创建连接池，现有 `/` 和 `/api/v1/health` 不访问数据库。首次 DB 访问缺少配置会明确失败，禁止使用 pg 隐式默认库。当前连接 URL 不接受 query 参数；生产 TLS/角色部署另行设计。
 
 离线生成与检查（项目根目录）：
 
@@ -130,7 +190,7 @@ pnpm run db:test:down
 
 ## R02 认证开发与验证
 
-API 环境需显式注入 DATABASE_URL、AUTH_TRUSTED_ORIGINS（开发默认 http://localhost:3000）与 AUTH_TRUSTED_PROXIES（开发默认 loopback；生产默认空）。运行时不自动读取根目录 .env。生产 Origin 必须精确 HTTPS 来源，无尾斜杠/通配符，多个来源用逗号分隔；现有 Next Rewrite 不保证覆盖客户端转发头，因此认证限流固定使用 API Socket 对端 IP，不受 AUTH_TRUSTED_PROXIES 影响，也不从其他头提取 IP。同一代理出口的用户共用注册/登录 IP 配额，可能互相触发 429；当前配置无法为限流可靠识别真实客户端 IP。Cookie/限流细节见 SECURITY.md。
+API 环境需显式注入 DATABASE_URL、AUTH_TRUSTED_ORIGINS（开发默认 http://localhost:3000）与 AUTH_TRUSTED_PROXIES（开发默认 loopback；生产默认空）。运行时不自动读取根目录 .env；当前根 `dev:api` 包装命令会显式注入。生产 Origin 必须精确 HTTPS 来源，无尾斜杠/通配符，多个来源用逗号分隔；现有 Next Rewrite 不保证覆盖客户端转发头，因此认证限流固定使用 API Socket 对端 IP，不受 AUTH_TRUSTED_PROXIES 影响，也不从其他头提取 IP。同一代理出口的用户共用注册/登录 IP 配额，可能互相触发 429；当前配置无法为限流可靠识别真实客户端 IP。Cookie/限流细节见 SECURITY.md。
 
 新增 0002_session_activity.sql 必须经人工审核，再执行数据库命令；审批和验证状态见 STATE.md。不要修改或重新生成覆盖 R01 的两份 SQL。
 

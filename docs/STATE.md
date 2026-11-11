@@ -1,6 +1,35 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-10。当前检查点为 R07 Phase B 本地完成；下一新 Session 执行 C；下方保留 A 与 R06～R01 历史证据。
+> 更新时间：2026-11-11。本机开发环境已配置并验证；产品进度仍为 R07 Phase B 本地完成，下一业务阶段为 C。下方保留历史检查点。
+
+## 本地开发环境 — 2026-11-11 已验证
+
+按负责人本轮“配置本地开发、specbridge 数据库、.env、迁移和测试数据库”的请求实施；参考 [Issue #3](https://github.com/lithuio/specbridge/issues/3) 的新库迁移/测试隔离要求，对应 AC-17 的迁移可重复与持久存储部分，不代表备份恢复或全部 AC-17 验收完成。开始工作区干净。
+
+- 本机 `/home/lenovo/projects/specbriage`，Node 22.23.4、pnpm 10.34.9；根锁文件离线安装校验通过，未更换依赖。Compose 沿用 `postgres:17-alpine`，实际下载版本 PostgreSQL 17.11。
+- 新建开发实例 `127.0.0.1:5433/specbridge`，用户 `specbridge`，持久卷 `specbridge-dev_pgdata`；测试实例 `127.0.0.1:5434/specbridge_test`，用户 `specbridge_test`，tmpfs；另有同实例独立库 `specbridge_dev_verify`。
+- 创建本机 `.env`（随机开发密码）与 `.env.test`（公开一次性测试配置），权限 600、Git 忽略；未输出秘密。模板拆分开发/测试配置。根 `dev:api` 显式注入 `.env`；根测试命令只加载 `.env.test`，保留 API/CI 显式环境和原测试 URL/数据库身份校验。
+- 根脚本补齐 `db:migrate:test`、`db:migrate:verify`、`test:e2e`、`test:e2e:db`，`db:up` 等待健康。启动/迁移/测试/版本变更操作见 [DEVELOPMENT](engineering/DEVELOPMENT.md)。
+- 沿用已审阅的 0000～0003，SHA-256 与 H-02/H-03/H-05 历史记录一致；按本轮开发环境配置授权应用至新建本机开发库及隔离测试库。开发库核对身份正确，4 条迁移、15 张业务表、0 个用户；重启后迁移与表仍保留。未创建演示账号。
+
+| 实际命令 / 检查 | 结果 |
+|---|---|
+| `pnpm install --frozen-lockfile --offline` | PASS；锁文件未改。提示忽略部分依赖构建脚本，现有 Argon2 单元/真实认证测试通过 |
+| `sg docker -c 'pnpm run db:up && pnpm run db:test:up'` | PASS；两个数据库健康，标准端口转发可用，无需旧 host 网络覆盖 |
+| `pnpm run db:migrate:test` | PASS；隔离测试库迁移 |
+| `pnpm run db:migrate:verify` ×2、`pnpm run db:migrate` ×2 | PASS；新库迁移和重复执行 |
+| `pnpm run test`、`pnpm run lint`、`pnpm --filter specbridge-api typecheck`、`pnpm run db:check` | PASS |
+| `pnpm run test:integration` | PASS；8 文件 / 90 PostgreSQL 用例 |
+| `pnpm run test:e2e` | PASS；3 文件 / 5 基础 HTTP 用例 |
+| `pnpm run test:e2e:db` | PASS；auth/rbac/requirements/changes/deliveries/reads 分别 16/13/9/8/7/9 项，包含 API 构建及真实 Next 代理 |
+| `python3 /tmp/specbridge-local-smoke.py` | PASS；实际根 dev:api/dev:web 启动，4000/3000 健康检查与 Web 首页 200；未知账号代理登录返回预期 401/UNAUTHENTICATED，验证开发 DB 访问；脚本关闭自己的 HTTP 进程 |
+| `node --check scripts/with-env.mjs`、环境值断言、子进程退出码检查、`git check-ignore .env .env.test`、`git diff --check` | PASS；开发密码/URL 一致，测试不加载开发文件，进程环境优先，子进程退出码 7 正确透传 |
+
+已处理问题：账号已加入 docker 组但当前会话未生效，使用 `sg docker`；沙箱内 DB 连接失败后在沙箱外通过。首次临时 smoke 的错误码断言与现有契约不符，重试端口预检又遇 TIME_WAIT；修正验证脚本后完整通过，未修改业务代码。HTTP 套件中的安全 500 为既有审计失败注入的预期日志。
+
+交接：开发库和测试库保持运行；API/Web 验证进程已关闭。用户重新登录终端或 `newgrp docker` 后使用普通 Docker 命令，也可继续用 `sg docker -c`。测试 tmpfs 在停止/重建时不保证保留；开发 `db:down` 保留卷，禁止用 `down -v` 作为常规操作。历史 SQL、业务代码和锁文件未改，构建产生的受跟踪缓存已恢复。未运行 Web 生产构建、浏览器验收、备份恢复或远程 CI；未提交/推送/部署。建议提交：`chore(dev): configure local environments and database workflows`。
+
+---
 
 ## R07 Phase B — 本地完成，未提交
 
