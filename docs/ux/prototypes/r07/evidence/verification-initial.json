@@ -1,0 +1,162 @@
+{
+  "generatedAt": "2026-11-09T21:47:23.707Z",
+  "scope": "Phase A static visual prototype; no backend, database or authenticated workflow",
+  "tools": {
+    "playwright": "1.65.0",
+    "axe": "4.14.0"
+  },
+  "checks": [
+    {
+      "name": "login 1440px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "login 1440px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 1440px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 1440px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "project 1440px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "project 1440px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "login 1024px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "login 1024px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 1024px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 1024px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "project 1024px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "project 1024px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "login 768px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "login 768px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 768px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 768px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "project 768px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "project 768px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "login 390px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "login 390px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 390px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 390px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "project 390px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "project 390px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "login 320px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "login 320px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 320px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 320px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "project 320px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "project 320px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "Tabs support ArrowRight/Home/End and matching fixture counts",
+      "status": "PASS"
+    },
+    {
+      "name": "Sidebar collapse keeps accessible navigation",
+      "status": "PASS"
+    },
+    {
+      "name": "developer fixture view has scoped navigation (not authorization evidence)",
+      "status": "PASS"
+    },
+    {
+      "name": "client fixture view has scoped navigation (not authorization evidence)",
+      "status": "PASS"
+    }
+  ],
+  "violations": [],
+  "errors": [
+    "The expression evaluated to a falsy value:\n\n  assert.ok(await page.evaluate(() => document.getElementById('mobile-nav').contains(document.activeElement)))\n"
+  ],
+  "screenshots": [
+    "login-desktop.png",
+    "dashboard-desktop.png",
+    "project-desktop.png",
+    "login-mobile.png",
+    "dashboard-mobile.png",
+    "project-mobile.png",
+    "dashboard-developer.png",
+    "dashboard-client.png"
+  ],
+  "browser": "158.0.8127.18",
+  "status": "FAIL"
+}

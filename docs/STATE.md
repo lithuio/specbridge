@@ -1,8 +1,279 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-09。当前检查点为 R06 本地实现与验证完成；下方保留 R05～R01 历史证据。
+> 更新时间：2026-11-12。Web review 的表单保留/重置修复与完整浏览器回归完成，待负责人审阅/提交；远程 CI 与独立人工评审 NOT RUN。下方保留历史检查点。
 
-## R06 Delivery & Acceptance — 当前检查点
+## Web review — 表单状态保留与创建页复用修复完成，未提交
+
+2026-11-12；核对 Issue #15、AC-01/02/03/06/08/09/10/16 与安装版 Next Activity 指南。仅 Web、测试入口和相关文档变更；无 API、依赖、数据库结构或契约变更，构建产生的已跟踪 API tsbuildinfo 已恢复。
+
+- P1：已确认用户的聚焦/可见性复核保留同一 epoch、QueryClient 和隐藏的表单/弹窗状态，暂停私有 API 并取消旧请求。同用户恢复后重查资源；网络失败可重试；换号、401、明确会话变更仍销毁旧私有状态。初始/匿名恢复仍创建新运行时，兼容 Provider 清理后恢复。
+- P2：项目临时读取失败用 Activity 保留编辑区并暂停操作；403/404 卸载表单，后续失败不能再显示旧授权缓存，直到成功读取。包含商业草稿保存失败后项目失效查询的路径。
+- P2：工作空间/项目创建成功后隐藏页面时清空表单与成功状态，可连续创建；未完成及未知结果继续保留。隐藏的项目创建页不会因其他页面 URL 参数更新而丢失草稿，实际切换目标工作空间仍重建表单。
+- 新增 `e2e/form-preservation.spec.ts`，通过 `test:browser:forms` 纳入全量入口：需求/Revision/商业草稿/审批评论、500/断网、403/404、真实换号/过期、成功/未提交/未知创建结果、旧身份响应与 Provider 生命周期；含 30 次匿名登录页挂载。
+
+| 实际命令 / 检查 | 最终结果 |
+|---|---|
+| `pnpm run lint`、最后 `pnpm --filter web lint` | PASS |
+| `pnpm run test` | PASS；现有 API 单元测试 |
+| `pnpm --filter specbridge-api typecheck`、`pnpm --filter web typecheck` | PASS |
+| `pnpm run test:browser` | PASS；API/Web 生产构建，C–H + presentation + forms 全入口连续通过，共 22 项（21 Chromium 场景 + 1 会话状态测试），新增 6 项 |
+| `git diff --check` | PASS |
+
+验证中已解决：沙箱限制和 Turbopack 失败缓存；新增用例的导航等待、选择器及 API 状态码预期；匿名恢复复用运行时造成的登录挂载卡顿。对照旧会话代码后，将保留限定为已知用户，最终临时 100 次挂载诊断通过，并在正式回归保留 30 次检查。前次全量失败保留为诊断记录，以上 PASS 来自最终完整重跑，未使用自动重试掩盖失败。
+
+测试仅使用既有 5434 隔离库；测试 HTTP 进程已随入口退出，既有测试 DB 保持运行，开发数据未访问。证据输出到忽略的 `apps/web/test-results/evidence`，历史截图未覆盖。远程 CI、Firefox/WebKit、真实设备和独立人工评审 NOT RUN。人工：审阅 diff 后自行提交，无配置或迁移操作要求。建议摘要：`fix(web): preserve drafts across revalidation and reset completed creation forms`。
+
+---
+
+## 本地使用反馈 — UI 细化与完整本地回归完成，未提交
+
+2026-11-12；按负责人要求仅调整 Web 视觉与交互呈现，未提交/推送。开工已有的 `apps/api/tsconfig.build.tsbuildinfo` 未跟踪缓存保留，不属于本次源码改动。
+
+- 刷新图标保留可访问名称、44px 点击区域、原事件/禁用和弹窗返回焦点；登录/注册居中、品牌微调、创建入口增强。
+- 侧栏复用授权/会话隔离查询，原生展开分区，第一页12项+更多入口、错误重试、手机 Drawer；项目 ID 稳定配色、彩色分区图标与标题强化。首页统计/待办/状态分布与账号区重排。
+- 无 API/数据库/迁移/写入逻辑/审批权限变更，无依赖新增。新增 presentation 浏览器场景并加入全量入口；Playwright 运行产物与跨阶段截图分目录，H 也支持统一证据根目录，原 C–H 图片未覆盖。
+- PASS：`pnpm run lint`、`pnpm run test`、`pnpm run build`、`pnpm --filter specbridge-api typecheck`、`pnpm --filter web typecheck`、`pnpm run db:check`、`pnpm --filter specbridge-api openapi:check`（30 paths）、`pnpm run test:integration`（90）、`pnpm run test:e2e`（5）、`pnpm run test:e2e:db`（62：16/13/9/8/7/9）、`git diff --check`。
+- PASS：`pnpm run test:browser` 完整入口连续通过，包含生产构建及 C–H + presentation 共16场景（6/2/2/2/2/1/1）。审批拒绝重提、交付退回重交、未知结果、409、跨项目与会话隔离均保留。最后 Web lint/typecheck/diff 通过。
+- [本轮截图与验证记录](ux/evidence/ui-polish/README.md)：6张正式截图已自检；H17状态 + 新界面10状态共27状态，axe自动违规0，未判定项原样保留并补充对比度检查。320/390/720/768/900/1440 CSS px、键盘展开、Drawer关闭焦点、刷新与主题一致性已覆盖。
+- 已解决的验证阻碍：首次集成沙箱 EPERM，获准重跑通过；用户停止3000/4000开发服务后继续；新增用例修正 Drawer 重开需展开、切换账号保留旧项目 return path 的测试假设；截图复位滚动并隔离输出目录。无未解决测试失败。
+- 测试仅访问5434隔离库；自建 HTTP 服务随测试退出。开发数据库/数据未修改。远程CI、Firefox/WebKit、真实设备/读屏和人工视觉/安全评审 NOT RUN，本轮不宣称发布DoD完成。
+- 人工：负责人本地查看页面与截图后自行 commit。建议摘要 `style(web): refine workspace navigation and visual hierarchy`。
+
+---
+
+## R07 Phase H — 本地最终集成完成，未提交
+
+`feat/15-web-integration` / 开工 HEAD `92f4a99`；工作区干净。已在线核对 Issue #15，B–G 成果齐备，G 已由负责人提交；前阶段源码/历史截图保留。未 Commit/Push/创建 PR/Merge/部署。
+
+- 真实 Next 生产构建 / 编译 Nest / 5434隔离PostgreSQL / 三个独立Chromium Context，业务写入全由 UI 完成：项目准备、澄清/Revision/Ready、拒绝重提、v2双方顺序批准、D1退回/D2接受、历史/Audit与三角色Dashboard。C–G既有会话/跨项目/409/重复/未知结果风险回归保留。
+- 修复正式页面品牌可访问名称、金额定义列表、审批/交付焦点恢复、稳定表单错误描述；适配D旧测试入口。仅Web及验证/CI文档改动，无后端、数据库结构、迁移或契约变化。固定既有axe为直接测试依赖，未升级其他锁定版本。
+- [H完整证据与5张截图](ux/evidence/r07-h/README.md)：17状态0 axe自动违规，原始未判定项保留；对层叠/裁剪元素补充实际颜色对比5.94–16.03:1，键盘双向Tab/返回焦点/320px导航与重排通过，最终截图已逐张自检。
+
+| 实际命令 / 检查 | 最终结果 |
+|---|---|
+| `pnpm run lint` / `pnpm run build` / `pnpm run test` | PASS；构建首轮沙箱端口失败，获准干净构建通过 |
+| `pnpm --filter specbridge-api typecheck` / `pnpm --filter web typecheck` | PASS |
+| `pnpm run test:integration` / `pnpm run test:e2e` | PASS；90 PostgreSQL / 5基础HTTP |
+| `pnpm run test:e2e:db` | PASS；auth/rbac/requirements/changes/deliveries/reads=16/13/9/8/7/9，含真实Next代理 |
+| API `openapi:check` / `db:check` | PASS；30 paths无漂移 / 迁移元数据 |
+| 浏览器 C–H | 最终15场景PASS，分段运行：C6、D/E/F/G各2、H1（最终20.5s）；根全量入口首轮FAIL及修复后续跑记录见H evidence |
+| 最后UI修复后Web `build` / `lint` / `typecheck`、H定向浏览器 | PASS；未重复无关后端检查 |
+| `git diff --check` / 本轮文档链接 | PASS |
+| 远程CI、独立人工视觉/API集成/安全评审 | NOT RUN；不伪造通过或自动推送 |
+
+已解决：沙箱/离线元数据限制、D旧链接定位、金额文本节点回归、弹窗焦点丢失与表单悬空ARIA引用。最终无未解决FAIL/BLOCKED。CI追加Web类型与Chromium真实浏览器入口，但远程未运行；已有C–G截图不覆盖。测试启动器自建HTTP进程已退出，既有隔离测试DB保持运行，开发/生产库未访问。
+
+后续人工：按H-09评审H截图、可访问性补充和diff并记录结论；远程CI/PR/合并需未来授权。Firefox/WebKit、真实设备/读屏/实际200%zoom、生产HTTPS、性能与备份恢复NOT RUN；本地H完成不代表发布DoD或全部AC-17通过。本轮到H结束，详情见 [最终交接](engineering/R07_PLAN.md)。建议摘要：`fix(r07): complete browser integration and accessible workflow verification`。
+
+---
+
+## R07 Phase G — 历史交接（后续已提交在 92f4a99）
+
+`feat/15-web-integration` / HEAD `55b53df`；开工干净，F 已由负责人提交。已在线核对 Issue #15、F 成果及 R06/读取契约，保留前阶段源码与截图。只执行 G；未 Commit/Push/创建 PR/Merge/部署，未进入 H。
+
+- Delivery 提交、客户退回必填意见、新 D2 重交、接受与终态；独立历史详情/批准规格与审批证据。创建和 Review 不传 expectedVersion，后续需求修订不阻断原批准版本交付；409/未知结果保留输入并禁重放。
+- 真实 Dashboard 三bucket/授权统计/状态分布/项目列表、项目交付筛选列表、服务端角色裁剪 Audit；均使用既有 API，筛选分页与深链接刷新可恢复，无静态业务数据或任务分配系统。
+- 新增 `features/deliveries/dashboard/audit`、三类项目路由、G定向E2E；补齐 D–F 写后 Dashboard/Audit 缓存失效。复用会话/项目边界和现有UI，无后端、数据库、契约或依赖变更。
+
+| 命令 / 检查 | 实际结果 |
+|---|---|
+| `pnpm run test:browser:deliveries`（沙箱外） | PASS；最终2场景/10.2s，真实Next/Nest/隔离PostgreSQL/Chromium；退回→重交→接受、终态/403/409、旧批准不失效、无expectedVersion、竞争/未知结果不重放、真实聚合分页/审计裁剪/跨项目404、深链刷新与320px，无pageerror |
+| `node scripts/with-env.mjs .env.test pnpm --filter web test:e2e auth.spec.ts --grep 'A→B'`（沙箱外） | PASS；现有缓存隔离1项/3.9s，无历史截图覆盖 |
+| `pnpm --filter web build`（沙箱外） | PASS；最终干净生产构建，交付列表/详情/Audit新增路由 |
+| `pnpm --filter web typecheck`、`pnpm --filter web lint`、`git diff --check` | PASS；无lint警告 |
+| `pnpm run db:test:up`（沙箱外） | PASS；现有5434隔离库，原启动器校验身份与已审迁移 |
+| [G 正式截图与复现](ux/evidence/r07-g/README.md) | 2张：真实聚合桌面页、手机接受确认框，最终已查看，C–F截图原样保留 |
+
+已处理：Review联合请求类型、证据字段错误显示、Next Activity成功状态、测试筛选导航/reload竞争、沙箱监听与Turbopack旧CSS缓存。最终干净构建产物与浏览器CSS断言一致；旧缓存保存在 `/tmp/specbridge-r07-g-{build-al24ldtm,final-pdazj6aw}/next`，不作为复现依赖。自建API/Web退出；本轮启动的测试DB保留运行，未清表/down或访问开发库。无未解决测试失败。
+
+H收尾：完整三角色浏览器准备→审批→交付链；集中一次R01–R06/契约/Web/浏览器全量回归；桌面/手机/键盘/对比度与长内容视觉；跨模块缓存/混合角色/会话过期核心负向；最终文档和人工视觉/安全Review。远程CI、生产HTTPS/多浏览器及人工评审未运行，不虚构通过，H-09仍待记录。无新增人工决策阻塞；下一Session按 [G交接](engineering/R07_PLAN.md) 启动H，本轮到G结束。建议摘要：`feat(r07): integrate delivery acceptance, live dashboard and scoped audit`。
+
+---
+
+## R07 Phase F — 历史交接（后续已提交在 55b53df）
+
+`feat/15-web-integration` / HEAD `cef9e44`；开工干净，E 已由负责人提交。已在线核对 Issue #15、R05 精确契约与 E 成果；仅执行 F，保留前阶段源码及截图。未 Commit/Push/创建 PR/Merge/部署，未进入 G。
+
+- 已实现 CR 发现列表/筛选/分页、从 Ready 需求创建商业评估、NULL/部分草稿保存、完整评估正式冻结提交；Owner→Client 同版审批；双方拒绝、仅重开草稿、另行 Submit 产生新版本；APPROVED 终态；冻结规格与审批历史/独立深链接。对应 AC-09～12/16 与需求 Pending 保护的浏览器核心行为。
+- lockVersion 初始0；金额安全整数最小单位、工时十进制字符串；无浮点金额换算。Client 无 draft，重开后旧 activeVersion 明确标上一轮，历史状态来自每版 approvals。
+- 草稿409保留输入并显式核对；正式提交/审批确认框固定快照，旧决定遇到新版返回409后禁再次提交，须关闭核对再发起；不自动重试。创建结果未知禁重发。写后刷新关联需求capabilities、项目绑定锁定及CR/历史缓存。
+- 新增 `features/changes`、三类项目变更路由、定向 `e2e/changes.spec.ts`；复用Session/ProjectBoundary/Query/Base UI/RHF/Zod。无后端/契约/依赖/数据库结构改动。
+
+| 命令 / 检查 | 实际结果 |
+|---|---|
+| `pnpm run test:browser:changes`（沙箱外） | PASS；最终2场景/16.5s，真实生产Next/Nest/隔离PostgreSQL/Chromium；三角色顺序批准、Client拒绝重提、Owner拒绝重提、新版不继承旧审批、Client无draft/403/404、stale不重放、精度边界、终态409、分页/筛选/深链/320px、未知创建禁重发，无pageerror |
+| `pnpm --filter web build`（沙箱外） | PASS；新增列表/详情/冻结历史三类路由生产构建 |
+| `pnpm --filter web typecheck`、`pnpm --filter web lint`、`git diff --check` | PASS；无lint警告 |
+| `pnpm run db:test:up`（沙箱外） | PASS；仅启动5434隔离测试库，标准端口映射本次可用；原启动器校验身份、沿用已审迁移 |
+| [F 正式截图与复现](ux/evidence/r07-f/README.md) | 2张：客户同版审批桌面页、手机确认框；已查看，C/D/E截图保留 |
+
+已处理：TypeScript泛型反馈类型；Turbopack沙箱/失败缓存（保存在 `/tmp/specbridge-r07-f-build-p4q5dmge/next`）；测试DB未运行；Activity隐藏页测试选择器；截图动画/视口。系统Chromium及中文字体可用，本轮不需临时库/下载。自建API/Web退出，本轮启动的测试DB收尾停止；开发DB保持healthy（5433），未访问其数据。无未解决测试失败。
+
+未运行：未受影响R01–R06/C–E全量回归、契约重生成、远程CI、人工视觉/安全Review、生产HTTPS/多浏览器、全量可访问性与交付闭环，按计划留H。无新增人工决策；H-09不标通过。下一新Session按 [F交接](engineering/R07_PLAN.md) 启动G，Delivery创建/Review不传expectedVersion，接真实Dashboard/Audit；本轮不继续。建议摘要：`feat(r07): integrate commercial assessments and versioned sequential approvals`。
+
+---
+
+## R07 Phase E — 历史交接（后续已提交在 cef9e44）
+
+`feat/15-web-integration` / HEAD `7e5beb4`；开工干净，D 已由负责人提交。已在线核对 Issue #15、R04 实施契约与 D 成果。只执行 E，保留前阶段源码/截图；未 Commit/Push/创建 PR/Merge/部署，未进入 F。
+
+- 已实现 Requirement 列表/创建、仅 DRAFT 作者或 Owner 编辑；Clarification 问答；不可变 Revision 创建/可增删验收标准、分页历史和独立深链接；Mark Ready 显式核对最新版本、问题与标准。对应 AC-06/07/08/16/25 核心浏览器行为，含跨项目父链边界。
+- 复用 ProjectBoundary、Session API、生成类型和服务端 capabilities；expectedVersion 固定为表单打开时版本，409/刷新保留输入，核对后手动重提；Pending 禁修订、Client 禁 Revision/Ready、READY 禁问答。未知写结果禁重发并查实际对象。Next Activity 成功创建后返回表单可继续新建，失败输入不清空。
+- 新模块 `apps/web/src/features/requirements`、项目下四类需求路由与 `e2e/requirements.spec.ts`；无后端逻辑/依赖/数据库/契约变更。根浏览器入口追加 E，仍按阶段独立 API 进程避免真实登录配额叠加。
+
+| 命令 / 检查 | 实际结果 |
+|---|---|
+| `env LD_LIBRARY_PATH=/tmp/specbridge-browser-libs/root/usr/lib/x86_64-linux-gnu FONTCONFIG_FILE=/tmp/specbridge-browser-libs/fonts.conf pnpm run test:browser:requirements` | PASS；最终2场景/17.1s，真实 Next/Nest/隔离 PostgreSQL/Chromium，三角色独立 Context，无 pageerror；问答→Revision→Ready、stale保留输入/手动重提、403/404、未答/空标准、Submit及VendorApproved修订阻断、旧版不变、URL父链、两种分页/刷新、未知创建不重放、320px |
+| `pnpm --filter web build` | PASS；四类新增路由生产构建 |
+| `pnpm --filter web typecheck`、`pnpm --filter web lint`、`git diff --check` | PASS；无 lint 警告 |
+| [E 正式截图与复现](ux/evidence/r07-e/README.md) | 2张桌面/手机图已查看；C/D历史截图保留 |
+
+已处理：生成契约 QUESTION/ANSWER union、并发构建路由类型暂态、沙箱端口/缓存、Next Activity 隐藏页面测试定位、vendor-decision 成功码断言；Activity 成功创建表单重置已验证。缓存保存在 `/tmp/specbridge-r07-e-build-813w9xcj/next`；浏览器沿用本机临时库，标准复现见 Web README。启动器只连接5434隔离库并校验身份、复用已审迁移；未访问开发库或重置数据，自建 HTTP 子进程已结束。
+
+未运行：C/D浏览器回归、未受影响 R01–R06全量回归、契约重生成、远程CI、人工视觉/安全Review、生产HTTPS/多浏览器、全量可访问性与完整业务链，按计划留H。无未解决测试失败或新增人工决策；H-09不标通过。下一新Session按 [E交接](engineering/R07_PLAN.md) 执行 F；Submit/决定需刷新需求capabilities，CR lockVersion初始0。本轮结束于E。建议摘要：`feat(r07): integrate requirement clarification, immutable revisions and readiness`。
+
+---
+
+## R07 Phase D — 历史交接（后续已提交在 7e5beb4）
+
+`feat/15-web-integration` / HEAD `200c54f`；开工干净，C 已由负责人提交。已在线核对 Issue #15。本轮只执行 D，前阶段成果保留；未 Commit/Push/创建 PR/Merge/部署，未进入 E。
+
+- 已实现 Workspace 创建/分页选择、Project 创建/分页列表/详情、Owner 供应方成员管理、Developer 项目分配、唯一 Client 绑定/更正及提交后锁定提示；Client 从自己的项目列表进入，权限由当前项目 role/capabilities 决定。
+- 复用 Shell、Session API、私有 Query、Base UI/RHF/Zod。初始范围只读；写后刷新相关数据，409 保留输入并核对锁定；创建结果未知先查列表，不自动重试。没有后端、数据库、契约或依赖变更。
+- `features/projects` 与项目 layout 为 E 提供项目上下文；根浏览器命令按 C/D 分别启动原 API/Web fixture，避免两个套件累积真实登录限流配额，没有修改服务端限流。
+
+| 命令 / 检查 | 实际结果 |
+|---|---|
+| `env LD_LIBRARY_PATH=/tmp/specbridge-browser-libs/root/usr/lib/x86_64-linux-gnu FONTCONFIG_FILE=/tmp/specbridge-browser-libs/fonts.conf node scripts/with-env.mjs .env.test pnpm --filter web test:e2e projects.spec.ts` | PASS；D 2场景/6.5s；Owner真实UI准备、两级成员/Client、分页、403/404/422、替换后旧Client失权、Submit竞争409/刷新锁定、未知创建不重放、混合角色及320px |
+| 相同环境前缀 `pnpm run test:browser` | PASS；最终 API/Web production build，C 6场景/6.3s + D 2场景/6.6s，真实 Next/Nest/隔离 PostgreSQL/Chromium，无 pageerror |
+| `pnpm --filter web typecheck`、`pnpm --filter web lint`、`git diff --check` | PASS；无 lint 警告，最终差异检查 |
+| [D 正式截图与复现](ux/evidence/r07-d/README.md) | 3张代表桌面/手机图逐张查看，随机邮箱遮罩；C历史截图原样保留 |
+
+已处理：类型路径参数名、RHF useWatch、沙箱端口限制、测试导航/reload竞争、截图平滑滚动错位。5434 隔离测试库通过原启动器身份校验；Docker socket 状态读取缺权，未操作容器；未读取开发配置/访问开发库、清表或禁触发器。测试 HTTP 子进程已结束，API 生成缓存移至 /tmp。
+
+未运行：未受影响的 R01–R06 全量回归、契约重生成、远程 CI、人工视觉/安全 Review、生产 HTTPS/多浏览器和完整三角色业务链。无新增人工决策阻塞；H-09 等既有人工结论不变。下一 Session 按 [D 交接](engineering/R07_PLAN.md) 启动 E，保留本地修改。建议摘要：`feat(r07): add workspace and project setup with scoped member management`。
+
+---
+
+## R07 Phase C — 历史交接（后续已提交在 200c54f）
+
+`feat/15-web-integration` / HEAD `9499618`；开工工作区干净，B 实际已在 `544e4b8`，环境配置已在 `9499618`。已核对在线 Issue #15 与 B 生成契约；仅执行 C，未进入 D。当前修改全部保留本地，未 Commit/Push/创建 PR/Merge/部署。
+
+- 正式 `/login`、`/register`、`/app`，Next/React/Base UI Tokens、Shell、手机 Drawer；Typed API Client 从 B schema 推导 path/method/参数/body/响应，TanStack Query 会话隔离、RHF/Zod 表单。`/app` 当前展示真实账号和协作说明，没有伪造项目、计数或待办。
+- 复用 Cookie/CSRF/Rewrite：注册不自动登录、`GET /me` 恢复、退出撤销、保护请求 401、网络错误与 429。账号边界 abort/cancel/clear 并新建 QueryClient/epoch，旧 200/401 不得污染 B；不持久化私有数据。退出结果未知时隐藏私有 UI 并提供重试。
+- 新增 Playwright 最小生产 Web/真实 API/隔离 DB 启动器与 UUID 账号 fixture，后续 D–H 复用；不新增后端业务、表或迁移，不修改服务端认证/授权。DB 仅 5434/specbridge_test，真实角色/库校验后应用已有审阅迁移；原测试容器保持运行。
+
+| 命令 / 检查 | 实际结果 |
+|---|---|
+| `env LD_LIBRARY_PATH=/tmp/specbridge-browser-libs/root/usr/lib/x86_64-linux-gnu FONTCONFIG_FILE=/tmp/specbridge-browser-libs/fonts.conf pnpm run test:browser` | PASS；先 API/Web build，Next 生产服务器 + Nest + PostgreSQL + Chromium，6 浏览器场景 / 6.2s；认证闭环、CSRF、401/429、延迟旧响应、账号切换、退出网络失败、手机焦点/320px，无未捕获浏览器异常 |
+| `node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:auth` | PASS；2 文件 / 16 项真实 HTTP 与 Next Rewrite 受影响回归 |
+| `pnpm --filter specbridge-api openapi:check` | PASS；B 的 30 paths / 38 operations 与 Web 生成类型无漂移 |
+| `pnpm --filter web typecheck`、`pnpm --filter web lint`、`pnpm --filter web build` | PASS；生产路由 `/`、`/app`、`/login`、`/register` 与 icon |
+| `node --check scripts/browser-stack.mjs`、`git diff --check` | PASS；最终差异与范围检查 |
+| [正式截图与复现](ux/evidence/r07-c/README.md) | 5 张桌面/手机图已查看；业务数据均来自真实 API，随机邮箱遮罩；不是 A 静态原型 |
+
+已处理：沙箱下载/监听限制；完整 Chromium 下载 TLS 错误改用 Headless Shell；系统缺库且 sudo 需密码，获准临时解包 libnspr4/libnss3/libasound2 与中文字体，无系统目录修改；Next announcer 导致测试选择器冲突；截图发现 Drawer 居中动画及控件尺寸，修复后新增视口断言通过。当前 `/tmp/specbridge-browser-libs` 可能随重启丢失，标准安装与临时复现见截图 README。
+
+未运行：R03–R06 全量回归（未改相关后端，留 H）、远程 CI、人工视觉/安全 Review、生产 HTTPS、多浏览器和完整三角色业务链。不虚构 H-09 通过。测试 HTTP 子进程已回收；生成的受跟踪 tsbuildinfo 恢复，开发数据库不受影响。下一 Session 读取 [R07_PLAN C 交接](engineering/R07_PLAN.md) 和 [Web README](../apps/web/README.md)，启动 D；无新增阻塞人工决策。建议摘要：`feat(r07): implement authenticated web shell and isolated session queries`。
+
+---
+
+## 本地开发环境 — 2026-11-11 已验证
+
+按负责人本轮“配置本地开发、specbridge 数据库、.env、迁移和测试数据库”的请求实施；参考 [Issue #3](https://github.com/lithuio/specbridge/issues/3) 的新库迁移/测试隔离要求，对应 AC-17 的迁移可重复与持久存储部分，不代表备份恢复或全部 AC-17 验收完成。开始工作区干净。
+
+- 本机 `/home/lenovo/projects/specbriage`，Node 22.23.4、pnpm 10.34.9；根锁文件离线安装校验通过，未更换依赖。Compose 沿用 `postgres:17-alpine`，实际下载版本 PostgreSQL 17.11。
+- 新建开发实例 `127.0.0.1:5433/specbridge`，用户 `specbridge`，持久卷 `specbridge-dev_pgdata`；测试实例 `127.0.0.1:5434/specbridge_test`，用户 `specbridge_test`，tmpfs；另有同实例独立库 `specbridge_dev_verify`。
+- 创建本机 `.env`（随机开发密码）与 `.env.test`（公开一次性测试配置），权限 600、Git 忽略；未输出秘密。模板拆分开发/测试配置。根 `dev:api` 显式注入 `.env`；根测试命令只加载 `.env.test`，保留 API/CI 显式环境和原测试 URL/数据库身份校验。
+- 根脚本补齐 `db:migrate:test`、`db:migrate:verify`、`test:e2e`、`test:e2e:db`，`db:up` 等待健康。启动/迁移/测试/版本变更操作见 [DEVELOPMENT](engineering/DEVELOPMENT.md)。
+- 沿用已审阅的 0000～0003，SHA-256 与 H-02/H-03/H-05 历史记录一致；按本轮开发环境配置授权应用至新建本机开发库及隔离测试库。开发库核对身份正确，4 条迁移、15 张业务表、0 个用户；重启后迁移与表仍保留。未创建演示账号。
+
+| 实际命令 / 检查 | 结果 |
+|---|---|
+| `pnpm install --frozen-lockfile --offline` | PASS；锁文件未改。提示忽略部分依赖构建脚本，现有 Argon2 单元/真实认证测试通过 |
+| `sg docker -c 'pnpm run db:up && pnpm run db:test:up'` | PASS；两个数据库健康，标准端口转发可用，无需旧 host 网络覆盖 |
+| `pnpm run db:migrate:test` | PASS；隔离测试库迁移 |
+| `pnpm run db:migrate:verify` ×2、`pnpm run db:migrate` ×2 | PASS；新库迁移和重复执行 |
+| `pnpm run test`、`pnpm run lint`、`pnpm --filter specbridge-api typecheck`、`pnpm run db:check` | PASS |
+| `pnpm run test:integration` | PASS；8 文件 / 90 PostgreSQL 用例 |
+| `pnpm run test:e2e` | PASS；3 文件 / 5 基础 HTTP 用例 |
+| `pnpm run test:e2e:db` | PASS；auth/rbac/requirements/changes/deliveries/reads 分别 16/13/9/8/7/9 项，包含 API 构建及真实 Next 代理 |
+| `python3 /tmp/specbridge-local-smoke.py` | PASS；实际根 dev:api/dev:web 启动，4000/3000 健康检查与 Web 首页 200；未知账号代理登录返回预期 401/UNAUTHENTICATED，验证开发 DB 访问；脚本关闭自己的 HTTP 进程 |
+| `node --check scripts/with-env.mjs`、环境值断言、子进程退出码检查、`git check-ignore .env .env.test`、`git diff --check` | PASS；开发密码/URL 一致，测试不加载开发文件，进程环境优先，子进程退出码 7 正确透传 |
+
+已处理问题：账号已加入 docker 组但当前会话未生效，使用 `sg docker`；沙箱内 DB 连接失败后在沙箱外通过。首次临时 smoke 的错误码断言与现有契约不符，重试端口预检又遇 TIME_WAIT；修正验证脚本后完整通过，未修改业务代码。HTTP 套件中的安全 500 为既有审计失败注入的预期日志。
+
+交接：开发库和测试库保持运行；API/Web 验证进程已关闭。用户重新登录终端或 `newgrp docker` 后使用普通 Docker 命令，也可继续用 `sg docker -c`。测试 tmpfs 在停止/重建时不保证保留；开发 `db:down` 保留卷，禁止用 `down -v` 作为常规操作。历史 SQL、业务代码和锁文件未改，构建产生的受跟踪缓存已恢复。未运行 Web 生产构建、浏览器验收、备份恢复或远程 CI；未提交/推送/部署。建议提交：`chore(dev): configure local environments and database workflows`。
+
+---
+
+## R07 Phase B — 历史检查点（后于 544e4b8 提交）
+
+分支 `feat/15-web-integration`，开工/当前 HEAD `c472d78`；开工工作区干净，A 成果已在基线中。已在线读取 Issue #15，按用户授权只实施 B，未进入 C。
+
+- 七项 GET、项目/需求/CR/Delivery 详情 capabilities 完成；授权与多查询读取使用同一只读 REPEATABLE READ。列表先授权/可见性过滤再分页；Audit 丢弃未知事件及敏感 metadata，target 校验真实父链；Dashboard 由授权数据库事实推导，summary 独立于当前 bucket/页。
+- 复用既有资格校验，保留写锁/顺序审批/不可变历史；无新写业务、表、Schema、Migration 或认证重构。必要小修将 R03 原生 SQL 日期文本统一为 UTC ISO，已有成员重复加入响应同样规范化。
+- Swagger 离线导出 30 paths / 38 operations；[OpenAPI](architecture/openapi.json)、前端 `apps/web/src/lib/api/generated/schema.d.ts` 已生成；固定生成器、临时目录漂移检查和 CI 步骤已增加。未启动生产 Swagger UI。
+- 测试仅访问 5434 隔离 PostgreSQL；复现环境、精确命令及失败修正记录见 [R07_PLAN B 交接](engineering/R07_PLAN.md)。未访问开发/生产数据。
+
+| 状态 | 实际命令（API 均 `pnpm --filter specbridge-api`） | 结果 |
+|---|---|---|
+| PASS | `test` | 10 文件 / 93 单元测试 |
+| PASS | `test:integration` | 8 文件 / 90 真实 DB 集成测试 |
+| PASS | `test:e2e:reads` | 9 场景；七 GET 权限、字段裁剪、分页、Dashboard 状态/计数、capabilities；真实 HTTP 对生成 Schema 校验及严格 UTC 日期 |
+| PASS | `test:e2e:requirements` / `test:e2e:changes` / `test:e2e:deliveries` / `test:e2e:rbac` | 分别 9 / 8 / 7 / 13，含真实 Next Rewrite；日期修复后 RBAC 重新通过 |
+| PASS | `exec vitest run --config vitest.config.integration.ts test/database/rbac.integration-spec.ts` | 日期修复后 12 项受影响 DB 回归 |
+| PASS | `typecheck`、`lint`、`openapi:generate`、`openapi:check`、`db:check` | 类型/静态检查、API build、生成与确定性漂移检查、迁移元数据 |
+| PASS | `pnpm --filter web exec tsc --noEmit --incremental false`、`pnpm --filter web lint`、`git diff --check` | Web 类型/Lint、diff 空白检查 |
+| NOT RUN | 远程 CI、正式浏览器 E2E、Web 生产构建、人工评审；完整 auth/base HTTP 套件 | B 按受影响范围验证；不宣称 R07 全部 DoD 完成 |
+
+已处理失败：初次沙箱连接被拒；Dashboard `asOf`/R03 原生 SQL 日期不符合 UTC；Swagger 私有子路径导出不可用；异常跨 CR 指针被现有复合 FK 拒绝（测试改为断言该保护并验证缺失指针）。均保留真实失败说明，最终相关测试通过。Audit 单事务查询已顺序执行；既有写审计故障注入的安全 500 为预期。
+
+遗留限制：生成器 `openapi-typescript 7.10.1` 的 TS5 peer 与 API TS6 有安装警告，实际生成/漂移/Web 类型检查通过；未做大型 Dashboard 数据集性能基准，未新增索引。H-09 等人工评审状态未改变，无新增阻塞人工事项。
+
+本轮隔离测试容器已关闭并移除，未操作开发卷；已跟踪的构建缓存恢复开工值。
+
+下一步为新 Session 的 **Phase C**，复用生成契约实现真实 Shell、Typed Client、Query 会话隔离和认证。保留所有 B 未提交文件；本 Session 不 Commit/Push/创建 PR/Merge/部署。建议摘要：`feat(r07): add scoped read APIs, capabilities and generated HTTP contracts`。
+
+---
+
+## R07 Phase A — 历史检查点
+
+分支 `feat/15-web-integration`，起始 HEAD `63d81aa`，主任务 [Issue #15](https://github.com/lithuio/specbridge/issues/15)。负责人已批准总体工程规划、七项只读 API、capabilities、保守 Audit 白名单、真实 Dashboard、OpenAPI/生成类型和中文浅色视觉；最新要求改为 **B–H 各在新 Session 实施，精简重复验证，保留核心测试**。本轮只调整文档，不启动 B；后续明确启动 B 即沿用 A 基线，不重复请求例行批准。人工视觉结论尚未记录。
+
+### 实际成果
+
+- [增量读取契约](architecture/R07_READ_MODELS.md)：七 API 的权限、字段、筛选/排序/分页、历史定位；Audit 事件与 metadata 白名单；Dashboard 三类工作项和精确计数口径；必要详情能力与既有资格复用方案。
+- [视觉规范](ux/R07_DESIGN.md)：语义 Tokens、App Shell、路由/布局、组件、响应式和关键交互。登录/Dashboard/项目详情的独立 HTML/CSS/JS 原型，明确标记示例，**不接入生产路由、不代表真实业务实现**。
+- [评审材料与证据](ux/prototypes/r07/README.md)：实际 Chromium 渲染 9 张截图；桌面/手机三页、Developer/Client Dashboard、手机导航。提供可重现验证脚本与初轮失败记录。
+- [R07 总规划与核心交接](engineering/R07_PLAN.md)：A–H 范围、实时进度、最少阅读、核心安全事实、精简验证、交接模板及七份独立 Session 提示词；B–H 尚未执行。
+- 文档索引、API/线框入口已更新。没有修改 apps 生产代码、项目依赖、Schema、Migration、认证、Rewrite 或数据库。没有 Commit/Push/PR/Merge/部署。
+
+### 实际验证
+
+| 状态 | 命令/检查 | 结果与边界 |
+|---|---|---|
+| PASS | `node --check docs/ux/prototypes/r07/prototype.js` | 设计交互脚本语法有效 |
+| PASS | `node --check docs/ux/prototypes/r07/verify.mjs` | 原型验证脚本语法有效 |
+| PASS | `R07_BROWSER_TOOLS=/tmp/specbridge-r07-browser PLAYWRIGHT_BROWSERS_PATH=/tmp/specbridge-r07-browsers node docs/ux/prototypes/r07/verify.mjs` | 沙箱外；40 项原型检查、0 axe A/AA 规则违规、9 张实际截图；三页×五宽度、Tab/Drawer 焦点、桌面/平板折叠、角色样例、十组 Token 对比度；无 API/外网请求 |
+| PASS | 截图图像自检 | 中文、留白、表格/状态/下一步层级、手机重排无明显重叠截断；不代替负责人主观视觉验收 |
+| PASS | `git diff --check`、本轮文档链接及原型文本空白检查 | 引用可解析、无 diff 空白问题；生产目录和依赖保持未改 |
+| NOT RUN | R01–R06 回归、真实 API/DB 浏览器 E2E、生产构建、远程 CI | 本阶段只改文档及独立原型，未启动 API、Next 或数据库；不继承宣称本轮通过 |
+| NOT RUN | Firefox/WebKit、屏幕阅读器、原生200%缩放、生产 HTTPS/Cookie | 留后续真实 Web 验收，不声称完整 WCAG 合规 |
+
+失败与修正：工具下载/本地监听被沙箱 EPERM 阻止，获授权使用 /tmp 工具和本机临时端口；修正 axe package exports 的版本读取。初轮浏览器检查发现手机 Drawer 连续 Tab 末尾逃出模态内容，保留 `verification-initial.json`；补焦点循环后通过。图像检查后修正 Sidebar 视口位置、平板展开行为，并移除 Dashboard 契约没有的工时/问题正文样例。最终机器证据见 `ux/prototypes/r07/evidence/verification.json`。临时浏览器和验证服务已由脚本关闭。
+
+### 停点与下一步
+
+- 下一步：在新 Session 使用 R07_PLAN 第9节的 B 提示词，执行只读 API、capabilities 与契约生成。本轮不开始 B。H-09 保留人工视觉结论未记录，不作为重复实施审批门槛。
+- 本轮规划调整仅修改文档；C–G 按受影响范围做检查、代表性真实浏览器流程和少量截图，H 集中全量回归；权限/隔离/并发核心检查保持。实际文档验证见 R07_PLAN 的本轮交接。
+- 已在 Git 历史确认 R06 合并提交；下方“未提交”等为历史检查点。H-04/06/07/08 仍保留原人工审核状态，不根据 Git 合并推断评审完成。
+- R07 授权明确本阶段的中文/浅色和 P1 边界；既有 D-07/D-08 等不在本次解决范围，未静默更改。
+- 建议提交摘要（仅建议）：`docs(r07): define read contracts and visual review prototypes (#15)`。
+
+---
+
+## R06 Delivery & Acceptance — 历史检查点
 
 分支 `feat/13-delivery-acceptance`，基线 HEAD `ad7c37d`，[Issue #13](https://github.com/lithuio/specbridge/issues/13)。负责人已批准只读规划并明确要求实施；开始时工作区干净。Git 历史已包含 R01～R05，下方 R05“未提交”仅为当时检查点。
 

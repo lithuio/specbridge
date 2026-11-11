@@ -1,0 +1,37 @@
+/* Production design tokens, promoted from the approved R07 Phase A palette. */
+:root {
+  color-scheme: light;
+  --canvas: #f7f8fa;
+  --surface: #ffffff;
+  --subtle: #f1f3f7;
+  --ink: #182230;
+  --text-muted: #526175;
+  --border: #e2e6ed;
+  --input-border: #7c8798;
+  --brand: #4338ca;
+  --brand-hover: #3730a3;
+  --brand-soft: #eef2ff;
+  --success: #166534;
+  --success-bg: #f0fdf4;
+  --warning: #92400e;
+  --warning-bg: #fffbeb;
+  --danger: #b42318;
+  --danger-bg: #fef3f2;
+  --info: #1e40af;
+  --info-bg: #eff6ff;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --font:
+    "Inter", "Geist", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei",
+    system-ui, sans-serif;
+  --sidebar-width: 240px;
+  --shadow: 0 2px 5px #18223004, 0 12px 32px #18223006;
+  --motion: 150ms;
+}

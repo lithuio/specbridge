@@ -18,7 +18,10 @@ export class WorkspacesRepository {
       AND ((wm.role='OWNER' AND w.owner_id=${userId}) OR (wm.role='DEVELOPER' AND w.owner_id<>${userId}))
       AND NOT EXISTS (SELECT 1 FROM project_members cm JOIN projects p ON p.id=cm.project_id WHERE p.workspace_id=w.id AND cm.user_id=${userId} AND cm.role='CLIENT')
       ORDER BY w.created_at,w.id LIMIT ${page.limit + 1} OFFSET ${page.offset}`)
-    ).rows;
+    ).rows.map((row) => ({
+      ...row,
+      createdAt: new Date(row.createdAt as string),
+    }));
   }
   async create(tx: DatabaseTransaction, name: string, ownerId: string) {
     const [workspace] = await tx
@@ -40,7 +43,10 @@ export class WorkspacesRepository {
       await tx.execute(sql`SELECT wm.id,wm.user_id AS "userId",u.display_name AS "displayName",u.email,wm.role,wm.created_at AS "createdAt"
       FROM workspace_members wm JOIN users u ON u.id=wm.user_id WHERE wm.workspace_id=${workspaceId}
       ORDER BY wm.created_at,wm.id LIMIT ${page.limit + 1} OFFSET ${page.offset}`)
-    ).rows;
+    ).rows.map((row) => ({
+      ...row,
+      createdAt: new Date(row.createdAt as string),
+    }));
   }
   async registeredUser(tx: DatabaseTransaction, email: string) {
     return (
@@ -67,11 +73,12 @@ export class WorkspacesRepository {
     workspaceId: string,
     userId: string,
   ) {
-    return (
+    const row = (
       await tx.execute<{ id: string; role: string; createdAt: Date }>(
         sql`SELECT id,role,created_at AS "createdAt" FROM workspace_members WHERE workspace_id=${workspaceId} AND user_id=${userId}`,
       )
     ).rows[0];
+    return row ? { ...row, createdAt: new Date(row.createdAt) } : undefined;
   }
   async add(tx: DatabaseTransaction, workspaceId: string, userId: string) {
     const [member] = await tx

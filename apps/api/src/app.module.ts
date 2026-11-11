@@ -1,3 +1,5 @@
+import { DashboardModule } from './dashboard/dashboard.module.js';
+import { AuditReadModule } from './audit/audit-read.module.js';
 import { DeliveriesModule } from './deliveries/deliveries.module.js';
 import { ChangesModule } from './changes/changes.module.js';
 import { RequirementsModule } from './requirements/requirements.module.js';
@@ -17,6 +19,8 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
 
 @Module({
   imports: [
+    DashboardModule,
+    AuditReadModule,
     DatabaseModule,
     AuthModule,
     WorkspacesModule,

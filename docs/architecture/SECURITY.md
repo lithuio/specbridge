@@ -149,3 +149,19 @@ READY 禁止所有角色追加问答；ANSWER 只能引用同需求 QUESTION。�
 Review 从 Delivery→Version→CR→Requirement 定位项目，再按 Workspace→Project→Requirement→CR→Delivery 锁序获取行锁；不能先锁 Delivery 再回锁父级。锁后重新验证关系与角色，并核查批准证据。方案 A 不要求 Delivery lock_version，使用 SUBMITTED 条件更新和唯一 Review，与审计同事务；R04/R05 的版本校验仍保留。
 
 链接仅校验和存储，不请求外部地址；纯文本不按 HTML 执行。审计仅存 ID/版本/状态/决定，不存链接或正文。DeliveryReview 数据库触发器拒绝改删；Delivery 内容通过无公开改删入口和受限 Repository 保留，不承诺任意直接 SQL 防篡改。历史列表授权与投影使用只读 REPEATABLE READ，返回交付和 Review 的一致快照。
+
+## R07 只读模型安全边界
+
+七 GET 复用 Session Guard 与项目授权，不增加身份来源或写业务。多查询详情/capabilities/Dashboard 在同一只读 REPEATABLE READ 中返回；capability 是即时提示，最终写授权、锁、expectedVersion 和资格检查继续由原业务入口执行。
+
+Audit 事件可见性在 SQL 分页前过滤，未知事件默认隐藏；metadata 仅返回事件特定、类型合法的白名单键，actor 仅安全姓名/ID，target 由真实父链核实。Dashboard 仅统计授权集合，显式不可见 projectId 返回 404，workspaceId 与授权集合取交集。Client 无 CR 商业草稿或内部草稿工作项，内部操作 capability 优先 ROLE_FORBIDDEN。HTTP/真实 DB 验证范围见 STATE，不宣称生产安全评审完成。
+
+## R07 Phase C 浏览器会话边界
+
+Web 复用 R02 HttpOnly Cookie、Origin/JSON/CSRF 和同源 Rewrite，不建立第二套身份或前端最终权限。`GET /me` 恢复身份，只有认证成功才挂载私有子树。身份边界会 abort 旧请求、cancel/clear 旧 QueryClient，创建新的 session epoch/QueryClient；私有 key 带 epoch/userId，后续业务附加项目、资源、筛选与分页。响应解析前后检查 lifetime signal；旧 200 与旧 401 都不得改变新会话。
+
+所有写请求禁自动重试；登录失败 401 仅在表单显示统一文案；保护请求 401 清除私有状态并转登录。退出先隐藏私有 UI，网络结果未知时显示重试退出，不自动恢复旧缓存。可见性、重新聚焦、pageshow 与不含个人数据的 BroadcastChannel 通知用于再次确认身份。私有响应不写浏览器持久存储或 Next 共享缓存；`/me` 不推导全局 role。
+
+普通会话复核与身份边界分开：复核暂停私有 API、取消在途请求，并通过 Activity 隐藏页面及弹窗，保留该用户的内存草稿；同一用户验证成功后恢复并失效资源查询以重新核对授权。复核网络失败保持隐藏，不丢弃输入。不同用户、401、显式登录/退出和跨标签页会话变更通知仍更换 epoch 并清除缓存/表单；复核请求自身也受取消和最新请求检查保护。项目临时读取失败仅保留隐藏的编辑状态；403/404 销毁项目表单，并阻止后续网络失败重新展示此前缓存，直到新的授权读取成功。
+
+浏览器证据使用真实 API/隔离 DB，覆盖退出撤销和延迟响应隔离；正式 HTTPS/Secure Cookie 跨浏览器策略与人工安全评审仍不由本地 HTTP 用例替代。

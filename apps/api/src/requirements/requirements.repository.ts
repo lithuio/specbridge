@@ -120,6 +120,19 @@ export class RequirementsRepository {
       .limit(page.limit + 1)
       .offset(page.offset);
   }
+  async revision(db: Connection, requirementId: string, id: string) {
+    const [row] = await db
+      .select()
+      .from(requirementRevisions)
+      .where(
+        and(
+          eq(requirementRevisions.requirementId, requirementId),
+          eq(requirementRevisions.id, id),
+        ),
+      );
+    if (!row) throw new NotFoundException();
+    return row;
+  }
   async latest(db: Connection, id: string) {
     const [row] = await db
       .select()

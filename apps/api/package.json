@@ -31,7 +31,10 @@
     "test:e2e:rbac": "pnpm run build && vitest run --config ./vitest.config.rbac-e2e.ts",
     "test:e2e:requirements": "pnpm run build && vitest run --config ./vitest.config.requirements-e2e.ts",
     "test:e2e:changes": "pnpm run build && vitest run --config ./vitest.config.changes-e2e.ts",
-    "test:e2e:deliveries": "pnpm run build && vitest run --config ./vitest.config.deliveries-e2e.ts"
+    "test:e2e:deliveries": "pnpm run build && vitest run --config ./vitest.config.deliveries-e2e.ts",
+    "test:e2e:reads": "vitest run --config ./vitest.config.reads-e2e.ts",
+    "openapi:generate": "pnpm run build && node scripts/openapi.mjs",
+    "openapi:check": "pnpm run build && node scripts/openapi.mjs --check"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
@@ -62,7 +65,10 @@
     "@types/pg": "^8.23.1",
     "@types/supertest": "^7.0.0",
     "@vitest/coverage-v8": "^4.1.2",
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1",
     "drizzle-kit": "^0.31.11",
+    "openapi-typescript": "7.10.1",
     "oxlint": "^1.58.0",
     "oxlint-tsgolint": "^7.0.2001",
     "prettier": "^3.4.2",

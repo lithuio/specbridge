@@ -1,0 +1,247 @@
+{
+  "generatedAt": "2026-11-09T21:51:21.889Z",
+  "scope": "Phase A static visual prototype; no backend, database or authenticated workflow",
+  "tools": {
+    "playwright": "1.65.0",
+    "axe": "4.14.0"
+  },
+  "checks": [
+    {
+      "name": "login 1440px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "login 1440px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 1440px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 1440px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "project 1440px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "project 1440px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "login 1024px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "login 1024px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 1024px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 1024px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "project 1024px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "project 1024px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "login 768px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "login 768px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 768px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 768px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "project 768px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "project 768px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "login 390px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "login 390px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 390px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 390px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "project 390px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "project 390px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "login 320px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "login 320px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 320px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard 320px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "project 320px no horizontal page overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "project 320px axe WCAG A/AA rules",
+      "status": "PASS"
+    },
+    {
+      "name": "Tabs support ArrowRight/Home/End and matching fixture counts",
+      "status": "PASS"
+    },
+    {
+      "name": "Sidebar collapse keeps accessible navigation",
+      "status": "PASS"
+    },
+    {
+      "name": "Tablet starts compact and can expand/collapse",
+      "status": "PASS"
+    },
+    {
+      "name": "developer fixture view has scoped navigation (not authorization evidence)",
+      "status": "PASS"
+    },
+    {
+      "name": "client fixture view has scoped navigation (not authorization evidence)",
+      "status": "PASS"
+    },
+    {
+      "name": "Mobile modal navigation traps focus and Escape restores trigger focus",
+      "status": "PASS"
+    },
+    {
+      "name": "Business controls disclose prototype boundary, no simulated mutation",
+      "status": "PASS"
+    },
+    {
+      "name": "Password visibility control and design-only submit feedback",
+      "status": "PASS"
+    },
+    {
+      "name": "Ten semantic token contrast pairs meet text/control thresholds",
+      "status": "PASS"
+    },
+    {
+      "name": "No page errors, external resources or API requests",
+      "status": "PASS"
+    }
+  ],
+  "violations": [],
+  "errors": [],
+  "screenshots": [
+    "login-desktop.png",
+    "dashboard-desktop.png",
+    "project-desktop.png",
+    "login-mobile.png",
+    "dashboard-mobile.png",
+    "project-mobile.png",
+    "dashboard-developer.png",
+    "dashboard-client.png",
+    "mobile-navigation.png"
+  ],
+  "browser": "158.0.8127.18",
+  "tokenContrast": [
+    {
+      "foreground": "ink",
+      "background": "surface",
+      "minimum": 4.5,
+      "ratio": 16.026508555442035
+    },
+    {
+      "foreground": "muted",
+      "background": "canvas",
+      "minimum": 4.5,
+      "ratio": 5.942601501381721
+    },
+    {
+      "foreground": "muted",
+      "background": "surface",
+      "minimum": 4.5,
+      "ratio": 6.3148091150259
+    },
+    {
+      "foreground": "brand",
+      "background": "surface",
+      "minimum": 4.5,
+      "ratio": 7.9031114800249425
+    },
+    {
+      "foreground": "brand",
+      "background": "brand-soft",
+      "minimum": 4.5,
+      "ratio": 7.067745388921498
+    },
+    {
+      "foreground": "success",
+      "background": "success-bg",
+      "minimum": 4.5,
+      "ratio": 6.811651629293788
+    },
+    {
+      "foreground": "warning",
+      "background": "warning-bg",
+      "minimum": 4.5,
+      "ratio": 6.837002380367332
+    },
+    {
+      "foreground": "danger",
+      "background": "danger-bg",
+      "minimum": 4.5,
+      "ratio": 6.04726982551666
+    },
+    {
+      "foreground": "info",
+      "background": "info-bg",
+      "minimum": 4.5,
+      "ratio": 8.014836919642205
+    },
+    {
+      "foreground": "input-border",
+      "background": "surface",
+      "minimum": 3,
+      "ratio": 3.635730251864451
+    }
+  ],
+  "status": "PASS"
+}

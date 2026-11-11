@@ -1,0 +1,402 @@
+{
+  "engine": "axe-core",
+  "version": "4.14.0",
+  "checks": [
+    {
+      "name": "login-desktop",
+      "violations": [],
+      "passedRules": 25,
+      "supplementalComputedContrast": [],
+      "incomplete": []
+    },
+    {
+      "name": "owner-members-desktop",
+      "violations": [],
+      "passedRules": 27,
+      "supplementalComputedContrast": [],
+      "incomplete": []
+    },
+    {
+      "name": "client-requirement-form",
+      "violations": [],
+      "passedRules": 24,
+      "supplementalComputedContrast": [],
+      "incomplete": []
+    },
+    {
+      "name": "developer-ready-desktop-long-content",
+      "violations": [],
+      "passedRules": 25,
+      "supplementalComputedContrast": [],
+      "incomplete": []
+    },
+    {
+      "name": "developer-ready-320",
+      "violations": [],
+      "passedRules": 24,
+      "supplementalComputedContrast": [
+        {
+          "target": [
+            ".project-nav > a:nth-child(4)"
+          ],
+          "ratio": 5.94,
+          "threshold": 4.5
+        },
+        {
+          "target": [
+            ".project-nav > a:nth-child(5)"
+          ],
+          "ratio": 5.94,
+          "threshold": 4.5
+        },
+        {
+          "target": [
+            ".project-nav > a:nth-child(6)"
+          ],
+          "ratio": 5.94,
+          "threshold": 4.5
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                ".project-nav > a:nth-child(4)"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                ".project-nav > a:nth-child(5)"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                ".project-nav > a:nth-child(6)"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "developer-commercial-form",
+      "violations": [],
+      "passedRules": 28,
+      "supplementalComputedContrast": [],
+      "incomplete": []
+    },
+    {
+      "name": "client-approval-desktop",
+      "violations": [],
+      "passedRules": 25,
+      "supplementalComputedContrast": [],
+      "incomplete": []
+    },
+    {
+      "name": "client-accept-dialog-mobile",
+      "violations": [],
+      "passedRules": 25,
+      "supplementalComputedContrast": [
+        {
+          "target": [
+            "#base-ui-_r_4_"
+          ],
+          "ratio": 16.03,
+          "threshold": 4.5
+        },
+        {
+          "target": [
+            "#base-ui-_r_5_"
+          ],
+          "ratio": 6.31,
+          "threshold": 4.5
+        },
+        {
+          "target": [
+            "#_r_2_ > section[aria-label=\"交付 D2 内容\"] > ul > li > .external-link[target=\"_blank\"][rel=\"noopener noreferrer\"]"
+          ],
+          "ratio": 7.9,
+          "threshold": 4.5
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "div[data-base-ui-inert=\"\"][aria-hidden=\"true\"]:nth-child(9)"
+              ],
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+            },
+            {
+              "target": [
+                "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(3)"
+              ],
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+            },
+            {
+              "target": [
+                "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(5)"
+              ],
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#base-ui-_r_4_"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+            },
+            {
+              "target": [
+                "#base-ui-_r_5_"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+            },
+            {
+              "target": [
+                "#_r_2_ > section[aria-label=\"交付 D2 内容\"] > ul > li > .external-link[target=\"_blank\"][rel=\"noopener noreferrer\"]"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "client-accepted-mobile",
+      "violations": [],
+      "passedRules": 22,
+      "supplementalComputedContrast": [
+        {
+          "target": [
+            ".project-nav > a:nth-child(4)"
+          ],
+          "ratio": 5.94,
+          "threshold": 4.5
+        },
+        {
+          "target": [
+            ".project-nav > a[aria-current=\"page\"]"
+          ],
+          "ratio": 7.44,
+          "threshold": 4.5
+        },
+        {
+          "target": [
+            ".project-nav > a:nth-child(6)"
+          ],
+          "ratio": 5.94,
+          "threshold": 4.5
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                ".project-nav > a:nth-child(4)"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                ".project-nav > a[aria-current=\"page\"]"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                ".project-nav > a:nth-child(6)"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "client-rejected-history-320",
+      "violations": [],
+      "passedRules": 24,
+      "supplementalComputedContrast": [
+        {
+          "target": [
+            ".project-nav > a[aria-current=\"page\"]"
+          ],
+          "ratio": 7.44,
+          "threshold": 4.5
+        },
+        {
+          "target": [
+            ".project-nav > a:nth-child(5)"
+          ],
+          "ratio": 5.94,
+          "threshold": 4.5
+        },
+        {
+          "target": [
+            ".project-nav > a:nth-child(6)"
+          ],
+          "ratio": 5.94,
+          "threshold": 4.5
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                ".project-nav > a[aria-current=\"page\"]"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                ".project-nav > a:nth-child(5)"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                ".project-nav > a:nth-child(6)"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "client-audit-320",
+      "violations": [],
+      "passedRules": 25,
+      "supplementalComputedContrast": [
+        {
+          "target": [
+            ".project-nav > a:nth-child(4)"
+          ],
+          "ratio": 5.94,
+          "threshold": 4.5
+        },
+        {
+          "target": [
+            ".project-nav > a:nth-child(5)"
+          ],
+          "ratio": 5.94,
+          "threshold": 4.5
+        },
+        {
+          "target": [
+            ".project-nav > a[aria-current=\"page\"]"
+          ],
+          "ratio": 7.44,
+          "threshold": 4.5
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                ".project-nav > a:nth-child(4)"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                ".project-nav > a:nth-child(5)"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "target": [
+                ".project-nav > a[aria-current=\"page\"]"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "client-audit-desktop",
+      "violations": [],
+      "passedRules": 26,
+      "supplementalComputedContrast": [],
+      "incomplete": []
+    },
+    {
+      "name": "developer-dashboard-desktop",
+      "violations": [],
+      "passedRules": 28,
+      "supplementalComputedContrast": [],
+      "incomplete": []
+    },
+    {
+      "name": "dashboard-half-desktop-css-viewport",
+      "violations": [],
+      "passedRules": 28,
+      "supplementalComputedContrast": [],
+      "incomplete": []
+    },
+    {
+      "name": "dashboard-tablet",
+      "violations": [],
+      "passedRules": 28,
+      "supplementalComputedContrast": [],
+      "incomplete": []
+    },
+    {
+      "name": "dashboard-mobile",
+      "violations": [],
+      "passedRules": 28,
+      "supplementalComputedContrast": [],
+      "incomplete": []
+    },
+    {
+      "name": "navigation-drawer-mobile",
+      "violations": [],
+      "passedRules": 23,
+      "supplementalComputedContrast": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "div[data-base-ui-inert=\"\"]:nth-child(12)"
+              ],
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+            },
+            {
+              "target": [
+                "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(3)"
+              ],
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+            },
+            {
+              "target": [
+                "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(5)"
+              ],
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

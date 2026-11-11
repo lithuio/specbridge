@@ -1,0 +1,183 @@
+"use client";
+
+import Link from "next/link";
+import { useParams, usePathname } from "next/navigation";
+import { Activity, createContext, useContext, useState } from "react";
+import { ApiError } from "@/lib/api/client";
+import { RefreshButton } from "@/components/shared/refresh-button";
+import { FolderOpen } from "lucide-react";
+import { projectSections, projectTone } from "./presentation";
+import { roleLabel, useProject, type Project } from "./queries";
+import { QueryState } from "./shared";
+
+const ProjectContext = createContext<Project | null>(null);
+export function useCurrentProject() {
+  const project = useContext(ProjectContext);
+  if (!project) throw new Error("Project boundary required");
+  return project;
+}
+
+export function ProjectBoundary({ children }: { children: React.ReactNode }) {
+  const { projectId } = useParams<{ projectId: string }>();
+  return (
+    <ProjectScope key={projectId} projectId={projectId}>
+      {children}
+    </ProjectScope>
+  );
+}
+
+function ProjectScope({
+  projectId,
+  children,
+}: {
+  projectId: string;
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const query = useProject(projectId);
+  const project = query.data;
+  const [denied, setDenied] = useState(false);
+  const authorizationLost =
+    query.error instanceof ApiError &&
+    [401, 403, 404].includes(query.error.status);
+  // Once access is lost, a subsequent network failure must not reveal the old
+  // cached project. Only a successful authorized read can open it again.
+  if (authorizationLost && !denied) setDenied(true);
+  if (query.isSuccess && denied) setDenied(false);
+  if (!project || authorizationLost || (denied && !query.isSuccess))
+    return (
+      <>
+        <Link className="text-link" href="/app/projects">
+          ← 我的项目
+        </Link>
+        <QueryState query={query} />
+      </>
+    );
+  const base = `/app/projects/${project.id}`;
+  return (
+    <ProjectContext.Provider value={project} key={project.id}>
+      <Link className="text-link" href="/app/projects">
+        ← 我的项目
+      </Link>
+      <div
+        className="page-heading heading-actions project-heading"
+        data-tone={projectTone(project.id)}
+      >
+        <div>
+          <p className="eyebrow">PROJECT / 项目空间</p>
+          <h1>
+            <span className="project-swatch">
+              <FolderOpen aria-hidden="true" />
+            </span>
+            {project.name}
+          </h1>
+          <p>
+            你在此项目：
+            <strong data-testid="project-role">
+              {roleLabel[project.projectRole]}
+            </strong>
+            <span className="role-separator">·</span>
+            {project.status === "ACTIVE" ? "进行中" : "已归档"}
+          </p>
+        </div>
+        <RefreshButton
+          label="刷新项目"
+          busy={query.isFetching}
+          disabled={query.isFetching}
+          onClick={() => void query.refetch()}
+        />
+      </div>
+      <nav className="project-nav" aria-label="项目导航">
+        {projectSections.map(({ path, label, icon: Icon, tone }) => {
+          const href = `${base}${path}`;
+          const current = path
+            ? pathname === href || pathname.startsWith(`${href}/`)
+            : pathname === href;
+          return (
+            <Link
+              key={path}
+              href={href}
+              aria-current={current ? "page" : undefined}
+            >
+              <Icon
+                size={17}
+                className="section-icon"
+                data-tone={tone}
+                aria-hidden="true"
+              />
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+      {query.error && (
+        <>
+          <p className="notice">
+            暂时无法读取项目，未保存的输入已保留。重新加载成功后可继续操作。
+          </p>
+          <QueryState query={query} />
+        </>
+      )}
+      <Activity mode={query.error ? "hidden" : "visible"}>{children}</Activity>
+    </ProjectContext.Provider>
+  );
+}
+
+export function ProjectOverview() {
+  const project = useCurrentProject();
+  const client = project.members.find((m) => m.role === "CLIENT");
+  const developers = project.members.filter((m) => m.role === "DEVELOPER");
+  return (
+    <div className="project-detail-grid">
+      <section className="surface-panel" aria-labelledby="scope-title">
+        <p className="panel-kicker">BASELINE SCOPE</p>
+        <h2 id="scope-title">初始范围</h2>
+        <p className="muted-copy">创建后固定 · 项目参考，不代表客户正式签署</p>
+        <div className="scope-content">{project.baselineScope}</div>
+      </section>
+      <aside className="stack-panels">
+        <section className="surface-panel">
+          <h2>协作成员</h2>
+          <Link className="text-link" href={`/app?projectId=${project.id}`}>
+            查看项目实时统计与待办 →
+          </Link>
+          <dl className="facts-list">
+            <dt>供应方负责人</dt>
+            <dd>{project.owner.displayName}</dd>
+            <dt>开发成员</dt>
+            <dd>
+              {developers.length
+                ? developers.map((m) => m.displayName).join("、")
+                : "尚未分配"}
+            </dd>
+            <dt>唯一客户</dt>
+            <dd>{client?.displayName ?? "尚未绑定"}</dd>
+          </dl>
+          <Link
+            className="text-link"
+            href={`/app/projects/${project.id}/members`}
+          >
+            {project.projectRole === "OWNER" ? "管理项目成员" : "查看项目成员"}{" "}
+            →
+          </Link>
+        </section>
+        <section className="surface-panel guidance-panel">
+          <h2>
+            {project.clientAssignmentLocked
+              ? "客户绑定已锁定"
+              : client
+                ? "协作账号已就绪"
+                : "下一步：绑定客户"}
+          </h2>
+          <p>
+            {project.clientAssignmentLocked
+              ? "此项目已有正式提交历史，为保留审批身份与历史一致性，不可更换客户账号。"
+              : client
+                ? "正式提交前，负责人可更正客户账号；首次提交后绑定将锁定。"
+                : "负责人需绑定一个已注册客户账号，之后才能正式提交变更。"}
+          </p>
+        </section>
+      </aside>
+    </div>
+  );
+}

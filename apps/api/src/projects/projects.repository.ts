@@ -28,7 +28,10 @@ export class ProjectsRepository {
       FROM projects p JOIN workspaces w ON w.id=p.workspace_id WHERE ${this.authorization.visibleProjects(userId)}
       ${page.workspaceId ? sql`AND p.workspace_id=${page.workspaceId}` : sql``}
       ORDER BY p.created_at,p.id LIMIT ${page.limit + 1} OFFSET ${page.offset}`)
-    ).rows;
+    ).rows.map((row) => ({
+      ...row,
+      createdAt: new Date(row.createdAt as string),
+    }));
   }
   async create(tx: DatabaseTransaction, input: CreateProjectDto) {
     const [project] = await tx.insert(projects).values(input).returning();
