@@ -115,6 +115,10 @@ export function CreateRequirement() {
         queryKey: key("requirements", project.id),
       }),
     onSuccess: async ({ data }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: key("dashboard") }),
+        queryClient.invalidateQueries({ queryKey: key("audit") }),
+      ]);
       await queryClient.invalidateQueries({
         queryKey: key("requirements", project.id),
       });

@@ -46,6 +46,8 @@ function useAction<T>(
     onSuccess: async () => {
       await Promise.all([
         props.refresh(),
+        queryClient.invalidateQueries({ queryKey: key("dashboard") }),
+        queryClient.invalidateQueries({ queryKey: key("audit", props.current.projectId) }),
         queryClient.invalidateQueries({
           queryKey: key("requirements", props.current.projectId),
         }),

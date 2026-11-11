@@ -191,7 +191,11 @@ export function ProjectMembers() {
   const { api, queryClient, key } = useProjectApi();
   const client = project.members.find((m) => m.role === "CLIENT");
   const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: key("project", project.id) });
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: key("project", project.id) }),
+      queryClient.invalidateQueries({ queryKey: key("dashboard") }),
+      queryClient.invalidateQueries({ queryKey: key("audit", project.id) }),
+    ]);
   return (
     <div className="stack-panels">
       <section className="surface-panel">
@@ -273,7 +277,11 @@ function AssignDeveloper() {
         body: { userId, role: "DEVELOPER" },
       }),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: key("project", project.id) }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: key("project", project.id) }),
+        queryClient.invalidateQueries({ queryKey: key("dashboard") }),
+        queryClient.invalidateQueries({ queryKey: key("audit", project.id) }),
+      ]),
   });
   const candidates =
     query.data?.data.filter((m) => m.role === "DEVELOPER") ?? [];

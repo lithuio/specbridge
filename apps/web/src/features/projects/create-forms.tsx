@@ -46,6 +46,10 @@ export function CreateWorkspace() {
     onError: () =>
       queryClient.invalidateQueries({ queryKey: key("workspaces") }),
     onSuccess: async (result) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: key("dashboard") }),
+        queryClient.invalidateQueries({ queryKey: key("audit") }),
+      ]);
       await queryClient.invalidateQueries({ queryKey: key("workspaces") });
       router.push(`/app/projects?workspaceId=${result.data.id}`);
     },
@@ -134,6 +138,10 @@ function ProjectForm({ initialWorkspace }: { initialWorkspace: string }) {
       api("post", "/api/v1/projects", { body }),
     onError: () => queryClient.invalidateQueries({ queryKey: key("projects") }),
     onSuccess: async (result) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: key("dashboard") }),
+        queryClient.invalidateQueries({ queryKey: key("audit") }),
+      ]);
       await queryClient.invalidateQueries({ queryKey: key("projects") });
       router.push(`/app/projects/${result.data.id}`);
     },

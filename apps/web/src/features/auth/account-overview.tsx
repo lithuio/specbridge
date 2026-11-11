@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import { Dashboard } from "@/features/dashboard/overview";
 import { useQuery } from "@tanstack/react-query";
 import {
   FileText,
   GitPullRequestArrow,
   PackageCheck,
   RefreshCw,
-  ShieldCheck,
 } from "lucide-react";
 import { useSession } from "./provider";
 import { privateKey } from "@/lib/query/keys";
@@ -35,25 +34,9 @@ export function AccountOverview() {
         <h1>工作概览</h1>
         <p>欢迎回来，{user?.displayName}。让需求、确认与交付保持连贯。</p>
       </div>
-      <div className="overview-grid">
-        <section className="welcome-panel" aria-labelledby="welcome-title">
-          <span className="panel-kicker">SPECBRIDGE / WORKSPACE</span>
-          <h2 id="welcome-title">
-            每一步协作，
-            <br />
-            都有清晰的依据。
-          </h2>
-          <p>
-            从需求澄清到交付验收，围绕同一份规格推进。
-            <br className="desktop-break" />
-            每次正式确认保留独立版本，方便回看与核对。
-          </p>
-          <div className="welcome-rule">
-            <ShieldCheck size={18} aria-hidden="true" />
-            <span>供应方与客户分别确认，批准记录可追溯。</span>
-          </div>
-          <Link className="text-link overview-project-link" href="/app/projects">进入我的项目 →</Link>
-        </section>
+      <Dashboard />
+      <details className="account-details" open>
+        <summary>当前账号与会话</summary>
         <section className="account-panel" aria-labelledby="account-title">
           <div className="section-heading">
             <h2 id="account-title">当前账号</h2>
@@ -82,7 +65,7 @@ export function AccountOverview() {
             {account.isFetching ? "正在刷新…" : "刷新账号信息"}
           </Button>
         </section>
-      </div>
+      </details>
       <section
         className="workflow-guide"
         id="workflow-guide"

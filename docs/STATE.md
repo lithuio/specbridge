@@ -1,8 +1,31 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-12。R07 Phase F 本地完成，下一业务阶段为 G。下方保留历史检查点。
+> 更新时间：2026-11-12。R07 Phase G 本地完成，下一阶段为 H 最终集成。下方保留历史检查点。
 
-## R07 Phase F — 本地完成，未提交
+## R07 Phase G — 本地完成，未提交
+
+`feat/15-web-integration` / HEAD `55b53df`；开工干净，F 已由负责人提交。已在线核对 Issue #15、F 成果及 R06/读取契约，保留前阶段源码与截图。只执行 G；未 Commit/Push/创建 PR/Merge/部署，未进入 H。
+
+- Delivery 提交、客户退回必填意见、新 D2 重交、接受与终态；独立历史详情/批准规格与审批证据。创建和 Review 不传 expectedVersion，后续需求修订不阻断原批准版本交付；409/未知结果保留输入并禁重放。
+- 真实 Dashboard 三bucket/授权统计/状态分布/项目列表、项目交付筛选列表、服务端角色裁剪 Audit；均使用既有 API，筛选分页与深链接刷新可恢复，无静态业务数据或任务分配系统。
+- 新增 `features/deliveries/dashboard/audit`、三类项目路由、G定向E2E；补齐 D–F 写后 Dashboard/Audit 缓存失效。复用会话/项目边界和现有UI，无后端、数据库、契约或依赖变更。
+
+| 命令 / 检查 | 实际结果 |
+|---|---|
+| `pnpm run test:browser:deliveries`（沙箱外） | PASS；最终2场景/10.2s，真实Next/Nest/隔离PostgreSQL/Chromium；退回→重交→接受、终态/403/409、旧批准不失效、无expectedVersion、竞争/未知结果不重放、真实聚合分页/审计裁剪/跨项目404、深链刷新与320px，无pageerror |
+| `node scripts/with-env.mjs .env.test pnpm --filter web test:e2e auth.spec.ts --grep 'A→B'`（沙箱外） | PASS；现有缓存隔离1项/3.9s，无历史截图覆盖 |
+| `pnpm --filter web build`（沙箱外） | PASS；最终干净生产构建，交付列表/详情/Audit新增路由 |
+| `pnpm --filter web typecheck`、`pnpm --filter web lint`、`git diff --check` | PASS；无lint警告 |
+| `pnpm run db:test:up`（沙箱外） | PASS；现有5434隔离库，原启动器校验身份与已审迁移 |
+| [G 正式截图与复现](ux/evidence/r07-g/README.md) | 2张：真实聚合桌面页、手机接受确认框，最终已查看，C–F截图原样保留 |
+
+已处理：Review联合请求类型、证据字段错误显示、Next Activity成功状态、测试筛选导航/reload竞争、沙箱监听与Turbopack旧CSS缓存。最终干净构建产物与浏览器CSS断言一致；旧缓存保存在 `/tmp/specbridge-r07-g-{build-al24ldtm,final-pdazj6aw}/next`，不作为复现依赖。自建API/Web退出；本轮启动的测试DB保留运行，未清表/down或访问开发库。无未解决测试失败。
+
+H收尾：完整三角色浏览器准备→审批→交付链；集中一次R01–R06/契约/Web/浏览器全量回归；桌面/手机/键盘/对比度与长内容视觉；跨模块缓存/混合角色/会话过期核心负向；最终文档和人工视觉/安全Review。远程CI、生产HTTPS/多浏览器及人工评审未运行，不虚构通过，H-09仍待记录。无新增人工决策阻塞；下一Session按 [G交接](engineering/R07_PLAN.md) 启动H，本轮到G结束。建议摘要：`feat(r07): integrate delivery acceptance, live dashboard and scoped audit`。
+
+---
+
+## R07 Phase F — 历史交接（后续已提交在 55b53df）
 
 `feat/15-web-integration` / HEAD `cef9e44`；开工干净，E 已由负责人提交。已在线核对 Issue #15、R05 精确契约与 E 成果；仅执行 F，保留前阶段源码及截图。未 Commit/Push/创建 PR/Merge/部署，未进入 G。
 

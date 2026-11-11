@@ -109,6 +109,8 @@ export function useRefreshChange(change: Change) {
         ["change", change.projectId, change.id],
         ["change-version", change.projectId, change.id],
         ["changes", change.projectId],
+        ["dashboard"],
+        ["audit", change.projectId],
         ["requirement", change.projectId, change.requirementId],
         ["project", change.projectId],
       ].map((parts) =>

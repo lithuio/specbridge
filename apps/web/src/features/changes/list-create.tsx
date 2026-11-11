@@ -149,6 +149,12 @@ export function CreateChange({
         queryKey: key("requirement", requirement.projectId, requirement.id),
       }),
     onSuccess: async ({ data }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: key("dashboard") }),
+        queryClient.invalidateQueries({
+          queryKey: key("audit", requirement.projectId),
+        }),
+      ]);
       await queryClient.invalidateQueries({
         queryKey: key("changes", requirement.projectId),
       });

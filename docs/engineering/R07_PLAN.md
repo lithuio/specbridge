@@ -1,7 +1,7 @@
 # R07 总规划与跨 Session 交接
 
 > 核心交接入口。新 Session 先读本文件，再按阶段读取必要源码/契约；不依赖聊天历史。  
-> 更新：2026-11-12。负责人批准总体规划后追加：**B–H 分别在新的 Session 实施，精简过程与重复验证，保留核心质量测试**。Phase F 已完成本地实施与验证；下一新 Session 执行 G。
+> 更新：2026-11-12。负责人批准总体规划后追加：**B–H 分别在新的 Session 实施，精简过程与重复验证，保留核心质量测试**。Phase G 已完成本地实施与验证；下一新 Session 执行 H。
 
 ## 1. 任务、范围和授权
 
@@ -26,18 +26,18 @@
 | D 项目 / 成员 | COMPLETE（本地） | Workspace/Project、两级成员、唯一 Client；真实浏览器准备与权限/锁定分支通过 |
 | E 需求 / Revision | COMPLETE（本地） | 需求创建/限定编辑、问答、不可变 Revision/分页历史/Ready；真实流程及冲突/权限分支通过 |
 | F 变更 / 审批 | COMPLETE（本地） | CR发现/商业草稿/冻结提交、同版顺序审批、拒绝重开再提交、版本与审批历史；真实流程及stale分支通过 |
-| G 交付 / Dashboard / Audit | NOT STARTED | F 后接通交付闭环和真实聚合 |
+| G 交付 / Dashboard / Audit | COMPLETE（本地） | 交付/退回/重交/接受与历史；真实三类待办/统计/项目交付/Audit；真实流程与隔离、竞争分支通过 |
 | H 最终集成 | NOT STARTED | G 后统一浏览器主流程、全量回归与视觉收尾 |
 
-**实际代码状态**：R01–R06 后端源码已存在；apps/web 已有正式 `/login`、`/register`、`/app`，含 Tokens/Shell、Typed Client、会话生命周期与 Query 缓存隔离。当前 `/app` 展示真实账号信息、协作说明与项目入口；D 已有 `/app/projects`、空间/项目创建、项目详情/成员及供应方成员管理。E 已有项目下需求列表/创建/详情、澄清问答、Revision 创建/只读历史与 Ready。F 已有项目 CR 列表/筛选、商业评估草稿/正式提交、同版顺序审批与拒绝重提、独立冻结历史；交付及业务聚合仍留 G。packages 为空。API 已实现七项读取与必要 capabilities；离线 Swagger 导出在 `apps/api/src/openapi`，契约为 `docs/architecture/openapi.json`，前端类型为 `apps/web/src/lib/api/generated/schema.d.ts`。现有 Vitest/HTTP/Next Rewrite 测试不是浏览器 E2E。
+**实际代码状态**：R01–R06 后端源码已存在；apps/web 已有正式 `/login`、`/register`、`/app`，含 Tokens/Shell、Typed Client、会话生命周期与 Query 缓存隔离。当前 `/app` 展示真实 Dashboard 三类待办、授权范围统计与分页项目列表，保留账号信息与协作说明；D 已有 `/app/projects`、空间/项目创建、项目详情/成员及供应方成员管理。E 已有项目下需求列表/创建/详情、澄清问答、Revision 创建/只读历史与 Ready。F 已有项目 CR 列表/筛选、商业评估草稿/正式提交、同版顺序审批与拒绝重提、独立冻结历史；G 已有交付创建/终审/历史详情、项目交付列表与状态筛选、角色裁剪 Audit 和真实 Dashboard，写后刷新聚合。packages 为空。API 已实现七项读取与必要 capabilities；离线 Swagger 导出在 `apps/api/src/openapi`，契约为 `docs/architecture/openapi.json`，前端类型为 `apps/web/src/lib/api/generated/schema.d.ts`。现有 Vitest/HTTP/Next Rewrite 测试不是浏览器 E2E。
 
 **依赖审计基线**：Web 本地 Next 16.4.3、React 19.3.0、TS 5.9.3、Tailwind 4.3.3、Base UI 1.9.0、shadcn 4.23.0、Query 5.105.0、Zod 4.6.7、RHF 7.91.0。这些是 Phase A 观察值，新 Session 用 package.json/根 lockfile 核对，不升级无关依赖。Web package name 为 `web`，API 为 `specbridge-api`。Web 子目录另有 lockfile/workspace 配置，优先沿用根工作区约定，不顺手清理。
 
-**工作区连续性**：F 开工实际分支 `feat/15-web-integration`、HEAD `cef9e44`、工作区干净。E 已由负责人提交在 `cef9e44`，D 在 `7e5beb4`，C 在 `200c54f`；历史“未提交”只描述当时。F 成果保留未提交；前阶段源码与 C/D/E 历史截图保留，不 stash/reset/clean，不自动 Commit/Push/PR。
+**工作区连续性**：G 开工实际分支 `feat/15-web-integration`、HEAD `55b53df`、工作区干净。F 已由负责人提交在 `55b53df`，E 在 `cef9e44`；历史“未提交”只描述当时。G 成果保留未提交；前阶段源码及 C–F 历史截图保留，不 stash/reset/clean，不自动 Commit/Push/PR。
 
-**证据**：A 的 [verification.json](../ux/prototypes/r07/evidence/verification.json) 仅证明独立原型。B 的精确命令/结果见下方交接与 STATE：93 单元、90 DB 集成、9 R07 HTTP 契约场景，以及受影响 R03–R06 HTTP/代理回归通过；UTC 日期小修后另重跑 R03 12 项 DB 回归。C 新增证据：Web 生产构建、真实 Chromium/编译 API/隔离 DB 的 6 场景、R02 HTTP/Rewrite 16 项通过，B 契约漂移仍通过。截图见 [C evidence](../ux/evidence/r07-c/README.md)。D 新增 2 个真实浏览器场景，根入口分别启动 C 6/D 2 场景均通过；Web lint/typecheck、API/Web build 通过，3 张代表截图见 [D evidence](../ux/evidence/r07-d/README.md)。E 新增2条真实浏览器场景最终通过（17.1s），Web lint/typecheck/build 通过，2张正式截图见 [E evidence](../ux/evidence/r07-e/README.md)。E 未重复 C/D 或无关后端回归。F 新增2条真实浏览器场景最终通过（16.5s），Web lint/typecheck/build 通过，2张关键审批截图见 [F evidence](../ux/evidence/r07-f/README.md)。F 未重复无关后端及 C–E 全量回归。远程 CI/人工评审未运行。
+**证据**：A 的 [verification.json](../ux/prototypes/r07/evidence/verification.json) 仅证明独立原型。B 的精确命令/结果见下方交接与 STATE：93 单元、90 DB 集成、9 R07 HTTP 契约场景，以及受影响 R03–R06 HTTP/代理回归通过；UTC 日期小修后另重跑 R03 12 项 DB 回归。C 新增证据：Web 生产构建、真实 Chromium/编译 API/隔离 DB 的 6 场景、R02 HTTP/Rewrite 16 项通过，B 契约漂移仍通过。截图见 [C evidence](../ux/evidence/r07-c/README.md)。D 新增 2 个真实浏览器场景，根入口分别启动 C 6/D 2 场景均通过；Web lint/typecheck、API/Web build 通过，3 张代表截图见 [D evidence](../ux/evidence/r07-d/README.md)。E 新增2条真实浏览器场景最终通过（17.1s），Web lint/typecheck/build 通过，2张正式截图见 [E evidence](../ux/evidence/r07-e/README.md)。E 未重复 C/D 或无关后端回归。F 新增2条真实浏览器场景最终通过（16.5s），Web lint/typecheck/build 通过，2张关键审批截图见 [F evidence](../ux/evidence/r07-f/README.md)。F 未重复无关后端及 C–E 全量回归。G 新增2条真实浏览器场景最终通过（10.2s），另跑现有 A→B 缓存隔离1项（3.9s），Web lint/typecheck/干净生产构建通过；[G evidence](../ux/evidence/r07-g/README.md) 含2张正式截图。未重复无关后端或全量浏览器回归，远程 CI/人工评审未运行。
 
-**下个 Session 的第一步**：执行 G；先读本文件最新 F 交接、STATE、Web README、`features/changes/{queries,detail,editor,shared}`、生成契约与 R06 API。核对 Git 并保留 F 成果，复用 ProjectBoundary/Session API/私有 keys/浏览器 fixture。Delivery 创建与 Review 均不传 expectedVersion；退回后新建 Delivery，APPROVED CR 保持终态；Dashboard/Audit 使用已有真实只读接口。当前 Session 到 F 结束，不进入 G。
+**下个 Session 的第一步**：执行 H；先读本文件最新 G 交接、STATE、Web README 与各阶段定向 E2E。核对 Git 并保留 G 成果，复用启动器/fixture；按 H 计划贯通三角色完整浏览器链、集中跑一次 R01–R06/契约/Web 全量检查，统一视觉与可访问性。已知环境注意 Turbopack 持久缓存可能保留沙箱失败或旧 CSS，需核对产物与截图；不可把阶段截图当人工通过。当前 Session 到 G 结束，不进入 H。
 
 ## 3. 最少必要阅读与权威来源
 
@@ -282,6 +282,22 @@ git diff --check
 - 无新增API/后端业务逻辑、生成契约、依赖、表或Migration。NOT RUN：无关R01–R06全量回归/C–E全量浏览器、远程CI、人工视觉/安全Review、生产HTTPS/多浏览器与完整审批交付闭环，集中留H；H-09人工结论仍未记录。
 - 下一 Session：G；复用F冻结快照与角色能力，接Delivery创建/退回/新交付/接受、真实Dashboard/Audit；Delivery不传expectedVersion，旧已批准版本不受后来需求修订影响。`useRefreshChange`失效键模式可复用，G还需失效交付聚合及Dashboard/Audit。无新增人工决策阻塞。
 - 建议摘要（不执行）：`feat(r07): integrate commercial assessments and versioned sequential approvals`。
+
+### Session 2026-11-12 — Phase G — COMPLETE（本地）
+
+- 分支/HEAD：`feat/15-web-integration` / `55b53df`；开工干净，F 已由负责人提交。已读仓库/Next 指引、最新 F 交接，在线核对 Issue #15 与 R06/读取契约。保留前阶段源码及 C–F 截图，未 Commit/Push/创建 PR/Merge/部署，未进入 H。
+- 完成 AC-13/14/15/16/27 本阶段浏览器范围：从批准 CR 提交 HTTPS 成果/说明/可选证据；Client 必填意见退回→新 D2→接受；不可变旧交付/Review、一次终审与已验收终态。创建/Review 均不传 expectedVersion；后续需求 Revision 不阻断原批准规格交付。详情展示批准规格/审批证据和独立历史链接，项目父链不符安全404。
+- 真实读取：`/app` 的 mine/waiting/completed、状态分布与统计全部来自 GET /dashboard；按 workspace/project 筛选，统计不受当前页影响；项目列表独立分页。无虚构任务指派/截止期/收入。项目 Delivery 状态/CR 筛选与分页、Audit 事件筛选与分页均来自已有 API，URL 刷新恢复；Audit 仅展示服务端白名单投影与真实 target，Client 隐藏内部事件，版本按实体命名。
+- 入口：新增 `features/deliveries/{queries,shared,create,list,detail}`、`dashboard/overview`、`audit/list`；项目 `deliveries`/`deliveries/[deliveryId]`/`audit` 三类路由；CR 交付入口、项目导航/统计入口。沿用 Session API/私有 keys/ProjectBoundary/RHF/Zod/Base UI，无新依赖/后端逻辑/生成契约/表/Migration。
+- 写后：交付刷新详情/列表/CR capabilities/Dashboard/Audit；补齐 D–F 成功写后的聚合失效。创建结果未知保留输入并禁重发；Review409或已终审保留评论并禁重放，须关闭核对。成功创建后清除 Next Activity 保留的成功状态，退回后可从原页面继续提交新交付。
+- PASS：`pnpm run test:browser:deliveries`（沙箱外）→ 最终2场景/10.2s，真实生产 Next/Nest/5434隔离PostgreSQL/Chromium，无pageerror。真实三角色退回/重交/接受；HTTPS/证据校验、退回必填；无expectedVersion、Developer403、Pending/Accepted409、旧需求修订仍可交付、终审竞争不重放、响应丢失不重复创建、真实三bucket/13项分页统计、客户字段/内部事件隔离、跨项目404、列表/活动筛选分页/深链刷新、批准历史、320px；概览失败不显示假零值，页面内返回刷新缓存。
+- PASS：`node scripts/with-env.mjs .env.test pnpm --filter web test:e2e auth.spec.ts --grep 'A→B'`（沙箱外）→ 现有1项/3.9s；概览新增私有查询后账号缓存隔离仍通过，未覆盖 C 截图。
+- PASS：`pnpm --filter web build`（沙箱外最终干净生产构建）、`pnpm --filter web typecheck`、`pnpm --filter web lint`、`git diff --check`；根入口追加定向 G 脚本，全量入口纳入 G，本轮未运行根全量。两张代表图见 [G evidence](../ux/evidence/r07-g/README.md)，最终已逐张查看。
+- 已处理：Review 请求生成类型要求退回 comment 必填；证据数组错误改在输入字段显示；Next Activity 成功状态清理；首轮列表筛选后立即 reload 的测试导航竞争，增加 URL 就绪断言；沙箱监听/Docker限制后获准外部执行。Turbopack 缓存先保留至 `/tmp/specbridge-r07-g-build-al24ldtm/next`，后因截图发现增量构建旧CSS再保留至 `/tmp/specbridge-r07-g-final-pdazj6aw/next` 干净构建；最终产物含新CSS且浏览器布局断言通过。无未解决测试失败。
+- 环境：`pnpm run db:test:up`（沙箱外）启动现有5434隔离测试实例；原启动器校验身份并沿用已审迁移，复用系统Chromium/字体及已有API构建，不读取开发配置/访问开发库，不清表/禁触发器。自建API/Web由启动器退出；本轮启动的测试DB保留运行，未自动down或删除历史。未安装依赖。
+- NOT RUN：未受影响 R01–R06/C–F 全量回归、契约重生成/漂移、远程CI、人工视觉/安全Review、生产HTTPS/多浏览器、全量可访问性与端到端所有准备步骤，按计划留H。G以真实API建立批准前置，浏览器完成交付链，不能冒充H全链路已完成。H-09仍无人工结论。
+- H 收尾：① 全部准备步骤改由三角色浏览器贯通，复用阶段fixture与风险证据；② 集中一次R01–R06、契约漂移、Web及完整浏览器回归；③ 桌面/手机、键盘焦点/对比度/长内容/滚动与主要页面视觉统一；④ 核对所有写入口到Dashboard/Audit的跨页刷新、混合角色/会话过期/409与重复操作；⑤ 清理各阶段历史文档措辞，记录人工视觉/安全Review与远程CI的真实状态。未发现需先行人工决策的新阻塞；不把上述未做项标为通过。
+- 建议摘要（不执行）：`feat(r07): integrate delivery acceptance, live dashboard and scoped audit`。
 
 ## 9. 每个新 Session 的提示词（可单独复制）
 

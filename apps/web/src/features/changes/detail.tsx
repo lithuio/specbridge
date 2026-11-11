@@ -23,6 +23,7 @@ import {
   FrozenContent,
   versionOutcome,
 } from "./shared";
+import { DeliveryEntry } from "@/features/deliveries/create";
 import { ChangeConfirmation, DraftEditor, type Selection } from "./editor";
 
 export function ChangeDetail() {
@@ -118,6 +119,7 @@ function Detail({ id }: { id: string }) {
           本轮审批已拒绝。旧版本与意见保持只读；供应方可重开评估，重新提交后双方须重新审批。
         </p>
       )}
+      <DeliveryEntry change={change} available={available} />
       <div className="requirement-detail-grid">
         <div className="stack-panels">
           {draft && change.status === "DRAFT" && (

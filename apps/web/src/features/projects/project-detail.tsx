@@ -67,7 +67,9 @@ export function ProjectBoundary({ children }: { children: React.ReactNode }) {
         </Link>
         <Link
           href={`${base}/requirements`}
-          aria-current={pathname.startsWith(`${base}/requirements`) ? "page" : undefined}
+          aria-current={
+            pathname.startsWith(`${base}/requirements`) ? "page" : undefined
+          }
         >
           项目需求
         </Link>
@@ -78,6 +80,20 @@ export function ProjectBoundary({ children }: { children: React.ReactNode }) {
           }
         >
           变更与审批
+        </Link>
+        <Link
+          href={`${base}/deliveries`}
+          aria-current={
+            pathname.startsWith(`${base}/deliveries`) ? "page" : undefined
+          }
+        >
+          交付与验收
+        </Link>
+        <Link
+          href={`${base}/audit`}
+          aria-current={pathname === `${base}/audit` ? "page" : undefined}
+        >
+          活动记录
         </Link>
       </nav>
       {children}
@@ -100,6 +116,9 @@ export function ProjectOverview() {
       <aside className="stack-panels">
         <section className="surface-panel">
           <h2>协作成员</h2>
+          <Link className="text-link" href={`/app?projectId=${project.id}`}>
+            查看项目实时统计与待办 →
+          </Link>
           <dl className="facts-list">
             <dt>供应方负责人</dt>
             <dd>{project.owner.displayName}</dd>

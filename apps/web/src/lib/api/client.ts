@@ -46,6 +46,9 @@ export function errorMessage(error: unknown): string {
   if (error.code === "STALE_VERSION")
     return "内容已更新，请保留输入并核对最新版后再操作。";
   const projectErrors: Record<string, string> = {
+    DELIVERY_PENDING: "已有待验收交付，请先核对交付历史。",
+    DELIVERY_COMPLETED: "此批准版本已验收，不能继续交付。",
+    ALREADY_REVIEWED: "此记录已有决定，请刷新核对历史。",
     REVIEW_IN_PROGRESS: "此需求有审批中的变更，审批结束前不能创建新 Revision。",
     USER_NOT_REGISTERED: "该邮箱尚未注册，请先让对方创建账号，再添加成员。",
     WORKSPACE_DEVELOPER_REQUIRED:
