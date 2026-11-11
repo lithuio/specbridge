@@ -71,6 +71,14 @@ export function ProjectBoundary({ children }: { children: React.ReactNode }) {
         >
           项目需求
         </Link>
+        <Link
+          href={`${base}/changes`}
+          aria-current={
+            pathname.startsWith(`${base}/changes`) ? "page" : undefined
+          }
+        >
+          变更与审批
+        </Link>
       </nav>
       {children}
     </ProjectContext.Provider>

@@ -19,6 +19,7 @@ import {
 } from "./queries";
 import { offsetValue, PersonTime, RevisionContent } from "./shared";
 import { RequirementEditor, type Selection } from "./editor";
+import { CreateChange } from "@/features/changes/list-create";
 
 export function RequirementDetail() {
   const { requirementId } = useParams<{ requirementId: string }>();
@@ -268,6 +269,16 @@ function Detail({ id }: { id: string }) {
               </p>
             )}
           </section>
+          {supplier ? (
+            <CreateChange requirement={r} available={available && !selection} />
+          ) : (
+            <Link
+              className="text-link"
+              href={`/app/projects/${project.id}/changes?requirementId=${r.id}`}
+            >
+              查看此需求的变更 →
+            </Link>
+          )}
           <RevisionHistory requirement={r} />
         </aside>
       </div>

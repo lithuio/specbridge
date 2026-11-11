@@ -1,8 +1,31 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-11。本机开发环境已配置并验证；R07 Phase E 本地完成，下一业务阶段为 F。下方保留历史检查点。
+> 更新时间：2026-11-12。R07 Phase F 本地完成，下一业务阶段为 G。下方保留历史检查点。
 
-## R07 Phase E — 本地完成，未提交
+## R07 Phase F — 本地完成，未提交
+
+`feat/15-web-integration` / HEAD `cef9e44`；开工干净，E 已由负责人提交。已在线核对 Issue #15、R05 精确契约与 E 成果；仅执行 F，保留前阶段源码及截图。未 Commit/Push/创建 PR/Merge/部署，未进入 G。
+
+- 已实现 CR 发现列表/筛选/分页、从 Ready 需求创建商业评估、NULL/部分草稿保存、完整评估正式冻结提交；Owner→Client 同版审批；双方拒绝、仅重开草稿、另行 Submit 产生新版本；APPROVED 终态；冻结规格与审批历史/独立深链接。对应 AC-09～12/16 与需求 Pending 保护的浏览器核心行为。
+- lockVersion 初始0；金额安全整数最小单位、工时十进制字符串；无浮点金额换算。Client 无 draft，重开后旧 activeVersion 明确标上一轮，历史状态来自每版 approvals。
+- 草稿409保留输入并显式核对；正式提交/审批确认框固定快照，旧决定遇到新版返回409后禁再次提交，须关闭核对再发起；不自动重试。创建结果未知禁重发。写后刷新关联需求capabilities、项目绑定锁定及CR/历史缓存。
+- 新增 `features/changes`、三类项目变更路由、定向 `e2e/changes.spec.ts`；复用Session/ProjectBoundary/Query/Base UI/RHF/Zod。无后端/契约/依赖/数据库结构改动。
+
+| 命令 / 检查 | 实际结果 |
+|---|---|
+| `pnpm run test:browser:changes`（沙箱外） | PASS；最终2场景/16.5s，真实生产Next/Nest/隔离PostgreSQL/Chromium；三角色顺序批准、Client拒绝重提、Owner拒绝重提、新版不继承旧审批、Client无draft/403/404、stale不重放、精度边界、终态409、分页/筛选/深链/320px、未知创建禁重发，无pageerror |
+| `pnpm --filter web build`（沙箱外） | PASS；新增列表/详情/冻结历史三类路由生产构建 |
+| `pnpm --filter web typecheck`、`pnpm --filter web lint`、`git diff --check` | PASS；无lint警告 |
+| `pnpm run db:test:up`（沙箱外） | PASS；仅启动5434隔离测试库，标准端口映射本次可用；原启动器校验身份、沿用已审迁移 |
+| [F 正式截图与复现](ux/evidence/r07-f/README.md) | 2张：客户同版审批桌面页、手机确认框；已查看，C/D/E截图保留 |
+
+已处理：TypeScript泛型反馈类型；Turbopack沙箱/失败缓存（保存在 `/tmp/specbridge-r07-f-build-p4q5dmge/next`）；测试DB未运行；Activity隐藏页测试选择器；截图动画/视口。系统Chromium及中文字体可用，本轮不需临时库/下载。自建API/Web退出，本轮启动的测试DB收尾停止；开发DB保持healthy（5433），未访问其数据。无未解决测试失败。
+
+未运行：未受影响R01–R06/C–E全量回归、契约重生成、远程CI、人工视觉/安全Review、生产HTTPS/多浏览器、全量可访问性与交付闭环，按计划留H。无新增人工决策；H-09不标通过。下一新Session按 [F交接](engineering/R07_PLAN.md) 启动G，Delivery创建/Review不传expectedVersion，接真实Dashboard/Audit；本轮不继续。建议摘要：`feat(r07): integrate commercial assessments and versioned sequential approvals`。
+
+---
+
+## R07 Phase E — 历史交接（后续已提交在 cef9e44）
 
 `feat/15-web-integration` / HEAD `7e5beb4`；开工干净，D 已由负责人提交。已在线核对 Issue #15、R04 实施契约与 D 成果。只执行 E，保留前阶段源码/截图；未 Commit/Push/创建 PR/Merge/部署，未进入 F。
 
