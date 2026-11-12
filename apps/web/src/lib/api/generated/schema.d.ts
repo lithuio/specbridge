@@ -367,6 +367,22 @@ export interface paths {
         patch: operations["Requirements_patch"];
         trace?: never;
     };
+    "/api/v1/requirements/{id}/ai-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Ai_analyze"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/requirements/{id}/change-requests": {
         parameters: {
             query?: never;
@@ -4614,6 +4630,162 @@ export interface operations {
             };
             /** @description Safe error envelope */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    Ai_analyze: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    draft?: {
+                        acceptanceCriteria: string[];
+                        content: string;
+                    };
+                    expectedVersion: number;
+                    /** @default true */
+                    includeClarifications?: boolean;
+                    /** Format: uuid */
+                    revisionId?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            analysisId: string;
+                            /** @description Untrusted AI draft. Combined text length <=6000 UTF-16 code units. Not approval or an automatic business write. */
+                            result: {
+                                acceptanceCriteria: string[];
+                                assumptions: string[];
+                                openQuestions: string[];
+                                risks: string[];
+                                summary: string;
+                            };
+                            /** @enum {integer} */
+                            schemaVersion: 1;
+                            source: {
+                                clarificationIds: string[];
+                                draftVersion: number;
+                                includesUnsavedDraft: boolean;
+                                /** Format: date-time */
+                                readAt: string;
+                                /** Format: uuid */
+                                requirementId: string;
+                                /** Format: uuid */
+                                revisionId: string | null;
+                            };
+                        };
+                        meta: {
+                            /** Format: uuid */
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Safe error envelope */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

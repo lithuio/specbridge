@@ -33,6 +33,7 @@
     "test:e2e:changes": "pnpm run build && vitest run --config ./vitest.config.changes-e2e.ts",
     "test:e2e:deliveries": "pnpm run build && vitest run --config ./vitest.config.deliveries-e2e.ts",
     "test:e2e:reads": "vitest run --config ./vitest.config.reads-e2e.ts",
+    "test:e2e:ai": "vitest run --config ./vitest.config.ai-e2e.ts",
     "openapi:generate": "pnpm run build && node scripts/openapi.mjs",
     "openapi:check": "pnpm run build && node scripts/openapi.mjs --check"
   },

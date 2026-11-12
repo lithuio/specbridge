@@ -24,6 +24,7 @@
     "db:test:down": "docker compose -f infra/compose.test.yml down",
     "test:integration": "node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:integration",
     "test:e2e": "pnpm --filter specbridge-api test:e2e",
+    "test:e2e:ai": "node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:ai",
     "test:e2e:db": "node scripts/with-env.mjs .env.test pnpm run test:e2e:db:run",
     "test:e2e:db:run": "pnpm --filter specbridge-api test:e2e:auth && pnpm --filter specbridge-api test:e2e:rbac && pnpm --filter specbridge-api test:e2e:requirements && pnpm --filter specbridge-api test:e2e:changes && pnpm --filter specbridge-api test:e2e:deliveries && pnpm --filter specbridge-api test:e2e:reads",
     "test:browser": "pnpm --filter specbridge-api build && pnpm --filter web build && pnpm run test:browser:run",

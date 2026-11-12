@@ -1,4 +1,5 @@
 import { DashboardModule } from './dashboard/dashboard.module.js';
+import { AiModule } from './ai/ai.module.js';
 import { AuditReadModule } from './audit/audit-read.module.js';
 import { DeliveriesModule } from './deliveries/deliveries.module.js';
 import { ChangesModule } from './changes/changes.module.js';
@@ -19,6 +20,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
 
 @Module({
   imports: [
+    AiModule,
     DashboardModule,
     AuditReadModule,
     DatabaseModule,
@@ -40,11 +42,26 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
       serviceId: 'specbridge-api',
       http: {
         capture: false,
-        ignore: [/^\/api\/v1\/(?:auth(?:\/|$)|me(?:\/|$|\?))/i],
+        ignore: [
+          /^\/api\/v1\/(?:auth(?:\/|$)|me(?:\/|$|\?)|requirements\/[^/]+\/ai-analysis(?:\/|$|\?))/i,
+        ],
       },
       redaction: {
         enabled: true,
-        keys: ['email', 'passwordHash', 'tokenHash', 'cookie', 'set-cookie'],
+        keys: [
+          'email',
+          'passwordHash',
+          'tokenHash',
+          'cookie',
+          'set-cookie',
+          'authorization',
+          'apiKey',
+          'prompt',
+          'messages',
+          'content',
+          'originalText',
+          'body',
+        ],
         patterns: [
           /\$argon2id\$[^\s,"']+/,
           /\b[A-Za-z0-9_-]{43}\b/,

@@ -21,6 +21,7 @@ const codes: Record<number, string> = {
   503: 'SERVICE_UNAVAILABLE',
 };
 const domainCodes: Record<number, readonly string[]> = {
+  503: ['AI_UNAVAILABLE', 'AI_INVALID_RESPONSE'],
   409: [
     'REGISTRATION_UNAVAILABLE',
     'CLIENT_ASSIGNMENT_LOCKED',

@@ -16,6 +16,7 @@
 | 为什么如此设计 | `adr/` |
 | 如何开发与验收 | `engineering/WORKFLOW.md`, `engineering/DEVELOPMENT.md`, `engineering/TEST_STRATEGY.md` |
 | 当前进度 / 人工责任 | `STATE.md`, `HUMAN_TASKS.md` |
+| R08 AI/Agent 总计划与 Phase A 交接 | `engineering/R08_PLAN.md` |
 | 发布前检查 | `release/RELEASE_CHECKLIST.md` |
 | 竞品调研 | `research/COMPETITOR_RESEARCH.md` |
 | R07 只读契约、Audit/Dashboard 与生成 OpenAPI（Phase B 本地完成） | `architecture/R07_READ_MODELS.md`, `architecture/openapi.json` |

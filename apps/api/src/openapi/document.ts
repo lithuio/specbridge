@@ -24,6 +24,7 @@ import { ChangesController } from '../changes/changes.controller.js';
 import { DeliveriesController } from '../deliveries/deliveries.controller.js';
 import { AuditReadController } from '../audit/audit-read.module.js';
 import { DashboardController } from '../dashboard/dashboard.module.js';
+import { AiController } from '../ai/ai.controller.js';
 import {
   schemas,
   envelope,
@@ -86,6 +87,52 @@ const list = (
   query?: Record<string, Schema>,
 ): Operation => ({ response: arr(ref(name)), paged: true, query });
 const definitions: [Type, Record<string, Operation>][] = [
+  [
+    AiController,
+    {
+      analyze: {
+        body: obj(
+          {
+            expectedVersion: int(1),
+            revisionId: uuid,
+            includeClarifications: { type: 'boolean', default: true },
+            draft: obj({
+              content: text(20000),
+              acceptanceCriteria: { ...arr(text(1000)), maxItems: 100 },
+            }),
+          },
+          ['revisionId', 'includeClarifications', 'draft'],
+        ),
+        response: obj({
+          analysisId: uuid,
+          schemaVersion: { type: 'integer', enum: [1] },
+          source: obj({
+            requirementId: uuid,
+            draftVersion: int(1),
+            revisionId: nullable(uuid),
+            clarificationIds: { ...arr(uuid), maxItems: 500 },
+            includesUnsavedDraft: { type: 'boolean' },
+            readAt: { type: 'string', format: 'date-time' },
+          }),
+          result: {
+            ...obj({
+              summary: text(1000),
+              ...Object.fromEntries(
+                [
+                  'assumptions',
+                  'openQuestions',
+                  'acceptanceCriteria',
+                  'risks',
+                ].map((key) => [key, { ...arr(text(500)), maxItems: 10 }]),
+              ),
+            }),
+            description:
+              'Untrusted AI draft. Combined text length <=6000 UTF-16 code units. Not approval or an automatic business write.',
+          },
+        }),
+      },
+    },
+  ],
   [
     AuthController,
     {
@@ -353,7 +400,17 @@ export async function createDocument() {
               : {}),
           }),
         );
-      for (const code of [400, 401, 403, 404, 409, 422, 429, 500])
+      for (const code of [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        429,
+        500,
+        ...(controller === AiController ? [413, 503] : []),
+      ])
         decorate(
           ApiResponse({
             status: code,
@@ -375,7 +432,7 @@ export async function createDocument() {
   const app = await NestFactory.create(OfflineModule, { logger: false });
   try {
     const config = new DocumentBuilder()
-      .setTitle('SpecBridge R07 HTTP API')
+      .setTitle('SpecBridge HTTP API')
       .setVersion('0.2')
       .addSecurity('session', {
         type: 'apiKey',

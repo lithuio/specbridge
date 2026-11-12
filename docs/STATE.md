@@ -1,6 +1,23 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-12。Web review 的表单保留/重置修复与完整浏览器回归完成，待负责人审阅/提交；远程 CI 与独立人工评审 NOT RUN。下方保留历史检查点。
+> 更新时间：2026-11-12。R08 Phase A 代码、本地Mock/HTTP/DB及真实DeepSeek Smoke验证完成，未提交；远程CI、人工评审 NOT RUN。下方保留历史检查点。
+
+## R08 Phase A — Provider 与需求分析完成，真实 Smoke PASS
+
+`feat/17-ai-agent-integration` / 开工 HEAD `9d43f8f`，开工工作区干净。负责人授权仅A；原 `R08_PLAN.md` 不存在，已按获批修订方案创建 [总计划与精确验证记录](engineering/R08_PLAN.md)。未Commit/Push/PR/Merge/部署，未进入B。
+
+- 新增Nest AI Module、DeepSeek Adapter、只读上下文Repository与授权POST分析接口。复用OpenAI SDK/Zod、官方origin与deepseek-flash，显式non-thinking/JSON mode，strict服务端输入/输出校验及来源版本。
+- 三角色依原Project Policy，Session/CSRF不变；调用前后重验，跨项目/跨需求Revision拒绝，stale不调用模型。分析不自动创建Revision/Ready/审批或审计；业务写入口未改。
+- 30秒/8192 output tokens、128 KiB输入、响应大小、用户/项目/实例调用与并发限额；429/402/503、超时、空白/非法JSON安全失败，SDK不重试，API Key为不可JSON序列化私有字段，不日志输出Prompt/正文/供应商错误。
+- 补齐503安全码、AI专用请求体限额/no-store、Observe保护、31路径OpenAPI与Web生成类型；新增Mock CI入口及独立合成Smoke脚本。无新依赖/Schema/Migration，仅.env.example变更；真实.env仅由获授权的Smoke进程加载，未打印/修改。
+- PASS：API单元113项；最终AI/异常定向22项；AI真实HTTP+DB 9项；Auth/R04 DB 23项；Auth HTTP/Next代理16项；R04 HTTP/Next代理9项；基础HTTP5项。API/Web类型、API Lint、API生产build/OpenAPI drift、格式与diff检查通过。完整命令见R08_PLAN。
+- 已解决：非直接express运行时导入（改既有Adapter）、沙箱5434 EPERM（获准重跑）、Lint warning；服务重启后的未知检查结果已核对重跑。无未解决测试FAIL。测试仅5434隔离DB，既有服务teardown退出，DB保持运行；tracked构建缓存恢复。
+- PASS：负责人确认Key已更换并授权后，执行 `node scripts/with-env.mjs .env node apps/api/scripts/ai-smoke.mjs --run`。仅一次合成需求真实请求，deepseek-flash，JSON/Zod通过；输入225、输出306 tokens，3129ms，exit 0。上限2048输出tokens/30秒，无自动重试，无Prompt/响应正文/密钥输出，不访问DB。此前NOT RUN记录由此次实际证据补齐。
+- NOT RUN：远程CI、独立人工安全评审、浏览器及R01–R08全量回归，最终全量留F；真实Observe外部接收仍未验证。CI保护脚本已验证会跳过真实模型调用。
+- 人工：本地开启API另设 `DEEPSEEK_ENABLED=true`（默认关闭，不影响P0，Smoke仅对子进程临时开启）。审阅后自行Commit。内存限额重启清零，不是持久费用硬上限；单次真实Provider验证不替代内容质量评审与后续浏览器验收。
+- 建议摘要：`feat(ai): add authorized DeepSeek requirement analysis with bounded usage (#17)`。
+
+---
 
 ## Web review — 表单状态保留与创建页复用修复完成，未提交
 

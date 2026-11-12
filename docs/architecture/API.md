@@ -1,5 +1,17 @@
 # SpecBridge REST API 契约（设计基线）
 
+## R08 Phase A — 需求分析（2026-11-12）
+
+`POST /api/v1/requirements/{id}/ai-analysis`：Session + CSRF；Owner/分配 Developer/绑定 Client 仅可分析可见需求。200 `{data:{analysisId,schemaVersion:1,source,result},meta:{requestId}}`。不创建作业/业务记录或 Revision，不触发 Ready/审批。所有响应 no-store。
+
+- 请求：`{expectedVersion,revisionId?,includeClarifications?,draft?:{content,acceptanceCriteria}}`；严格禁止未知字段/query。expectedVersion 为正整数 R04 draftVersion。includeClarifications 默认 true；指定 Revision 必须属于同需求，省略读取当前 latestRevisionId。draft 是未保存人类输入，沿用 R04 长度限制。
+- source：requirementId、draftVersion、revisionId|null、clarificationIds、includesUnsavedDraft、readAt；生成期间版本变化不更新 source。客户端未来采用时必须人工核对版本并调用既有写 API。
+- result：summary:string、assumptions/openQuestions/acceptanceCriteria/risks:string[]。全部为不可信 AI 草稿，不表示客户确认。summary 非空≤1000，各数组≤10项，每项非空≤500；合计≤6000 UTF-16 code units。数组可空。
+- 401无效Session；403 CSRF；404无权/不存在/Revision父链错误；400输入/query错误；409 STALE_VERSION；413输入过大。分析最多500条澄清、装配材料128 KiB、输出8192 tokens；不静默截断。
+- 429 RATE_LIMITED（本地用户/项目/实例限额或上游429），带 Retry-After。503 AI_UNAVAILABLE（禁用/配置/上游认证、402、500/503、网络或超时）；503 AI_INVALID_RESPONSE（空白/截断/非法JSON/Schema/输出超限）。供应商401不返回为浏览器401，不透传任何原始供应商错误。
+- 调用前后重验项目权限/Session；模型等待不持有DB事务/锁。AI数据查询仅SELECT，已有Session认证正常活动时间更新保持原契约。
+- OpenAPI 与 Web 类型已纳入生成/漂移检查。模型调用参数、限额和后续B–F计划见 `../engineering/R08_PLAN.md`。Phase A 无Web界面、Copilot、Token或MCP实现。
+
 > R07 Phase A 增量读取契约另见 [R07_READ_MODELS.md](R07_READ_MODELS.md)：七个 GET、capabilities、Audit 白名单和 Dashboard 定义。这些增量已在 Phase B 本地实现并生成 OpenAPI；不改变下文 R02–R06 已有写契约。
 
 > v0.2（P0 需求基线已确认）｜Base Path：`/api/v1`｜API-01～30、API-32 与 Client 绑定已有本地实现；其余业务接口仍为设计基线。后续 NestJS 生成 OpenAPI，必须与本文保持一致。

@@ -1,5 +1,26 @@
 # SpecBridge — Local Development
 
+## R08 Phase A 本地 AI
+
+复用根 `.env` 中服务端 `DEEPSEEK_API_KEY`、`DEEPSEEK_BASE_URL=https://api.deepseek.com`、`DEEPSEEK_MODEL=deepseek-flash`。负责人还需设置 `DEEPSEEK_ENABLED=true` 才开启 API 调用；默认关闭，缺少/非法配置不会阻断 P0。不要复制到 NEXT_PUBLIC_*，不要输出 `.env`。可选限额见 `.env.example` 和 R08_PLAN；数值非法仅使 AI 不可用。
+
+```bash
+pnpm --filter specbridge-api test
+pnpm run test:e2e:ai  # 仅 .env.test / 5434 隔离库 / Mock Provider，无真实Key
+pnpm --filter specbridge-api openapi:check
+```
+
+受控真实 Smoke：仅使用已安全更换的服务端 Key、合成资料、一次请求；先 build，再从仓库根执行：
+
+```bash
+pnpm --filter specbridge-api build
+node scripts/with-env.mjs .env node apps/api/scripts/ai-smoke.mjs --run
+```
+
+Smoke 直接验证生产 Provider/Schema，最多2048 output tokens/30秒，不查询数据库或启动Web；只输出状态/模型/用量/耗时，不输出Prompt、响应正文或Key。脚本在CI或未显式--run时跳过，不作为CI步骤；已知泄露或未确认安全的Key不得使用。没有Key或未获安全确认记录NOT RUN，网络/模型失败记录FAIL，不自动重试。API完整授权/版本边界由Mock Provider真实HTTP/DB套件验证。
+
+本地计数为单实例内存、UTC日重置、重启清零；不是持久费用账本。AI失败不修改业务，不自动重试；人工采用留给Phase B。
+
 ## 本地环境（2026-11-11）
 
 沿用仓库和 CI：Node **22.23.4**（`.nvmrc`）、pnpm **10.34.9**、PostgreSQL **17-alpine**、根目录 `pnpm-lock.yaml`。当前工作目录为 `/home/lenovo/projects/specbriage`；命令均在仓库根目录执行，不使用 `apps/web` 的独立锁文件安装。

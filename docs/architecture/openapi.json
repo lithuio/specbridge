@@ -4837,7 +4837,7 @@
   "info": {
     "contact": {},
     "description": "",
-    "title": "SpecBridge R07 HTTP API",
+    "title": "SpecBridge HTTP API",
     "version": "0.2"
   },
   "openapi": "3.0.0",
@@ -9691,6 +9691,336 @@
         "summary": "",
         "tags": [
           "Requirements"
+        ]
+      }
+    },
+    "/api/v1/requirements/{id}/ai-analysis": {
+      "post": {
+        "operationId": "Ai_analyze",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "draft": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "acceptanceCriteria": {
+                        "items": {
+                          "maxLength": 1000,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "maxItems": 100,
+                        "type": "array"
+                      },
+                      "content": {
+                        "maxLength": 20000,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "content",
+                      "acceptanceCriteria"
+                    ],
+                    "type": "object"
+                  },
+                  "expectedVersion": {
+                    "maximum": 2147483647,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "includeClarifications": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "revisionId": {
+                    "format": "uuid",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "expectedVersion"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "analysisId": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "result": {
+                          "additionalProperties": false,
+                          "description": "Untrusted AI draft. Combined text length <=6000 UTF-16 code units. Not approval or an automatic business write.",
+                          "properties": {
+                            "acceptanceCriteria": {
+                              "items": {
+                                "maxLength": 500,
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "maxItems": 10,
+                              "type": "array"
+                            },
+                            "assumptions": {
+                              "items": {
+                                "maxLength": 500,
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "maxItems": 10,
+                              "type": "array"
+                            },
+                            "openQuestions": {
+                              "items": {
+                                "maxLength": 500,
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "maxItems": 10,
+                              "type": "array"
+                            },
+                            "risks": {
+                              "items": {
+                                "maxLength": 500,
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "maxItems": 10,
+                              "type": "array"
+                            },
+                            "summary": {
+                              "maxLength": 1000,
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "summary",
+                            "assumptions",
+                            "openQuestions",
+                            "acceptanceCriteria",
+                            "risks"
+                          ],
+                          "type": "object"
+                        },
+                        "schemaVersion": {
+                          "enum": [
+                            1
+                          ],
+                          "type": "integer"
+                        },
+                        "source": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "clarificationIds": {
+                              "items": {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              "maxItems": 500,
+                              "type": "array"
+                            },
+                            "draftVersion": {
+                              "maximum": 2147483647,
+                              "minimum": 1,
+                              "type": "integer"
+                            },
+                            "includesUnsavedDraft": {
+                              "type": "boolean"
+                            },
+                            "readAt": {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            "requirementId": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "revisionId": {
+                              "format": "uuid",
+                              "nullable": true,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "requirementId",
+                            "draftVersion",
+                            "revisionId",
+                            "clarificationIds",
+                            "includesUnsavedDraft",
+                            "readAt"
+                          ],
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "analysisId",
+                        "schemaVersion",
+                        "source",
+                        "result"
+                      ],
+                      "type": "object"
+                    },
+                    "meta": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "requestId": {
+                          "format": "uuid",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Ai"
         ]
       }
     },
