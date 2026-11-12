@@ -1,5 +1,7 @@
 # SpecBridge — Local Development
 
+R08本机配置修复与完整人工测试见 [R08_MANUAL_TEST](R08_MANUAL_TEST.md)。2026-11-12已持久开启本机AI，并按追加授权将0004应用到5433开发库；启动 `pnpm dev:api` 时从.env加载。终端已有变量优先，若曾导出false，用 `DEEPSEEK_ENABLED=true pnpm dev:api`；修改.env后须重启最外层启动进程。网页AI使用DeepSeek，外部MCP宿主使用其自身模型。
+
 ## R08 Phase F 最终验证
 
 本地回归顺序：`pnpm lint`、`pnpm test`、`pnpm build`，三个包分别 `typecheck`；`pnpm --filter specbridge-api openapi:check`、`pnpm db:check`、`pnpm test:smoke-guards`。隔离数据库组必须串行：`pnpm test:integration && pnpm test:e2e && pnpm test:e2e:db && pnpm test:e2e:ai && pnpm test:browser:run`。需现有5434测试实例、已审迁移和Playwright Chromium；不要与本地3000/4000开发进程同时运行。
@@ -100,7 +102,7 @@ chmod 600 .env .env.test
 
 ```bash
 pnpm run db:up       # 等待 PostgreSQL 健康；保留开发持久卷
-pnpm run db:migrate  # 应用已审阅的 0000～0003，重复运行不会重复应用
+pnpm run db:migrate  # 应用目标已获授权的 0000～0004；本机已完成，重复运行幂等
 pnpm run dev:api     # 终端 A；显式加载根 .env，监听 4000
 pnpm run dev:web     # 终端 B；http://localhost:3000
 ```
@@ -150,7 +152,7 @@ pnpm run db:test:down       # 测试 tmpfs 数据随容器移除而消失
 3. 新 SQL 经人工审核后，先 `pnpm run db:migrate:test` 并运行集成测试，再执行 `pnpm run db:migrate`。不要使用 schema push 或修改已应用的历史迁移。
 4. 迁移版本记录在目标数据库的 `drizzle.__drizzle_migrations`；SQL 按 journal 顺序应用。无自动 down/回滚命令，修正应新增迁移；已有数据先备份，不能清库解决冲突。
 
-现有版本依次为 `0000_database_foundation`、`0001_immutable_history`、`0002_session_activity`、`0003_requirement_draft_version`。以下 R01/R02 章节保留历史实施细节；当时“开发库未迁移”是历史状态，当前验证结果见 `docs/STATE.md` 顶部。
+现有版本依次为 `0000_database_foundation`、`0001_immutable_history`、`0002_session_activity`、`0003_requirement_draft_version`、`0004_project_api_tokens`。以下 R01/R02 章节保留历史实施细节；当时“开发库未迁移”是历史状态，当前验证结果见 `docs/STATE.md` 顶部。
 
 ## 常见检查
 ```bash

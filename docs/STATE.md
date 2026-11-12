@@ -1,8 +1,22 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-12。R08 Phase F本地最终联调与完整回归完成，待负责人验收/本地Commit及后续远程CI；E已提交d75d39e、D55ad908、C9ba8f34、B642954a、A6bfe681。未Commit/Push/PR/Merge/部署。下方保留历史交接。
+> 更新时间：2026-11-12。R08 F已由负责人提交922eef1。本轮修复本机AI未启用配置，按新增授权将0004应用到开发库，实际Web/DeepSeek/Token/MCP联通PASS；服务保持运行供人工测试。独立Review与远程CI待办，本轮未Commit/Push/PR/Merge/部署。
 
-## R08 Phase F — 最终本地交接（未提交）
+## R08 本地启用修复 — 真实开发环境可用
+
+开工分支 `feat/17-ai-agent-integration` / HEAD `922eef1`，工作区干净。负责人报告503且Copilot modelCalls=0，并明确要求应用0004、整体可用及人工测试范例。
+
+- 确认根.env中AI未开启，Key存在且开启后配置校验通过；仅持久设置 `DEEPSEEK_ENABLED=true`，其余字节保留。日志所示4ms/0模型调用符合配置在Provider前拒绝；Observe禁用与此无关。API已重新启动载入真实配置。
+- 依本轮新增授权，只在127.0.0.1:5433/specbridge开发库应用已审0004。已有0000–0003 hash匹配，迁移4→5；审核SHA-256仍为 `7133f1d8fc11ef93f84314dede4257cbba23452dec9ca49a2fdb57ce5cc0bd0a`。原15表列定义/行数保持。无新SQL、生产迁移或业务规则变更。
+- 实际标准开发进程（无Mock）PASS：浏览器需求分析200/结构完整，247输入/283输出tokens、2505ms；Copilot200、3模型请求/2工具读取、真实来源、9973ms；需求快照不变。Token创建/列表/UI、MCP tools/list/call、未批准项目空目录及撤销拒绝均通过，浏览器0错误。
+- 验证仅新建一个独立合成账号/工作空间/项目/Draft需求，未修改已有用户业务；临时Token和会话已撤销，审计与合成对象保留。未自动Revision/Ready/Submit/审批/验收；本轮开发环境无人工批准数据测试，已批准详情和角色/过期完整测试沿用F证据。
+- [本轮结果/截图/迁移证据](engineering/evidence/r08-local/README.md)。[完整人工测试手册](engineering/R08_MANUAL_TEST.md)含可复制需求、人工采用、409、Copilot多轮/隔离、双重批准→MCP、Token生命周期、Skill提议与失败降级。
+- 当前Web http://localhost:3000、API4000保持运行；以后用 `DEEPSEEK_ENABLED=true pnpm dev:api` 和 `pnpm dev:web` 重启。外部宿主仍由使用者按手册选择项目并安全配置Token；本轮未改Codex配置。MCP不调用DeepSeek，宿主模型独立。
+- 无未解决FAIL；本轮未重复不受影响全量回归。H-11人工安全/视觉验收和远程CI仍待办。未Commit/Push/PR/Merge/部署，建议 `docs(ai): document verified local setup and manual acceptance scenarios`。
+
+---
+
+## R08 Phase F — 历史交接（后续已提交922eef1）
 
 开工 `feat/17-ai-agent-integration` / HEAD `d75d39e`；初始仅 `apps/api/tsconfig.build.tsbuildinfo` 有改动，已保留开工内容。已核对AGENTS/Issue #17/R08计划和A–E交接。本轮验证完整AI/Agent，不新增业务功能或改变批准基线。
 

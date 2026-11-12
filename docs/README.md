@@ -17,9 +17,10 @@
 | 如何开发与验收 | `engineering/WORKFLOW.md`, `engineering/DEVELOPMENT.md`, `engineering/TEST_STRATEGY.md` |
 | 当前进度 / 人工责任 | `STATE.md`, `HUMAN_TASKS.md` |
 | R08 AI/Agent 总计划与 A–F 交接 | `engineering/R08_PLAN.md` |
+| R08 本地真实启用、AI503排查与全功能人工测试范例 | `engineering/R08_MANUAL_TEST.md`, `engineering/evidence/r08-local/README.md` |
 | R08 F 最终回归、安全自查、真实Provider/MCP/Host与PR草案 | `engineering/evidence/r08-f/README.md`, `engineering/R08_PR_DRAFT.md` |
 | R08 F 真实AI浏览器、Token桌面/手机与键盘检查 | `ux/evidence/r08-f/README.md` |
-| R08 D Token SQL、Diff/SHA-256与审批记录（仅隔离库已应用） | `engineering/R08_D_SQL_REVIEW.md` |
+| R08 D Token SQL、Diff/SHA-256与审批记录（隔离库及获新增授权的本机开发库已应用） | `engineering/R08_D_SQL_REVIEW.md` |
 | R08 E 本地MCP、Codex配置与Skill安装 | `../apps/mcp/README.md`, `../skills/requirement-analyst/SKILL.md` |
 | R08 E 真实SDK Client/数据库与Codex Host/Skill测试证据 | `engineering/evidence/r08-e/README.md` |
 | R08 AI 建议人工审阅、桌面/手机截图与浏览器验证 | `ux/evidence/r08-b/README.md` |

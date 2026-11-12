@@ -107,9 +107,9 @@ COMMIT;
 - `api_tokens`：`id`, `user_id`, `project_id`, `token_hash`, `scopes`, `expires_at`, `revoked_at`；仅 MCP 只读 Token，支持撤销与审计。
 - `external_links`：已批准版本与 GitHub Issue URL 对应，**不自动抓取 URL**。
 
-### R08 Phase D 增量（2026-11-12，已批准并在隔离测试库应用）
+### R08 Phase D 增量（2026-11-12，隔离库及获授权的本机开发库已应用）
 
-当前仓库新增 `apiTokens` Drizzle声明及 `0004_project_api_tokens.sql`；负责人明确批准后，仅在5434隔离specbridge_test库应用，未迁移开发/生产库。完整SQL Diff、批准的SHA-256及验证记录见 [D SQL审核包](../engineering/R08_D_SQL_REVIEW.md)。现有15张表、0000–0003迁移均未修改。
+当前仓库包含 `apiTokens` Drizzle声明及 `0004_project_api_tokens.sql`；D阶段获批后先在5434隔离specbridge_test库应用，2026-11-12负责人追加本机完整启用授权后，同一哈希SQL已应用到5433/specbridge开发库，未迁移生产库。完整SQL Diff、批准的SHA-256见 [D SQL审核包](../engineering/R08_D_SQL_REVIEW.md)，[开发迁移证据](../engineering/evidence/r08-local/migration.json)。原15张表、0000–0003迁移均未修改。
 
 `api_tokens`：UUID id PK、project_id→projects.id / user_id→users.id两个RESTRICT外键（user_id为创建者）、非空name≤100、unique char(64) token_hash、固定 `['approved_specs:read']` text[] scopes、created_at默认now()、expires_at必填、revoked_at可空。时间均timestamptz；有限创建/过期时间，期限为创建后24–2160小时；撤销时间有限且不早于创建。索引 `(project_id,created_at DESC,id DESC)`。不存明文、可恢复密文、冗余active状态或聊天资料；复用既有audit_events，不新增审计表。
 

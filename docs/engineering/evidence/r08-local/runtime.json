@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "checkedAt": "2026-11-12T15:42:19.701Z",
+  "target": "local development 3000 → 4000 → 5433",
+  "analysisHttp": 200,
+  "analysisSchemaAndUi": true,
+  "copilotHttp": 200,
+  "toolCalls": 2,
+  "realSource": true,
+  "noAutomaticBusinessWrites": true,
+  "tokenCreateListUi": true,
+  "mcpTools": [
+    "get_approved_spec",
+    "list_project_requirements"
+  ],
+  "noApprovedVersionsMeansEmptyList": true,
+  "revokedTokenRejected": true,
+  "browserErrors": 0,
+  "temporaryTokenRevoked": true,
+  "sessionRevoked": true
+}

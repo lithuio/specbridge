@@ -1,6 +1,8 @@
 # R08 Phase D — Project API Token SQL 审核包
 
-状态：**负责人已明确批准此哈希对应SQL；已仅在隔离PostgreSQL应用成功**。2026-11-12，开工分支 `feat/17-ai-agent-integration` / HEAD `9ba8f34`，工作区原本干净。Phase C 已由负责人提交。
+状态：**负责人已明确批准此哈希对应SQL；D先在隔离PostgreSQL应用，后续按追加授权应用本机开发库**。D于2026-11-12开工，分支 `feat/17-ai-agent-integration` / HEAD `9ba8f34`，工作区原本干净。Phase C 当时已由负责人提交。
+
+追加授权与执行：F提交922eef1后，负责人明确要求修复本地AI并“应用0004_project_api_tokens，最终要求是能够整体都完整使用”。本轮核对以下原始SQL哈希与开发库0000–0003记录后，复用迁移runner在 `127.0.0.1:5433/specbridge` 应用成功；4→5条迁移，旧表列定义/行数保持。没有修改SQL或访问生产目标。[开发迁移证据](evidence/r08-local/migration.json)。下文保留D最初仅隔离库授权的历史记录。
 
 依据：本轮负责人明确授权“生成最小 Drizzle Schema 和 SQL”，并要求“给出 SQL Diff 和 SHA-256，停止等待负责人明确批准，未批准前不应用任何 Migration”。随后负责人回复“已审批”，明确授权此SQL在隔离PostgreSQL应用并继续D。重新核对哈希后，`pnpm db:migrate:test` 实际成功；未应用开发/生产库。Issue [#17](https://github.com/lithuio/specbridge/issues/17)、AC-20、AC-05/15/16/17 和 ADR-002/004 的只读/租户/人审边界保持。
 

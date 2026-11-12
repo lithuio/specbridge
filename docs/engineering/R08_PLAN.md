@@ -1,6 +1,6 @@
 # R08 — AI & Agent Integration
 
-批准基线：负责人确认的修订计划；Issue [#17](https://github.com/lithuio/specbridge/issues/17)。一个 Issue、一个最终 PR；A–F 各自独立 Session，每阶段负责人本地 Commit。禁止自动 Commit/Push/PR/Merge/部署。本文首次落盘随 Phase A 实施授权；D先生成最小Schema/SQL并停在审批点，负责人随后回复“已审批”。获批0004仅在隔离测试库应用；D已由负责人提交55ad908，E已提交d75d39e。F本地联调和完整回归已完成，待负责人验收/本地Commit及后续远程CI；本地PASS不等于整个Issue DoD或发布批准。
+批准基线：负责人确认的修订计划；Issue [#17](https://github.com/lithuio/specbridge/issues/17)。一个 Issue、一个最终 PR；A–F 各自独立 Session，每阶段负责人本地 Commit。禁止自动 Commit/Push/PR/Merge/部署。本文首次落盘随 Phase A 实施授权；D先生成最小Schema/SQL并停在审批点，负责人随后回复“已审批”。0004先在隔离测试库应用；F提交后，负责人追加授权在本机开发库应用，已完成，见下方本地启用记录。D/E/F已由负责人分别提交55ad908/d75d39e/922eef1。F本地联调和完整回归已完成，独立人工验收与远程CI仍待办；本地PASS不等于整个Issue DoD或发布批准。
 
 ## 基线与阶段
 
@@ -16,9 +16,9 @@
 | A Provider & Analysis | 配置、Provider、授权分析 API、Schema、限额、异常、契约与定向测试 | 已由负责人本地提交6bfe681；真实DeepSeek Smoke PASS |
 | B Assistance UI | 原文对照、编辑建议、人工采用到既有表单、stale/未知结果处理 | 已由负责人本地提交 642954a |
 | C Global Copilot | Shell 项目助手、内存对话、有界只读工具、来源卡片 | 已由负责人本地提交 9ba8f34 |
-| D Project Token | Owner 管理、批准规格投影、已审 Schema/SQL 与测试 | 已由负责人本地提交55ad908；获批0004仅在隔离库应用 |
+| D Project Token | Owner 管理、批准规格投影、已审 Schema/SQL 与测试 | 已由负责人本地提交55ad908；0004已在隔离库及追加授权的本机开发库应用 |
 | E MCP & Skill | SDK v2 stdio、两个工具、requirement-analyst、真实 Host 验证 | 已由负责人本地提交d75d39e |
-| F Final Integration | 真实 DeepSeek/Web/MCP 与 R01–R08 完整回归、人工 Review、远程 CI | 本地自动验证PASS；人工Review与远程CI待完成，未提交 |
+| F Final Integration | 真实 DeepSeek/Web/MCP 与 R01–R08 完整回归、人工 Review、远程 CI | 已由负责人本地提交922eef1；本地自动验证PASS，人工Review与远程CI待完成 |
 
 ## A：接口与实现约束
 
@@ -57,7 +57,18 @@ E：apps/mcp 使用 SDK v2 McpServer/serveStdio，编译后直接node启动；st
 
 F：Mock CI与真实联调分开；真实合成数据DeepSeek、Chromium、MCP SDK Client、Inspector及至少一个真实Agent Host/Skill。完整Lint/typecheck/build/unit/integration/HTTP/DB/browser/OpenAPI/db:check/MCP回归，数据库串行。人工安全Review和远程CI独立记录，不以本地测试代替。
 
-## F 最终联调与交接（2026-11-12，未提交）
+## 本机启用与人工测试交接（2026-11-12，F提交后）
+
+负责人报告本地503并明确要求应用0004及提供全功能人工测试范例。本轮不扩展功能，修复实际运行配置并将已经审核的SQL应用到获授权的开发目标。
+
+- 确认根.env的AI开关未开启；Key存在且开启后配置校验有效。仅设置 `DEEPSEEK_ENABLED=true`，保留其他配置，重新启动标准API进程。原日志0模型调用/4ms符合Provider前的本地配置拒绝；Observe禁用不影响AI。
+- 开发目标限定 `127.0.0.1:5433/specbridge`，既有0000–0003哈希/时间戳匹配后，运行现有迁移runner。0004 SHA-256 `7133f1d8fc11ef93f84314dede4257cbba23452dec9ca49a2fdb57ce5cc0bd0a`，迁移4→5，旧15表列定义与行数保持。没有新SQL或生产迁移。
+- 真实开发Web→API→DeepSeek PASS：需求分析200且五类结果展示，Copilot200且3次模型请求/2次只读工具/真实来源，需求状态不变；实际Token创建/列表/UI、MCP两工具发现/读取、未批准空目录及撤销拒绝通过。验证使用新建独立合成项目，临时Token和会话结束撤销，不改已有用户项目。
+- [本轮结果与截图](evidence/r08-local/README.md)、[完整人工测试范例](R08_MANUAL_TEST.md)。人工手册覆盖分析/选择编辑采用、409、Copilot多轮与隔离、人工同版双重批准、Token/真实MCP/Skill及AI故障降级。已批准详情与完整角色/异常矩阵沿用F隔离库证据，本轮未在开发项目自动批准业务。
+- Web3000/API4000保持运行。后续从.env启动需重启最外层 `pnpm dev:api`；终端变量优先，必要时显式 `DEEPSEEK_ENABLED=true pnpm dev:api`。外部宿主的Token连接由用户按手册配置，未修改Codex用户配置。
+- 本轮无未解决FAIL；不重复不受影响的完整回归。独立人工Review/远程CI仍待办。未Commit/Push/PR/Merge/部署。
+
+## F 最终联调与交接（2026-11-12，历史记录，后续已提交922eef1）
 
 开工分支 `feat/17-ai-agent-integration`，HEAD `d75d39e`；初始仅 tracked `apps/api/tsconfig.build.tsbuildinfo` 有改动，备份并保留其开工字节，不恢复到HEAD。已阅读AGENTS、A–E交接/STATE/本计划、Issue #17、R07设计、相关业务/授权/AI/Token/MCP源码与测试。仅完成本轮验证范围；没有新增业务功能、生产代码、Schema/SQL、依赖版本或远程操作。
 

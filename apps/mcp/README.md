@@ -2,6 +2,8 @@
 
 R08 Phase E：本地 stdio Server，仅把 Phase D 授权 API 的批准规格开放给 Agent。无 HTTP MCP 监听、OAuth Server、PostgreSQL 连接或业务写工具；MCP 进程不需要 DeepSeek Key。
 
+从需求分析、人工双重批准到MCP/Skill的完整演示，见 [本地人工测试手册](../../docs/engineering/R08_MANUAL_TEST.md)。2026-11-12已按追加授权在本机5433开发库应用0004，并完成真实Web/DeepSeek/Token/MCP验证；本机服务与证据见 [联通记录](../../docs/engineering/evidence/r08-local/README.md)。
+
 ## 安装和连接 Codex
 
 需要仓库指定的 Node 22（`.nvmrc`）和 pnpm 10。于仓库根目录执行：
