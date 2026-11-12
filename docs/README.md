@@ -16,8 +16,10 @@
 | 为什么如此设计 | `adr/` |
 | 如何开发与验收 | `engineering/WORKFLOW.md`, `engineering/DEVELOPMENT.md`, `engineering/TEST_STRATEGY.md` |
 | 当前进度 / 人工责任 | `STATE.md`, `HUMAN_TASKS.md` |
-| R08 AI/Agent 总计划与 A/B/C 交接 | `engineering/R08_PLAN.md` |
-| R08 D Token候选SQL、Diff/SHA-256与审批点（未应用） | `engineering/R08_D_SQL_REVIEW.md` |
+| R08 AI/Agent 总计划与 A–E 交接 | `engineering/R08_PLAN.md` |
+| R08 D Token SQL、Diff/SHA-256与审批记录（仅隔离库已应用） | `engineering/R08_D_SQL_REVIEW.md` |
+| R08 E 本地MCP、Codex配置与Skill安装 | `../apps/mcp/README.md`, `../skills/requirement-analyst/SKILL.md` |
+| R08 E 真实SDK Client/数据库与Codex Host/Skill测试证据 | `engineering/evidence/r08-e/README.md` |
 | R08 AI 建议人工审阅、桌面/手机截图与浏览器验证 | `ux/evidence/r08-b/README.md` |
 | R08 全局项目 Copilot、工具来源与浏览器验证 | `ux/evidence/r08-c/README.md` |
 | 发布前检查 | `release/RELEASE_CHECKLIST.md` |

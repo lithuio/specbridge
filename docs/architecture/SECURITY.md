@@ -81,6 +81,14 @@
 - 生命周期1–90天、默认30天；不提供恢复/续期。归档和资格变化为动态不可用，若条件恢复且未过期/撤销可重新有效；需要永久失效必须显式撤销。新Owner可撤销旧Owner创建的凭据。
 - 限流复用单进程内存服务：创建30/用户/分钟，读取120/连接IP/分钟及60/Token/分钟；使用socket peer，不信任可伪造XFF。反向代理可能使多个客户端共享IP配额；多实例/持久配额及使用审计长期保留策略需要后续容量评审。未引入Redis或HTTP OAuth。
 
+### R08 E 本地 MCP / Skill 边界
+
+- `apps/mcp` 仅 stdio，SDK Server 2.4.0；只注册 `list_project_requirements` 和 `get_approved_spec`。进程只向可信固定API origin发送两条批准规格GET，不直接连接数据库，不赋予Agent普通业务会话。Project/Token/origin从本地环境绑定，严格参数Schema禁止模型覆盖，API仍在每次请求中执行D的独立principal/项目/有效期/批准状态检查。
+- HTTPS或精确loopback HTTP；拒绝带认证信息/路径/query/fragment的origin，拒绝HTTP重定向，Bearer不进入URL/argv/配置/日志。只保留配置私有字段中的认证头，运行入口删除环境副本；无持久缓存或自动重试。撤销后再次读取拒绝，不承诺收回宿主已获得的资料或防御同账号内存读取。
+- HTTP10秒、响应2MiB、工具JSON2MiB（双表示约4MiB）、输入缓冲64KiB、并发2/每分钟60次；传递取消并在EOF关闭。API仍有限额；未知正文/字段/外项目响应/无效JSON失败关闭。stdout只输出协议、stderr固定错误，不透传原始异常及上游正文。
+- 批准目录预览标注截断；精确详情把approvedScope与referencedRequirement分开。Skill明确区分批准事实、引用背景、未确认推测/建议，引用真实ID/版本/读取时间；嵌入记录的指令不成为系统授权，不自动扩张范围。Skill不是宿主沙箱，宿主自有Shell/写工具另行限制。
+- 已验证真实SDK Client→stdio→Nest→隔离PostgreSQL以及一次真实Codex Host场景（合成资料、临时Token、禁Shell/插件/委派）。注入用例验证已注册工具和业务权限边界及该场景的模型表现，不承诺通用语义防注入。无远程MCP HTTP/OAuth服务。配置、错误契约和复现入口见 [MCP README](../../apps/mcp/README.md)。
+
 ## 8. 密钥管理、日志与部署
 
 - `.env` 不入库；提交 `.env.example`；生产使用服务端密钥注入，不在镜像里 Bake Secret。

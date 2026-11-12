@@ -319,3 +319,11 @@ pnpm test:browser:tokens
 Owner 从项目导航“访问凭据”创建默认30天、最长90天的固定只读凭据。关窗/隐藏/刷新后不能再读取明文；丢失时撤销并重新创建。未知创建响应先核对列表、撤销可能成功的记录。管理UI使用现有Session，外部客户端通过API origin及Authorization Bearer读取批准规格，不能带Cookie或将Token放入URL。真实使用必须HTTPS；本地隔离验证为loopback HTTP。不要将凭据写入命令历史、日志、截图或浏览器持久存储。
 
 CI纳入SQL集成、Token HTTP与浏览器套件，不需要DeepSeek Key。该阶段不新增依赖/环境变量，不提供MCP或OAuth；不应运行真实DeepSeek Smoke来验证Token功能。
+
+## R08 E 本地 MCP 与 Agent Skill
+
+安装、环境安全传递、Codex配置、Skill安装、两个工具契约及错误处理见 [apps/mcp/README](../../apps/mcp/README.md)。只使用本地stdio，不提供HTTP MCP/OAuth；MCP进程不连接数据库、不需要DeepSeek配置。
+
+`pnpm test:mcp` 包括Mock和真实SDK stdio客户端；`pnpm test:e2e:mcp` 在上述5434隔离库启动真实Nest API，以内存合成Token连接编译后的MCP子进程，复用已批准迁移。普通套件跳过真实Host模型测试。可选Codex Host/Skill Smoke只在显式 `R08_MCP_HOST_SMOKE=1` 且非CI时运行，命令和限制见MCP README；使用合成资料，不读取真实项目或.env。
+
+根递归build/lint/test已自动包含MCP包，CI增加MCP typecheck与数据库集成步骤，不依赖真实API Key。测试证据见 [R08 E](evidence/r08-e/README.md)；本阶段不替代F的完整回归。

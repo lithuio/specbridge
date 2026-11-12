@@ -1,6 +1,6 @@
 # R08 — AI & Agent Integration
 
-批准基线：负责人确认的修订计划；Issue [#17](https://github.com/lithuio/specbridge/issues/17)。一个 Issue、一个最终 PR；A–F 各自独立 Session，每阶段负责人本地 Commit。禁止自动 Commit/Push/PR/Merge/部署。本文首次落盘随 Phase A 实施授权；D先生成最小Schema/SQL并停在审批点，负责人随后回复“已审批”。获批0004仅在隔离测试库应用；D已完成本地验证，E–F未开始。
+批准基线：负责人确认的修订计划；Issue [#17](https://github.com/lithuio/specbridge/issues/17)。一个 Issue、一个最终 PR；A–F 各自独立 Session，每阶段负责人本地 Commit。禁止自动 Commit/Push/PR/Merge/部署。本文首次落盘随 Phase A 实施授权；D先生成最小Schema/SQL并停在审批点，负责人随后回复“已审批”。获批0004仅在隔离测试库应用；D已由负责人提交55ad908。E已完成本地实现与SDK/数据库/Codex Host验证，待人工本地Commit；F未开始。
 
 ## 基线与阶段
 
@@ -16,8 +16,8 @@
 | A Provider & Analysis | 配置、Provider、授权分析 API、Schema、限额、异常、契约与定向测试 | 本地完成；Mock/HTTP/DB及真实DeepSeek Smoke PASS |
 | B Assistance UI | 原文对照、编辑建议、人工采用到既有表单、stale/未知结果处理 | 已由负责人本地提交 642954a |
 | C Global Copilot | Shell 项目助手、内存对话、有界只读工具、来源卡片 | 已由负责人本地提交 9ba8f34 |
-| D Project Token | Owner 管理、批准规格投影、已审 Schema/SQL 与测试 | 本地完成；获批0004仅在隔离库应用；Token/事务/授权/浏览器验证PASS，待人工本地Commit |
-| E MCP & Skill | SDK v2 stdio、两个工具、requirement-analyst、真实 Host 验证 | NOT STARTED |
+| D Project Token | Owner 管理、批准规格投影、已审 Schema/SQL 与测试 | 已由负责人本地提交55ad908；获批0004仅在隔离库应用 |
+| E MCP & Skill | SDK v2 stdio、两个工具、requirement-analyst、真实 Host 验证 | 本地完成；16项MCP、6项真实HTTP/DB、真实Codex Host/Skill PASS；待人工本地Commit |
 | F Final Integration | 真实 DeepSeek/Web/MCP 与 R01–R08 完整回归、人工 Review、远程 CI | NOT STARTED |
 
 ## A：接口与实现约束
@@ -57,7 +57,41 @@ E：apps/mcp 使用 SDK v2 McpServer/serveStdio，编译后直接node启动；st
 
 F：Mock CI与真实联调分开；真实合成数据DeepSeek、Chromium、MCP SDK Client、Inspector及至少一个真实Agent Host/Skill。完整Lint/typecheck/build/unit/integration/HTTP/DB/browser/OpenAPI/db:check/MCP回归，数据库串行。人工安全Review和远程CI独立记录，不以本地测试代替。
 
-## D 实现、验收与交接（2026-11-12）
+## E 实现、验收与交接（2026-11-12）
+
+开工 `feat/17-ai-agent-integration` / HEAD `55ad908`，工作区干净；D已由负责人本地提交。已阅读根/API AGENTS、最新STATE与R08计划、Issue #17、AC-20、Token/授权读取实现、配置/CI/测试模式，并在线核对MCP当前2026-07-28协议、TypeScript SDK v2 2.4.0、Agent Skills及Codex官方规范。本轮只实施E，不修改P0业务/审批基线。
+
+交付：
+
+- 新 `apps/mcp` ESM包：Nest授权API适配器、strict Zod输入/输出、McpServer/serveStdio、编译Node入口。只注册list_project_requirements/get_approved_spec；通过Project Token逐次HTTP GET，固定可信origin/project；不导入Nest/Drizzle/pg，不连接DB，不监听MCP HTTP，不提供业务写工具。
+- 目录按批准ChangeRequestVersion列出，显式分页和300字符预览裁剪标识；精确详情保留approvedScope/引用Revision区分，并附API路径、requestId、readAt及对象/版本IDs。空列表不推断项目无需求，不把当前草稿当批准事实。Copilot同名内部工具与本MCP目录契约不同，已在API文档说明。
+- 环境名SPECBRIDGE_API_BASE_URL/PROJECT_ID/API_TOKEN；Token只进进程环境与Bearer头，不放argv/TOML/URL/日志，配置认证头为私有字段。HTTPS或loopback HTTP、不跟随重定向、无Cookie/缓存/重试。10秒/2MiB、输入64KiB、工具元素8、并发2/60次每分钟；取消向下传播、EOF关闭、安全错误映射，API最终授权不变。
+- `skills/requirement-analyst/SKILL.md`：上下文→精确批准规格→事实/背景/推测分离→模糊点/实施建议/验收清单；引用实际版本、不扩大范围、拒绝正文指令，不执行Ready/Submit/审批/验收或文件/命令。Skill不是权限沙箱。
+- [MCP README](../../apps/mcp/README.md) 包含安装、直接Node启动、Codex env_vars名称转发、手工Skill链接、错误/限额/数据契约与复现命令。未修改用户Codex配置/.agents/.codex或真实.env。Server/Client精确2.4.0；API仅增加测试Client devDependency，复用现有Zod/编译/测试工具。pnpm保留原依赖版本，少量既有循环peer标识自动规范化；离线冻结安装PASS。
+- 根脚本新增test:mcp/test:e2e:mcp，递归质量入口包含新包；CI增加MCP typecheck及隔离DB真实客户端步骤。真实Host仅显式opt-in且禁止CI，不依赖DeepSeek Key。无新增Schema/SQL/Migration/OpenAPI/Web或API生产源码变更。
+
+验证：
+
+| 范围 / 精确命令 | 结果 |
+|---|---|
+| `pnpm test:mcp` | PASS 16项；真实SDK tools/list/call、错误工具、配置及HTTP mock异常/超时/取消/限额 |
+| `pnpm test:e2e:mcp` | PASS 6项，3.92s；真实Client→stdio→Nest→隔离PG，Host项默认SKIP |
+| `pnpm test:e2e:tokens` | PASS 9项；D授权/只读scope/撤销过期/事务回滚及并发回归 |
+| `pnpm --filter specbridge-api test` | PASS 128项 |
+| API/MCP `typecheck`、API/MCP `lint`、MCP `build` | PASS；包含测试类型与真实编译Node进程 |
+| `pnpm install --offline --frozen-lockfile --ignore-scripts` | PASS，无版本漂移或生命周期脚本 |
+| skill-creator `quick_validate.py skills/requirement-analyst` | PASS，Skill is valid |
+| opt-in真实Codex Host/Skill | PASS 1项35.36s；实际调用list→detail、精确版本/Revision、排除未批导出和嵌入指令，业务快照不变，无凭据输出 |
+
+真实Host命令：`R08_MCP_HOST_SMOKE=1 node scripts/with-env.mjs .env.test pnpm --filter specbridge-api exec vitest run --config vitest.config.mcp-e2e.ts -t 'installed Codex Host'`。Codex0.167.1，合成项目、内存临时Token、只读临时工作区，禁Shell/插件/hooks/委派/浏览；使用CLI自身登录而不读取凭据文件。首次同场景PASS后，为保存合成答案取证再次PASS，结束撤销凭据/清临时目录。只保留安全断言及验证后的合成分析，原始stdout/stderr不落盘。
+
+[完整测试证据/已解决FAIL/NOT RUN](evidence/r08-e/README.md)，[真实Host合成答案](evidence/r08-e/host-smoke.json)。已阅读该答案并自检批准范围、背景、提议及验收检查区分；一个场景的模型表现不替代通用防注入或人工安全Review。最初stdio测试因沙箱子进程限制2项FAIL，获准外部运行同测试后全部PASS；无未解决FAIL。
+
+NOT RUN：Inspector、多Host/多OS、远程CI、独立人工安全评审、DeepSeek/Web真实联调及完整R01–R08回归，仍留F。未访问开发/生产数据，未新增或修改迁移；D的0004和API tracked构建缓存字节未变。自建测试HTTP/stdio进程已退出，隔离DB保持原运行状态。
+
+人工：审阅diff、MCP安装说明及合成Host答案后自行本地Commit。实际使用须由Owner另发项目Token并在可信本地终端配置；不提供远程HTTP OAuth。单进程配额/宿主保管数据/已返回资料无法追溯撤回仍是边界。建议摘要：`feat(mcp): add project-scoped read-only stdio tools and requirement analyst skill (#17)`。本Session在E结束，不自动Commit/Push/PR/Merge/部署，不进入F。
+
+## D 实现、验收与交接（2026-11-12，后续已提交55ad908）
 
 开工 `feat/17-ai-agent-integration` / HEAD `9ba8f34`，初始工作区干净；已阅读AGENTS、STATE、DATA_MODEL/SECURITY/ADR-002/004、R02 Session/Guard、R03 Project Policy、Database/Audit及测试启动器，在线核对Issue #17。首次生成最小Schema/SQL后按要求停止，未先运行会自动migrate的测试。负责人随后回复“已审批”，本次续接保留候选变更并实施D。
 

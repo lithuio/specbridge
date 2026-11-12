@@ -14,7 +14,7 @@
 - 与需求分析共享用户/项目/实例配额；每次 API 对话轮次预留一次计数和并发槽，最多含3次模型请求，输出总预算相同。调用失败不退日计数；无自动重试。调用模型前/工具读取前/返回前重验 Session、项目及角色；权限撤销或角色改变则丢弃在途结果。
 - 400非法请求；401Session失效；403CSRF；404不可见项目/对象/父链或在途角色变更；413上下文过大；429 RATE_LIMITED 带 Retry-After；503 AI_UNAVAILABLE / AI_INVALID_RESPONSE。沿用 Phase A 的供应商超时、402/429/503、空/非法JSON处理。日志不记录聊天、工具正文或完整Prompt。
 
-实际实现、测试和限制见 [R08_PLAN](../engineering/R08_PLAN.md)。Project Token 已在 D 实现（见下文），MCP 留 E。
+实际实现、测试和限制见 [R08_PLAN](../engineering/R08_PLAN.md)。Project Token 已在 D 实现（见下文）；E 的本地 MCP 复用批准读取 API，见 [MCP 契约](../../apps/mcp/README.md)。注意 Copilot 内部的同名 `list_project_requirements` 按 Session 读可见需求，而 MCP 工具仅按项目 Token 列出批准版本，两者不是同一权限/响应契约。
 
 ## R08 Phase A — 需求分析（2026-11-12）
 

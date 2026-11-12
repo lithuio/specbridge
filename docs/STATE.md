@@ -1,8 +1,23 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-12。R08 Phase D 本地实现与验证完成；获批0004仅在隔离测试库应用，待负责人本地Commit。C已提交9ba8f34，B642954a，A6bfe681；未进入E。下方保留历史交接。
+> 更新时间：2026-11-12。R08 Phase E本地实现与SDK/数据库/Codex Host验证完成，待负责人本地Commit；D已提交55ad908、C9ba8f34、B642954a、A6bfe681。未进入F。下方保留历史交接。
 
-## R08 Phase D — 本地交接（未提交）
+## R08 Phase E — 本地交接（未提交）
+
+开工分支 `feat/17-ai-agent-integration` / HEAD `55ad908`，初始工作区干净；已核对Issue #17/AC-20、D Token与批准读取实现、当前官方MCP协议/SDK/Skill/Codex规范。只实施E，未Commit/Push/PR/Merge/部署，不进入F。
+
+- 新 `apps/mcp` 本地stdio，SDK Server/Client精确2.4.0，直接Node运行；仅list_project_requirements/get_approved_spec两工具，经Bearer调用Nest已有授权GET。固定可信origin/project，严格参数/输出Schema，MCP无DB/业务写能力。目录是批准版本条目、显式分页及预览裁剪；详情区分批准范围与引用不可变Revision，附实际对象/版本/读取来源。
+- HTTPS/loopback、拒绝重定向、无Cookie/缓存/自动重试；10秒/2MiB、输入64KiB、并发2/60次每分钟、取消/EOF释放。Token仅本地环境→私有认证头，不放argv/URL/配置/日志；API逐次重验scope/过期/撤销/当前项目授权。Skill不是沙箱，也不构成完整HTTP OAuth MCP授权。
+- 新 `skills/requirement-analyst/SKILL.md` 指导上下文→批准规格→事实/背景/推测→模糊点/实施及验收建议；实际版本引用、不扩大范围、不跟随正文注入、不执行Ready/Submit/审批/验收。安装、Codex配置和可复现命令见 [MCP README](../apps/mcp/README.md)。未改现有Codex配置/.agents/.codex或真实.env。
+- PASS：MCP16项；真实SDK stdio→Nest→隔离PG6项（Host默认SKIP）；Token/Auth授权/事务9项；API单元128项；API/MCP typecheck/lint与MCP构建；Skill格式检查、锁文件离线冻结安装。精确命令、结果与已解决FAIL见 [R08_PLAN E](engineering/R08_PLAN.md) 及 [E测试证据](engineering/evidence/r08-e/README.md)。
+- PASS：真实Codex CLI0.167.1 + Skill合成场景，最终35.36s；实际list→detail，精确版本/Revision引用、背景导出能力未扩大范围、嵌入泄露/审批指令被忽略、无写操作、业务快照不变。合成答案已阅读核对；临时Token结束撤销，临时目录清理，原始日志不落盘。[安全合成证据](engineering/evidence/r08-e/host-smoke.json)。不把单场景成功视为通用模型安全保证。
+- CI纳入MCP unit/protocol/typecheck和实际API/DB客户端测试，无真实Key；Host模型测试必须显式opt-in并拒绝CI。无API生产/Web/Schema/SQL/OpenAPI变更，D已审0004仅复用于5434隔离库且字节未变；tracked API构建缓存保持。测试HTTP/stdio进程已退出，隔离DB保持运行。
+- 已解决沙箱子进程/网络限制导致的初次测试与安装失败，获准重跑PASS；最终无未解决FAIL。NOT RUN：Inspector、多Host/OS、远程CI、独立人工安全评审、DeepSeek/Web真实联调及R01–R08全量回归；均留F或人工验收。
+- 人工：审阅diff/文档/合成答案后自行本地Commit。实际连接须Owner发放项目Token并在可信终端配置；注意宿主独立权限、单进程配额及已返回资料无法追溯撤回。建议摘要：`feat(mcp): add project-scoped read-only stdio tools and requirement analyst skill (#17)`。本Session到E停止。
+
+---
+
+## R08 Phase D — 历史交接（后续已提交55ad908）
 
 分支 `feat/17-ai-agent-integration` / HEAD `9ba8f34`。首次生成候选Schema/SQL后遵守暂停要求；本轮负责人回复“已审批”，获准只在隔离PostgreSQL应用并继续D。未Commit/Push/PR/Merge/部署。
 

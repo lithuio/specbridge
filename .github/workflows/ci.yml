@@ -39,6 +39,9 @@ jobs:
       - name: Web typecheck (including browser tests)
         run: pnpm --filter web typecheck
 
+      - name: MCP typecheck (including client tests)
+        run: pnpm --filter specbridge-mcp typecheck
+
       - name: API route regression
         run: pnpm --filter specbridge-api test:e2e
 
@@ -104,6 +107,9 @@ jobs:
 
       - name: Project API token authorization and transactions
         run: pnpm --filter specbridge-api test:e2e:tokens
+
+      - name: Real stdio MCP Client to authorized API and PostgreSQL
+        run: pnpm --filter specbridge-api test:e2e:mcp
 
       - name: Install Chromium and system dependencies
         run: pnpm --filter web exec playwright install --with-deps --only-shell chromium
