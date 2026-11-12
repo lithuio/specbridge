@@ -63,9 +63,13 @@ export function configureApp(app: INestApplication): void {
     }
   });
   app.use(cookieParser());
-  // Only analysis has a larger body budget. Existing routes keep Nest's default limit.
+  // Only AI endpoints have a larger body budget. Existing routes keep Nest's default limit.
   app.use((req: AuthRequest, res: Response, next: NextFunction) => {
-    if (/^\/api\/v1\/requirements\/[^/]+\/ai-analysis\/*$/i.test(req.path)) {
+    if (
+      /^\/api\/v1\/(?:requirements\/[^/]+\/ai-analysis|projects\/[^/]+\/copilot\/messages)\/*$/i.test(
+        req.path,
+      )
+    ) {
       res.setHeader('Cache-Control', 'no-store');
     }
     next();
@@ -74,7 +78,7 @@ export function configureApp(app: INestApplication): void {
   adapter.useBodyParser('json', false, {
     limit: '256kb',
     type: (req) =>
-      /^\/api\/v1\/requirements\/[^/]+\/ai-analysis\/*$/i.test(
+      /^\/api\/v1\/(?:requirements\/[^/]+\/ai-analysis|projects\/[^/]+\/copilot\/messages)\/*$/i.test(
         (req.url ?? '').split('?')[0],
       ) && /^application\/json(?:;|$)/i.test(req.headers['content-type'] ?? ''),
   });

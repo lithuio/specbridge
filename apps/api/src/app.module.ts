@@ -43,7 +43,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
       http: {
         capture: false,
         ignore: [
-          /^\/api\/v1\/(?:auth(?:\/|$)|me(?:\/|$|\?)|requirements\/[^/]+\/ai-analysis(?:\/|$|\?))/i,
+          /^\/api\/v1\/(?:auth(?:\/|$)|me(?:\/|$|\?)|requirements\/[^/]+\/ai-analysis(?:\/|$|\?)|projects\/[^/]+\/copilot\/messages(?:\/|$|\?))/i,
         ],
       },
       redaction: {

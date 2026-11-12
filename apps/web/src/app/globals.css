@@ -1537,6 +1537,43 @@ textarea.form-control {
 .workflow-grid li:nth-child(2) svg { color: var(--warning); }
 .workflow-grid li:nth-child(3) svg { color: var(--success); }
 .is-collapsed .sidebar .sidebar-projects { display: none; }
+/* R08: scoped assistant uses the existing shell, palette and dialog primitives. */
+.header-actions { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.copilot-trigger { flex-shrink: 0; }
+.copilot-drawer { left: auto; right: 0; width: min(540px, 100%); max-width: 100%; padding: 0; gap: 0; display: flex; flex-direction: column; background: var(--surface); }
+.copilot-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 24px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.copilot-heading [data-slot="dialog-title"] { margin: 0 0 10px; font-size: 19px; }
+.copilot-context { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 14px 24px; background: var(--canvas); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.copilot-context strong { width: 100%; overflow-wrap: anywhere; }
+.copilot-context span { color: var(--text-muted); font-size: 12px; align-self: center; }
+.copilot-context button { margin-left: auto; }
+.copilot-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 24px; overflow-wrap: anywhere; }
+.copilot-notice { padding: 12px 14px; background: var(--info-bg); border-radius: 8px; font-size: 12px; line-height: 1.7; color: var(--ink); }
+.copilot-empty { margin-top: 28px; line-height: 1.8; }
+.copilot-empty h3 { font-size: 17px; }
+.copilot-turn { margin-top: 24px; }
+.copilot-turn p, .copilot-turn li { white-space: pre-wrap; line-height: 1.8; }
+.copilot-question { background: var(--canvas); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; }
+.copilot-question p { margin: 4px 0 0; }
+.copilot-answer h4 { margin: 18px 0 8px; font-size: 13px; font-weight: 650; }
+.copilot-answer ul { list-style: disc; padding-left: 20px; }
+.copilot-sources { font-size: 12px; }
+.copilot-sources a { color: var(--project-color, var(--brand)); text-decoration: underline; text-underline-offset: 3px; }
+.copilot-sources span { display: block; color: var(--text-muted); }
+.copilot-composer { padding: 16px 24px max(16px, env(safe-area-inset-bottom)); border-top: 1px solid var(--border); flex-shrink: 0; }
+.copilot-composer label { display: block; margin-bottom: 8px; font-weight: 600; }
+.copilot-composer textarea { display: block; width: 100%; min-height: 72px; max-height: 160px; resize: vertical; padding: 10px 12px; border: 1px solid var(--input-border); border-radius: 8px; background: var(--surface); }
+.copilot-composer textarea:focus-visible { outline: 2px solid var(--project-color, var(--brand)); outline-offset: 2px; }
+.copilot-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.copilot-actions > span { margin-right: auto; }
+.copilot-projects { display: grid; gap: 10px; margin: 20px 0; }
+.copilot-projects button { white-space: normal; height: auto; min-height: 44px; }
+@media (max-width: 767px) {
+  .header-actions { gap: 4px; }
+  .copilot-trigger { padding-inline: 10px; }
+  .copilot-heading, .copilot-scroll { padding: 18px; }
+  .copilot-context, .copilot-composer { padding: 12px 18px; }
+}
 @media (min-width: 768px) and (max-width: 1199px) {
   .sidebar .sidebar-projects { display: none; }
   .metric-strip { gap: 12px; }

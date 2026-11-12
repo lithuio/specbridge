@@ -1,5 +1,21 @@
 # SpecBridge REST API 契约（设计基线）
 
+## R08 Phase C — 项目 Copilot（2026-11-12）
+
+`POST /api/v1/projects/{id}/copilot/messages`：Session + CSRF，三角色仅在当前授权项目内读取，所有结果 no-store。无聊天表、业务写入或商业审计；认证活动时间更新沿用现有契约。
+
+- 严格请求 `{message, history?:[{user,assistant}], page?}`：message ≤4000 字符；history ≤10轮，每条 user≤4000 / assistant≤6000，全部作为不可信用户数据，不接受角色或 system/tool 消息。禁止未知字段/query、客户端模型配置或工具注册。
+- page：`{kind:'overview'|'dashboard'|'requirements'|'changes'|'deliveries'|'members'|'audit'}`；或 `{kind:'requirement',id,revisionId?}`、`{kind:'change',id,versionId?}`、`{kind:'delivery',id}`。UUID 父链先由已有授权服务验证，再进入模型。项目从路由绑定，工具参数不能覆盖。
+- 200 `{data:{conversationTurnId,projectId,result,sources,context},meta:{requestId}}`。result 包含 answer≤3000、blockers≤8×500、nextSteps≤8×`{text≤500,sourceIds}`、sourceIds；合计文本≤6000字符。所有文本仅为未批准建议。来源编号每组1–12个，必须出自本轮实际工具读取，伪造编号安全失败。
+- sources：`{key,type,id,projectId,title,version,href,readAt}`。type 为 project/requirement/revision/change_request/change_version/delivery；href 和版本由服务端生成，只导航真实业务对象。项目/列表注明实时或分页快照；可变对象注明 draftVersion/lockVersion，不可变对象注明 Revision/versionNo/交付编号。旧版本阶段依据该版本审批记录判断，不能套用变更当前状态。来源可追溯不保证模型的文字判断正确。
+- context：`{historyDropped,truncated,toolCalls}`，明确历史/正文裁剪；分页和片段不能解释为完整项目。历史先裁剪到24 KiB，工具正文字符串默认1500字符、数组20项，较大结果再裁剪为300字符/10项；单工具序列化内容含来源≤48 KiB，否则413。
+- 固定七工具：get_project_overview、list_project_requirements、get_requirement、list_change_requests、get_change_request、list_deliveries、get_delivery。列表 limit 默认20/最大50，offset 0–10000；详情只接受 id 及适用的 revisionId/versionId；概览 bucket=mine/waiting/completed，默认mine。每次读取复用已有项目授权服务，并检验实际 projectId；Client 不含供应方 draft。未注册工具、额外参数、错误类型及重复 call ID 拒绝。
+- 每轮≤2次工具选择+1次无工具JSON总结、≤4次工具调用，串行执行、本轮同参数去重；输出预算为 `min(DEEPSEEK_MAX_TOKENS,8192)`，每次选择预留四分之一，总结使用余额，不因前次少输出扩大总额度。单请求输入≤128 KiB、整轮累计≤256 KiB；单次模型≤30秒、整轮含授权/工具≤60秒。历史字节限制不是精确 input token 计费。
+- 与需求分析共享用户/项目/实例配额；每次 API 对话轮次预留一次计数和并发槽，最多含3次模型请求，输出总预算相同。调用失败不退日计数；无自动重试。调用模型前/工具读取前/返回前重验 Session、项目及角色；权限撤销或角色改变则丢弃在途结果。
+- 400非法请求；401Session失效；403CSRF；404不可见项目/对象/父链或在途角色变更；413上下文过大；429 RATE_LIMITED 带 Retry-After；503 AI_UNAVAILABLE / AI_INVALID_RESPONSE。沿用 Phase A 的供应商超时、402/429/503、空/非法JSON处理。日志不记录聊天、工具正文或完整Prompt。
+
+实际实现、测试和限制见 [R08_PLAN](../engineering/R08_PLAN.md)。Token/MCP 为后续 D/E，C 未实现。
+
 ## R08 Phase A — 需求分析（2026-11-12）
 
 `POST /api/v1/requirements/{id}/ai-analysis`：Session + CSRF；Owner/分配 Developer/绑定 Client 仅可分析可见需求。200 `{data:{analysisId,schemaVersion:1,source,result},meta:{requestId}}`。不创建作业/业务记录或 Revision，不触发 Ready/审批。所有响应 no-store。

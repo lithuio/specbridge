@@ -99,7 +99,7 @@ jobs:
       - name: R07 reads and HTTP schema contracts
         run: pnpm --filter specbridge-api test:e2e:reads
 
-      - name: R08 analysis HTTP and permission checks (mock provider, no API key)
+      - name: R08 analysis and Copilot HTTP permission checks (mock provider, no API key)
         run: pnpm --filter specbridge-api test:e2e:ai
 
       - name: Install Chromium and system dependencies

@@ -9,5 +9,6 @@ import { ProjectsController } from './projects.controller.js';
   imports: [DatabaseModule, AuthorizationModule, AuditModule],
   controllers: [ProjectsController],
   providers: [ProjectsRepository, ProjectsService],
+  exports: [ProjectsService],
 })
 export class ProjectsModule {}

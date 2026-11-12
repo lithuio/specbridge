@@ -1,8 +1,26 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-12。R08 Phase B AI Assistance UX 本地实现与定向浏览器回归完成，未提交；Phase A 已提交 6bfe681。远程CI、独立人工评审 NOT RUN。下方保留历史检查点。
+> 更新时间：2026-11-12。R08 Phase C Global Project Copilot 本地实现、定向回归与真实 DeepSeek HTTP Smoke 完成，未提交；B 已提交642954a，A已提交6bfe681。远程CI、独立人工评审及最终全量回归 NOT RUN。下方保留历史检查点。
 
-## R08 Phase B — AI Assistance UX 完成，待负责人审阅
+## R08 Phase C — Global Project Copilot 完成，待负责人审阅
+
+开工分支 `feat/17-ai-agent-integration` / HEAD `642954a`，工作区干净；已核对 Issue #17、R08批准基线、R07 Dashboard/授权读取与当前DeepSeek Tool Calling契约。负责人仅授权C，未进入D，未Commit/Push/PR/Merge/部署。
+
+- App Shell全局入口、项目/页面上下文、右侧Drawer、多轮自然语言；无当前项目时先从授权列表选项目。展示状态解读、可能阻塞点、人工下一步及真实对象/版本/读取时间来源。沿用R07风格，不重做Shell，不自动Ready/Submit/审批/验收。
+- 新增授权 `POST /api/v1/projects/{id}/copilot/messages`，七个固定只读工具；复用现有业务服务读取及Dashboard聚合。严格校验参数/页面父链/真实项目归属，Client商业草稿不进入模型。模型不能更换projectId、注册工具或执行SQL/Shell/写操作。输入/历史/工具正文一律不可信，最终JSON和引用再次校验。
+- 每轮最多10轮历史、4次工具调用、2次选择+1次无工具总结、累计256 KiB输入/8192输出tokens、60秒；工具串行、本轮去重、有标记裁剪。与分析共享用户/项目/实例内存配额；按API轮次预留，非持久账单硬上限。每次模型/工具/最终返回重验会话、项目及角色，撤权/降级丢弃结果。日志仅计数/标识符，Observe不采集Copilot HTTP trace。
+- 聊天仅浏览器内存、按epoch/user/project隔离；刷新/换项目/换号清空。同项目页面切换保留已完成对话；关闭取消请求，重开核验权限，迟到结果不恢复。临时故障保留输入且不阻断手动业务；明确撤权清除。答案为待核实建议，来源不等于模型判断正确。
+- PASS：API单元125、AI/Copilot HTTP+DB19、R07读取9、Auth HTTP/代理16、R04 HTTP/代理9；API/Web typecheck/lint、生产build、OpenAPI32路径生成/漂移。最终Copilot浏览器4项12.2秒；Auth浏览器6项6.2秒、Phase B浏览器6项50.8秒、三角色纯UI全流程与Dashboard聚合1项20.6秒。精确命令与已解决FAIL见 [R08_PLAN C交接](engineering/R08_PLAN.md)。
+- PASS：真实DeepSeek端到端Smoke，`deepseek-flash`，授权HTTP200，3次模型请求/2次工具读取，真实需求和Revision两条来源，Schema/业务及审计不变验证通过，预留输出4096tokens，9646ms。只使用隔离测试库合成数据；.env仅由本地子进程加载，未打印/编辑。CI和浏览器套件使用模拟外部transport，不依赖真实Key。
+- [桌面/手机证据](ux/evidence/r08-c/README.md)：2张截图逐张自检，1440×1000/390×844，320/390/1440重排和Drawer键盘焦点；三状态axe自动违规0，未判定项保留并补充实际颜色对比。Copilot浏览器前端超时使用缩短的原生timer，后端60秒使用fake timers，未声称真实等待65秒。
+- 无新增依赖、Schema、Migration、Token、MCP或Skill；业务写API未改变。已有测试迁移仅在5434隔离库复用，未访问开发业务数据。测试HTTP进程已teardown，测试DB保持运行；tracked API构建缓存恢复为开工内容。
+- 已解决：沙箱本地连接/端口限制与Turbopack失败缓存、READY夹具不能新增澄清、新Revision实际CLARIFYING、键盘断言需等待异步焦点。最终无未解决FAIL。
+- NOT RUN：远程CI、独立人工视觉/安全评审、真实DeepSeek浏览器联调、真实Observe外部接收、Firefox/WebKit/真实设备/读屏、完整R01–R08回归。真实HTTP Smoke不替代最终F的浏览器/MCP/Host联调。
+- 人工：审阅diff与截图后自行本地Commit；实际服务仍需安全Key和 `DEEPSEEK_ENABLED=true`。建议摘要：`feat(ai): add scoped read-only project copilot with verified sources (#17)`。本Session在C停止，D的Token/Schema/SQL审核留独立Session。
+
+---
+
+## R08 Phase B — 历史交接（后续已提交642954a）
 
 开工分支 `feat/17-ai-agent-integration` / HEAD `6bfe681`，工作区干净；已核对 Issue #17、AC-18/19、R07设计与当前 Next/Activity 文档。负责人本轮只授权 B，未进入 C，未 Commit/Push/PR/Merge/部署。
 

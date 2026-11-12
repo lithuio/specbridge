@@ -10,5 +10,6 @@ import { DeliveriesService } from './deliveries.service.js';
   imports: [DatabaseModule, AuthorizationModule, AuditModule, ChangesModule],
   controllers: [DeliveriesController],
   providers: [DeliveriesRepository, DeliveriesService],
+  exports: [DeliveriesService],
 })
 export class DeliveriesModule {}

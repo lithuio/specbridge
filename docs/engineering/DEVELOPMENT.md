@@ -1,5 +1,28 @@
 # SpecBridge — Local Development
 
+## R08 Phase C 本地 Copilot
+
+App Shell 顶部「Copilot」打开项目抽屉。项目页面自动选择当前项目和页面资源；其他页面先从授权列表选项目。提问不会发送尚未保存的表单内容；答案给出业务来源、版本与读取时间，仅建议人工核对，不执行 Ready/Submit/审批/验收。对话最多保留10轮，仅当前浏览器内存；刷新/切换项目或账号清空。Drawer 关闭保留已完成对话并取消在途请求，再次打开先重新核验项目。
+
+配置沿用下方 A 的服务端变量，不新增依赖或聊天 Schema。单轮上限为60秒、4工具、3模型请求和8192输出tokens（可通过既有配置降低）。所有列表/详情均经过现有权限服务，Client 草稿过滤不变。来源链接只导航，敏感文本不进入日志。
+
+```bash
+pnpm --filter specbridge-api build
+pnpm --filter web build
+pnpm test:e2e:ai
+pnpm test:browser:copilot
+```
+
+HTTP/浏览器套件使用隔离5434数据库与模拟外部模型transport，不需要真实Key；CI的既有AI HTTP入口和全量browser入口已包含C。单独浏览器入口输出 [C截图与验证](../ux/evidence/r08-c/README.md)，回归可设置 `R07_EVIDENCE_ROOT=test-results/evidence`。
+
+可选真实 Copilot smoke（先确认安全Key与已初始化的隔离测试库；不在CI运行）：
+
+```bash
+node scripts/with-env.mjs .env node scripts/with-env.mjs .env.test node apps/api/scripts/copilot-smoke.mjs --run
+```
+
+脚本拒绝非测试数据库身份；仅写入UUID合成账号/项目/需求/Revision夹具，再通过真实授权HTTP→编排→DeepSeek→工具读取→来源Schema完成一轮。最多3次模型请求、4096预留输出tokens、60秒，不自动重试；前后比较业务及审计不变。夹具只留在可丢弃测试库，不生成/应用迁移、不清空历史。只打印状态、模型、计数、预算、耗时与验证布尔值，不打印密钥/聊天/Provider原始错误。`.env`只由子进程加载，不由测试或Web自动读取；CI/无--run/无Key时NOT RUN。真实模型失败记录FAIL，不能用Mock结果代替。
+
 ## R08 Phase A 本地 AI
 
 复用根 `.env` 中服务端 `DEEPSEEK_API_KEY`、`DEEPSEEK_BASE_URL=https://api.deepseek.com`、`DEEPSEEK_MODEL=deepseek-flash`。负责人还需设置 `DEEPSEEK_ENABLED=true` 才开启 API 调用；默认关闭，缺少/非法配置不会阻断 P0。不要复制到 NEXT_PUBLIC_*，不要输出 `.env`。可选限额见 `.env.example` 和 R08_PLAN；数值非法仅使 AI 不可用。

@@ -58,7 +58,8 @@ export class AiRepository {
   reauthorize(actor: string, sessionId: string, projectId: string) {
     return this.read(async (tx) => {
       await this.session(tx, actor, sessionId);
-      await this.authorization.project(actor, projectId, tx);
+      return (await this.authorization.project(actor, projectId, tx))
+        .projectRole;
     });
   }
   context(actor: string, sessionId: string, id: string, input: AnalysisInput) {

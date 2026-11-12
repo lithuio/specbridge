@@ -1,6 +1,6 @@
 # R08 — AI & Agent Integration
 
-批准基线：负责人确认的修订计划；Issue [#17](https://github.com/lithuio/specbridge/issues/17)。一个 Issue、一个最终 PR；A–F 各自独立 Session，每阶段负责人本地 Commit。禁止自动 Commit/Push/PR/Merge/部署。本文首次落盘随 Phase A 实施授权；本轮另获 Phase B 授权，不表示 C–F 已实施。
+批准基线：负责人确认的修订计划；Issue [#17](https://github.com/lithuio/specbridge/issues/17)。一个 Issue、一个最终 PR；A–F 各自独立 Session，每阶段负责人本地 Commit。禁止自动 Commit/Push/PR/Merge/部署。本文首次落盘随 Phase A 实施授权；本轮另获 Phase C 授权，不表示 D–F 已实施。
 
 ## 基线与阶段
 
@@ -14,8 +14,8 @@
 | 阶段 | 可运行交付 | 状态 |
 |---|---|---|
 | A Provider & Analysis | 配置、Provider、授权分析 API、Schema、限额、异常、契约与定向测试 | 本地完成；Mock/HTTP/DB及真实DeepSeek Smoke PASS |
-| B Assistance UI | 原文对照、编辑建议、人工采用到既有表单、stale/未知结果处理 | 本地实现及浏览器验证完成；待负责人审阅/本地 Commit |
-| C Global Copilot | Shell 项目助手、内存对话、有界只读工具、来源卡片 | NOT STARTED |
+| B Assistance UI | 原文对照、编辑建议、人工采用到既有表单、stale/未知结果处理 | 已由负责人本地提交 642954a |
+| C Global Copilot | Shell 项目助手、内存对话、有界只读工具、来源卡片 | 本地实现及 Mock/HTTP/浏览器/真实 DeepSeek 验证完成；待负责人审阅/本地 Commit |
 | D Project Token | Owner 管理、批准规格投影、已审 Schema/SQL 与测试 | NOT STARTED |
 | E MCP & Skill | SDK v2 stdio、两个工具、requirement-analyst、真实 Host 验证 | NOT STARTED |
 | F Final Integration | 真实 DeepSeek/Web/MCP 与 R01–R08 完整回归、人工 Review、远程 CI | NOT STARTED |
@@ -35,7 +35,7 @@ expectedVersion 为 R04 draftVersion。includeClarifications 默认 true；revis
 
 result 为 `summary:string, assumptions:string[], openQuestions:string[], acceptanceCriteria:string[], risks:string[]`。严格对象；summary trim 后非空且 ≤1000；数组可空、≤10 项，每项非空且 ≤500；文本合计 ≤6000 UTF-16 code units。JSON 内容 ≤64 KiB；Provider HTTP 响应 ≤256 KiB。拒绝空白、截断、非法 JSON、未知字段、工具调用和类型错误，不自动修复。
 
-所有材料包装为不可信数据；系统提示固定，客户端不能注册工具或指定模型/origin。AI 模块只拥有读取 Repository。短只读 REPEATABLE READ 快照之后结束事务再请求模型；调用前和返回前重验 Session/项目权限，撤权则丢弃。生成期间版本变化仍返回旧 source，后续 B 禁止直接采用。
+所有材料包装为不可信数据；系统提示固定，客户端不能注册工具或指定模型/origin。需求分析服务仅使用只读 Repository；C 工具复用既有授权读取服务。短只读 REPEATABLE READ 快照之后结束事务再请求模型；调用前和返回前重验 Session/项目权限，撤权则丢弃。生成期间版本变化仍返回旧 source，后续 B 禁止直接采用。
 
 新增安全码：503 AI_UNAVAILABLE / AI_INVALID_RESPONSE。上游 401/402/500/503、网络/超时统一 AI_UNAVAILABLE；429 映射 RATE_LIMITED，Retry-After 限 1–300 秒。无配置仅禁用 AI，不影响 Health/P0。SDK retries=0，不将上游 401 解释为用户登录失效。
 
@@ -57,7 +57,59 @@ E：apps/mcp 使用 SDK v2 McpServer/serveStdio，编译后直接node启动；st
 
 F：Mock CI与真实联调分开；真实合成数据DeepSeek、Chromium、MCP SDK Client、Inspector及至少一个真实Agent Host/Skill。完整Lint/typecheck/build/unit/integration/HTTP/DB/browser/OpenAPI/db:check/MCP回归，数据库串行。人工安全Review和远程CI独立记录，不以本地测试代替。
 
-## B 实现、验收与交接（2026-11-12）
+## C 实现、验收与交接（2026-11-12）
+
+仅实施 C。开工分支 `feat/17-ai-agent-integration`，HEAD `642954a`，工作区干净，B 已由负责人提交。已阅读根/API/Web AGENTS、最新交接、R07读取与Dashboard、授权服务、DeepSeek Provider/限额和现有UI组件；在线核对 Issue #17 与 [DeepSeek Tool Calls](https://api-docs.deepseek.com/guides/tool_calls/)、[Chat Completions](https://api-docs.deepseek.com/api/create-chat-completion/)。复用当前 deepseek-flash 非思考模式工具调用，不启用 beta strict，工具参数和最终 JSON 均由服务端 Zod 验证。
+
+实现与边界：
+
+- `CopilotController/Service/Tools` 与严格契约新增于 `apps/api/src/ai`。复用 Provider 的受限 HTTP transport，分析继续拒绝工具响应；首次工具选择 required，第二次 auto，最后请求完全不带 tools 并要求 JSON。不使用第三方 Agent 框架。
+- 七个注册工具只调用现有 Projects/Requirements/Changes/Deliveries 授权读取方法；构造器类型也限制为读取方法。Dashboard 的既有查询从 Controller 提取到 Service 供复用，原 HTTP 契约不变。模型不能提交 projectId、任意SQL/Shell、审批、验收或写文件；整个 batch 参数先校验再读取，每个对象的真实项目归属再检验。
+- Session/当前项目/初始角色在模型调用、工具读取及返回前复核。页面父链先授权再传模型；Client商业draft由现有 ChangesService 剔除。每次短只读事务后结束，再等待模型，不跨推理持锁；不同工具读取可能时间不同，以各来源readAt为准。
+- 仅本轮真实读取生成 sources，提供项目/对象ID、编辑版本或不可变Revision/变更版本/交付编号、时间和服务端站内链接。模型只返回来源编号，未知引用拒绝；不是逐句事实证明，状态推断仍须人工查看来源。
+- 按批准基线限制10轮历史、4工具、2次选择+1次总结、60秒、累计256 KiB输入/8192输出tokens。历史24 KiB和工具正文有标记裁剪，单请求仍≤128 KiB，单工具含来源≤48 KiB；过大413。配置可降低总输出预算，每次选择预留1/4，总结使用剩余预算。模型usage不能突破每次预留。
+- A/C共享内存配额：一次分析或一次Copilot轮次算一次用户/项目/实例请求、占一个并发槽；Copilot轮次最多包含3次模型HTTP请求，总输出预算受同一上限约束。计数不是精确成本账本，重启清零。日志仅标识符、调用次数、输入字节、预留输出预算、耗时和成功标记；无聊天/工具正文/Prompt/Key。Observe排除Copilot路由。
+- Web Shell顶部全局入口、右侧Drawer、当前项目/页面上下文；无项目先选授权项目。支持多轮自然语言、阻塞点/人工下一步、来源跳转、空项目、503/429/格式或来源错误/65秒浏览器等待上限及手动重试。工具名/Token实现细节不出现在用户操作流程中。
+- 聊天不进入数据库/QueryCache/localStorage，按epoch/user/project隔离；最多保留10轮，后端再次裁剪历史。刷新/换项目或账号清空；同项目页面切换保留已完成轮次。关闭/切页取消在途请求，迟到结果丢弃；重开先核验项目，明确失权清除，临时故障隐藏但保留输入。历史始终为不可信文本，业务事实重新工具读取。UI只渲染纯文本，保持R07样式及Dialog键盘焦点，无Shell重设计。
+- 无新增依赖、数据库表、Migration、Token/MCP/Skill实现；未修改任何业务写流程或自动Ready/Submit/审批/验收。OpenAPI及Web生成类型已更新为32路径。独立测试transport扩展支持工具调用，生产main无Mock开关；CI已通过既有入口纳入C，真实Key不参与CI。
+
+最小测试矩阵与实际结果：
+
+| 验证 | 实际结果 |
+|---|---|
+| Provider/编排/Schema单元 | PASS；包含非法工具/参数、空或错误JSON、重复call ID、4调用去重、伪造来源、最终阶段再调工具、截断输出、历史裁剪、累计输入/输出预算、角色降级、60秒总期限 |
+| 真实授权HTTP + 隔离DB + 模拟外部transport | PASS；C10项 + A9项，三角色读/版本来源、Client商业草稿不入模型、七个工具、同Owner跨项目/外部成员/错误父链、Session/CSRF、限额、402/429/503、注入、推理期间撤会话/成员；业务和审计前后相同 |
+| Chromium + 生产Next/Nest + 隔离DB + 模拟外部transport | PASS；C4场景，多轮、来源与版本、项目选择/空数据/换项目、503/429/无效来源/前端超时/权限撤回、输入保留、手动入口正常、关闭取消与迟到响应隔离、Tab/Shift-Tab/Escape/返回焦点 |
+| 视觉/响应式 | PASS；桌面1440×1000、手机390×844两张截图已逐张查看；320/390/1440无横向溢出。三状态axe自动违规0，未判定项保留；补充计算对比度5.94–16.03:1，非独立人工可访问性认证 |
+| 真实DeepSeek端到端Smoke | PASS；真实Session HTTP→Provider→实际授权工具→JSON/来源验证。模型deepseek-flash，HTTP200，3次模型请求、2次工具、2个真实需求/Revision来源，4096预留输出tokens，9646ms；业务及审计未变化。只用合成资料，未输出聊天/密钥 |
+
+精确命令（隔离数据库5434；本机端口/Chromium/Turbopack需要沙箱外执行授权）：
+
+| 实际命令 | 结果 |
+|---|---|
+| `pnpm --filter specbridge-api typecheck`、`pnpm --filter specbridge-api lint` | PASS；最终类型/静态检查 |
+| `pnpm --filter specbridge-api test` | PASS；最终12文件125单元测试 |
+| `pnpm --filter specbridge-api openapi:generate`、`pnpm --filter specbridge-api openapi:check` | PASS；含生产build，32 paths；Web类型由脚本生成 |
+| `pnpm test:e2e:ai` | PASS；2文件19项，5.01秒 |
+| `node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:reads` | PASS；9项，4.69秒，含Dashboard与读取契约 |
+| `node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:auth` | PASS；16项，12.57秒，含HTTP及编译Next代理 |
+| `node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:requirements` | PASS；9项，5.04秒，含HTTP及编译Next代理 |
+| `pnpm --filter web build`、`pnpm --filter web typecheck`、`pnpm --filter web lint` | PASS；生产build及最终检查 |
+| `pnpm test:browser:copilot` | PASS；最终4场景12.2秒，截图及可访问性重采 |
+| `R07_EVIDENCE_ROOT=test-results/evidence pnpm test:browser:auth` | PASS；6场景6.2秒 |
+| `R07_EVIDENCE_ROOT=test-results/evidence pnpm test:browser:ai` | PASS；6场景50.8秒，包含既有35秒真实浏览器等待超时 |
+| `R07_EVIDENCE_ROOT=test-results/evidence pnpm test:browser:integration` | PASS；三角色纯UI全链路与Dashboard聚合，1场景20.6秒 |
+| `node scripts/with-env.mjs .env node scripts/with-env.mjs .env.test node apps/api/scripts/copilot-smoke.mjs --run` | PASS；仅一次完整真实对话，不自动重试；上表记录真实计数 |
+| `CI=true node apps/api/scripts/copilot-smoke.mjs --run` | PASS保护检查；输出NOT RUN并exit0，未调用真实模型 |
+| `node --check apps/api/scripts/copilot-smoke.mjs`、`node --check apps/api/scripts/browser-ai-fixture.mjs`、`git diff --check` | PASS |
+
+已解决FAIL：沙箱5434/本地端口权限阻止测试和Smoke启动（0次模型请求）；Turbopack CSS绑定端口EPERM及其失败缓存，移开自己生成的缓存后获准构建通过；测试夹具误在READY需求添加问题（改用独立不可信原文需求）；浏览器夹具误把新Revision当DRAFT（实际CLARIFYING）；Tab测试过早读取异步焦点（等待项目输入可用及焦点转移后验证）。最终无未解决FAIL。浏览器超时场景只缩短原生65秒timer用于定向验证，后端60秒由fake timers验证；没有声称真实等待65秒。
+
+NOT RUN：远程CI、独立人工安全/视觉评审、Firefox/WebKit/真实设备/读屏、真实DeepSeek浏览器联调、真实Observe外部接收、完整R01–R08回归。真实Smoke覆盖HTTP/编排/工具，但浏览器端到端使用模拟外部transport；最终全量与MCP/Host联调留F，不以本阶段结果替代。
+
+交接：契约见 [API.md](../architecture/API.md)，安全边界见 [SECURITY.md](../architecture/SECURITY.md)，启动与真实Smoke见 [DEVELOPMENT.md](DEVELOPMENT.md)，证据见 [C截图](../ux/evidence/r08-c/README.md)。负责人审阅diff/截图后自行本地Commit，建议 `feat(ai): add scoped read-only project copilot with verified sources (#17)`。实际服务启用仍需服务端安全Key及 `DEEPSEEK_ENABLED=true`；Smoke只临时改变子进程环境，未编辑.env。未Commit/Push/PR/Merge/部署；本Session在C停止。D的Token表/SQL需独立设计与生成/应用审核，当前没有生成或应用新Migration。
+
+## B 实现、验收与交接（2026-11-12，后续已提交642954a）
 
 本 Session 仅 B。开工分支 `feat/17-ai-agent-integration`，HEAD `6bfe681`，工作区干净；Phase A 已由负责人提交。在线核对 Issue #17、AC-18/19 及 AC-06/08/16，阅读 R07 设计、已安装 Next 的 Client Components/Activity 文档与 R04 编辑器。没有更改 App Shell、业务 API/权限/状态机、依赖、Schema 或 Migration，没有读取真实 `.env` 或调用真实模型。
 

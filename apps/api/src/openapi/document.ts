@@ -25,6 +25,9 @@ import { DeliveriesController } from '../deliveries/deliveries.controller.js';
 import { AuditReadController } from '../audit/audit-read.module.js';
 import { DashboardController } from '../dashboard/dashboard.module.js';
 import { AiController } from '../ai/ai.controller.js';
+import { CopilotController } from '../ai/copilot.controller.js';
+import { copilotInput, copilotResponse } from '../ai/copilot.contract.js';
+import { z } from 'zod';
 import {
   schemas,
   envelope,
@@ -87,6 +90,20 @@ const list = (
   query?: Record<string, Schema>,
 ): Operation => ({ response: arr(ref(name)), paged: true, query });
 const definitions: [Type, Record<string, Operation>][] = [
+  [
+    CopilotController,
+    {
+      message: {
+        body: z.toJSONSchema(copilotInput, {
+          io: 'input',
+          target: 'openapi-3.0',
+        }) as Schema,
+        response: z.toJSONSchema(copilotResponse, {
+          target: 'openapi-3.0',
+        }) as Schema,
+      },
+    },
+  ],
   [
     AiController,
     {
@@ -409,7 +426,9 @@ export async function createDocument() {
         422,
         429,
         500,
-        ...(controller === AiController ? [413, 503] : []),
+        ...(controller === AiController || controller === CopilotController
+          ? [413, 503]
+          : []),
       ])
         decorate(
           ApiResponse({

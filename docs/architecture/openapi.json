@@ -8624,6 +8624,481 @@
         ]
       }
     },
+    "/api/v1/projects/{id}/copilot/messages": {
+      "post": {
+        "operationId": "Copilot_message",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "history": {
+                    "default": [],
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "assistant": {
+                          "maxLength": 6000,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "user": {
+                          "maxLength": 4000,
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "user",
+                        "assistant"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "message": {
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "page": {
+                    "oneOf": [
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "overview",
+                              "dashboard",
+                              "requirements",
+                              "changes",
+                              "deliveries",
+                              "members",
+                              "audit"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "type": "string"
+                          },
+                          "kind": {
+                            "enum": [
+                              "requirement"
+                            ],
+                            "type": "string"
+                          },
+                          "revisionId": {
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "id"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "type": "string"
+                          },
+                          "kind": {
+                            "enum": [
+                              "change"
+                            ],
+                            "type": "string"
+                          },
+                          "versionId": {
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "id"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "type": "string"
+                          },
+                          "kind": {
+                            "enum": [
+                              "delivery"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "id"
+                        ],
+                        "type": "object"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "message"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "context": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "historyDropped": {
+                              "maximum": 9007199254740991,
+                              "minimum": 0,
+                              "type": "integer"
+                            },
+                            "toolCalls": {
+                              "maximum": 4,
+                              "minimum": 1,
+                              "type": "integer"
+                            },
+                            "truncated": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "historyDropped",
+                            "truncated",
+                            "toolCalls"
+                          ],
+                          "type": "object"
+                        },
+                        "conversationTurnId": {
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "type": "string"
+                        },
+                        "projectId": {
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "type": "string"
+                        },
+                        "result": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "answer": {
+                              "maxLength": 3000,
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "blockers": {
+                              "items": {
+                                "maxLength": 500,
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "maxItems": 8,
+                              "type": "array"
+                            },
+                            "nextSteps": {
+                              "items": {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "sourceIds": {
+                                    "items": {
+                                      "pattern": "^S[1-9]\\d{0,2}$",
+                                      "type": "string"
+                                    },
+                                    "maxItems": 12,
+                                    "minItems": 1,
+                                    "type": "array"
+                                  },
+                                  "text": {
+                                    "maxLength": 500,
+                                    "minLength": 1,
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "text",
+                                  "sourceIds"
+                                ],
+                                "type": "object"
+                              },
+                              "maxItems": 8,
+                              "type": "array"
+                            },
+                            "sourceIds": {
+                              "items": {
+                                "pattern": "^S[1-9]\\d{0,2}$",
+                                "type": "string"
+                              },
+                              "maxItems": 12,
+                              "minItems": 1,
+                              "type": "array"
+                            }
+                          },
+                          "required": [
+                            "answer",
+                            "blockers",
+                            "nextSteps",
+                            "sourceIds"
+                          ],
+                          "type": "object"
+                        },
+                        "sources": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "href": {
+                                "pattern": "^\\/app\\/projects\\/[\\da-f-]+(?:\\/[\\w/-]+)?$",
+                                "type": "string"
+                              },
+                              "id": {
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                "type": "string"
+                              },
+                              "key": {
+                                "pattern": "^S[1-9]\\d{0,2}$",
+                                "type": "string"
+                              },
+                              "projectId": {
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                "type": "string"
+                              },
+                              "readAt": {
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                                "type": "string"
+                              },
+                              "title": {
+                                "maxLength": 200,
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "type": {
+                                "enum": [
+                                  "project",
+                                  "requirement",
+                                  "revision",
+                                  "change_request",
+                                  "change_version",
+                                  "delivery"
+                                ],
+                                "type": "string"
+                              },
+                              "version": {
+                                "maxLength": 100,
+                                "minLength": 1,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "key",
+                              "type",
+                              "id",
+                              "projectId",
+                              "title",
+                              "version",
+                              "href",
+                              "readAt"
+                            ],
+                            "type": "object"
+                          },
+                          "maxItems": 108,
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "conversationTurnId",
+                        "projectId",
+                        "result",
+                        "sources",
+                        "context"
+                      ],
+                      "type": "object"
+                    },
+                    "meta": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "requestId": {
+                          "format": "uuid",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Safe error envelope"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Copilot"
+        ]
+      }
+    },
     "/api/v1/projects/{id}/deliveries": {
       "get": {
         "operationId": "Deliveries_list",

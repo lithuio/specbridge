@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import type { AuthRequest } from '../auth/auth.types.js';
 import { AuthorizationModule } from '../authorization/authorization.module.js';
-import { AuthorizationRepository } from '../authorization/authorization.repository.js';
+import { DashboardService } from './dashboard.service.js';
 import { dtoPipe } from '../authorization/rbac.dto.js';
 import { DatabaseModule } from '../database/database.module.js';
 import { DashboardDto } from './dashboard.dto.js';
@@ -17,52 +17,22 @@ import { DashboardRepository } from './dashboard.repository.js';
 @Controller('api/v1')
 export class DashboardController {
   constructor(
-    @Inject(DashboardRepository)
-    private readonly repository: DashboardRepository,
-    @Inject(AuthorizationRepository)
-    private readonly authorization: AuthorizationRepository,
+    @Inject(DashboardService) private readonly service: DashboardService,
   ) {}
   @Get('dashboard')
   @Header('Cache-Control', 'no-store')
-  read(
+  async read(
     @Req() req: AuthRequest,
     @Query(dtoPipe(DashboardDto)) input: DashboardDto,
   ) {
-    return this.repository.database.db.transaction(
-      async (tx) => {
-        const actor = req.auth!.user.id.toLowerCase();
-        if (input.projectId)
-          await this.authorization.project(
-            actor,
-            input.projectId.toLowerCase(),
-            tx,
-          );
-        const result = await this.repository.read(tx, actor, input);
-        return {
-          data: {
-            scope: {
-              workspaceId: input.workspaceId?.toLowerCase() ?? null,
-              projectId: input.projectId?.toLowerCase() ?? null,
-            },
-            summary: result.summary,
-            items: result.items.slice(0, input.limit),
-          },
-          meta: {
-            requestId: req.requestId,
-            limit: input.limit,
-            offset: input.offset,
-            hasMore: result.items.length > input.limit,
-            asOf: result.asOf,
-          },
-        };
-      },
-      { isolationLevel: 'repeatable read', accessMode: 'read only' },
-    );
+    const result = await this.service.read(req.auth!.user.id, input);
+    return { ...result, meta: { ...result.meta, requestId: req.requestId } };
   }
 }
 @Module({
   imports: [DatabaseModule, AuthorizationModule],
   controllers: [DashboardController],
-  providers: [DashboardRepository],
+  providers: [DashboardRepository, DashboardService],
+  exports: [DashboardService],
 })
 export class DashboardModule {}

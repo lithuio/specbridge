@@ -7,9 +7,33 @@ import { AiRepository } from './ai.repository.js';
 import { AiService } from './ai.service.js';
 import { AiController } from './ai.controller.js';
 import { DeepseekProvider } from './deepseek.provider.js';
+import { ProjectsModule } from '../projects/projects.module.js';
+import { RequirementsModule } from '../requirements/requirements.module.js';
+import { ChangesModule } from '../changes/changes.module.js';
+import { DeliveriesModule } from '../deliveries/deliveries.module.js';
+import { DashboardModule } from '../dashboard/dashboard.module.js';
+import { CopilotController } from './copilot.controller.js';
+import { CopilotTools } from './copilot.tools.js';
+import { CopilotService } from './copilot.service.js';
 @Module({
-  imports: [DatabaseModule, AuthorizationModule],
-  controllers: [AiController],
-  providers: [AiConfig, AiLimits, AiRepository, AiService, DeepseekProvider],
+  imports: [
+    DatabaseModule,
+    AuthorizationModule,
+    ProjectsModule,
+    RequirementsModule,
+    ChangesModule,
+    DeliveriesModule,
+    DashboardModule,
+  ],
+  controllers: [AiController, CopilotController],
+  providers: [
+    AiConfig,
+    AiLimits,
+    AiRepository,
+    AiService,
+    DeepseekProvider,
+    CopilotTools,
+    CopilotService,
+  ],
 })
 export class AiModule {}

@@ -9,5 +9,6 @@ import { RequirementsRepository } from './requirements.repository.js';
   imports: [DatabaseModule, AuthorizationModule, AuditModule],
   controllers: [RequirementsController],
   providers: [RequirementsService, RequirementsRepository],
+  exports: [RequirementsService],
 })
 export class RequirementsModule {}

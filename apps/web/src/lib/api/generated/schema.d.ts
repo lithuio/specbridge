@@ -303,6 +303,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{id}/copilot/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Copilot_message"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{id}/deliveries": {
         parameters: {
             query?: never;
@@ -3977,6 +3993,191 @@ export interface operations {
             };
             /** @description Safe error envelope */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    Copilot_message: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @default [] */
+                    history?: {
+                        assistant: string;
+                        user: string;
+                    }[];
+                    message: string;
+                    page?: {
+                        /** @enum {string} */
+                        kind: "overview" | "dashboard" | "requirements" | "changes" | "deliveries" | "members" | "audit";
+                    } | {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "requirement";
+                        /** Format: uuid */
+                        revisionId?: string;
+                    } | {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "change";
+                        /** Format: uuid */
+                        versionId?: string;
+                    } | {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "delivery";
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            context: {
+                                historyDropped: number;
+                                toolCalls: number;
+                                truncated: boolean;
+                            };
+                            /** Format: uuid */
+                            conversationTurnId: string;
+                            /** Format: uuid */
+                            projectId: string;
+                            result: {
+                                answer: string;
+                                blockers: string[];
+                                nextSteps: {
+                                    sourceIds: string[];
+                                    text: string;
+                                }[];
+                                sourceIds: string[];
+                            };
+                            sources: {
+                                href: string;
+                                /** Format: uuid */
+                                id: string;
+                                key: string;
+                                /** Format: uuid */
+                                projectId: string;
+                                /** Format: date-time */
+                                readAt: string;
+                                title: string;
+                                /** @enum {string} */
+                                type: "project" | "requirement" | "revision" | "change_request" | "change_version" | "delivery";
+                                version: string;
+                            }[];
+                        };
+                        meta: {
+                            /** Format: uuid */
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Safe error envelope */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

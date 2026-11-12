@@ -15,8 +15,68 @@ Object.assign(process.env, {
   DEEPSEEK_BASE_URL: 'https://api.deepseek.com',
   DEEPSEEK_MODEL: 'deepseek-flash',
 });
-const transport = async () =>
+const completion = (message, finish_reason = 'stop') =>
   Response.json({
+    choices: [{ message, finish_reason }],
+    usage: { prompt_tokens: 100, completion_tokens: 100 },
+  });
+const transport = async (_url, init) => {
+  const body = JSON.parse(init.body);
+  const copilot = body.messages[0].content.includes(
+    'project-scoped READ-ONLY copilot',
+  );
+  if (copilot) {
+    const context = JSON.parse(body.messages[1].content);
+    const results = body.messages
+      .filter((m) => m.role === 'tool')
+      .map((m) => JSON.parse(m.content));
+    if (body.tools) {
+      if (results.length) return completion({ content: 'Ready' });
+      const { kind, ...args } = context.page;
+      const name = {
+        requirement: 'get_requirement',
+        change: 'get_change_request',
+        delivery: 'get_delivery',
+      }[kind];
+      const calls = name
+        ? [{ name, args }]
+        : [
+            { name: 'get_project_overview', args: {} },
+            { name: 'list_project_requirements', args: {} },
+          ];
+      return completion(
+        {
+          content: null,
+          tool_calls: calls.map((c, i) => ({
+            id: `fixture_${i}`,
+            type: 'function',
+            function: { name: c.name, arguments: JSON.stringify(c.args) },
+          })),
+        },
+        'tool_calls',
+      );
+    }
+    const keys = results
+      .flatMap((r) => r.sources.map((s) => s.key))
+      .slice(0, 12);
+    const record = results[0].untrustedToolData;
+    return completion({
+      content: JSON.stringify({
+        answer: `${context.untrustedConversation.length ? '结合上一轮问题，' : ''}已读取当前项目的授权资料。${record.title ? `「${record.title}」当前状态为 ${record.status}。` : '项目数据以本轮读取的来源为准。'}以下是待人工核实的建议。`,
+        blockers: ['DRAFT', 'CLARIFYING'].includes(record.status)
+          ? ['需求仍待澄清，验收标准需要人工确认。']
+          : [],
+        nextSteps: [
+          {
+            text: '打开来源，核对业务状态与版本，再决定下一步操作。',
+            sourceIds: keys,
+          },
+        ],
+        sourceIds: keys,
+      }),
+    });
+  }
+  return Response.json({
     choices: [
       {
         finish_reason: 'stop',
@@ -37,6 +97,7 @@ const transport = async () =>
     ],
     usage: { prompt_tokens: 100, completion_tokens: 100 },
   });
+};
 const module = await Test.createTestingModule({ imports: [AppModule] })
   .useMocker((token) => (token === AI_FETCH ? transport : undefined))
   .compile();
