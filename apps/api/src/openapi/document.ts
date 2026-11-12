@@ -29,6 +29,16 @@ import { CopilotController } from '../ai/copilot.controller.js';
 import { copilotInput, copilotResponse } from '../ai/copilot.contract.js';
 import { z } from 'zod';
 import {
+  ApiTokensController,
+  ApprovedSpecsController,
+} from '../api-tokens/api-tokens.module.js';
+import {
+  createTokenInput,
+  tokenSummary,
+  tokenCreated,
+  approvedSpec,
+} from '../api-tokens/token.contract.js';
+import {
   schemas,
   envelope,
   obj,
@@ -83,6 +93,7 @@ type Operation = {
   body?: Schema;
   statuses?: number[];
   public?: boolean;
+  projectToken?: boolean;
 };
 const r = (name: keyof typeof schemas): Operation => ({ response: ref(name) });
 const list = (
@@ -90,6 +101,45 @@ const list = (
   query?: Record<string, Schema>,
 ): Operation => ({ response: arr(ref(name)), paged: true, query });
 const definitions: [Type, Record<string, Operation>][] = [
+  [
+    ApiTokensController,
+    {
+      create: {
+        body: z.toJSONSchema(createTokenInput, {
+          io: 'input',
+          target: 'openapi-3.0',
+        }) as Schema,
+        response: z.toJSONSchema(tokenCreated, {
+          target: 'openapi-3.0',
+        }) as Schema,
+      },
+      list: {
+        response: arr(
+          z.toJSONSchema(tokenSummary, { target: 'openapi-3.0' }) as Schema,
+        ),
+        paged: true,
+      },
+      revoke: {},
+    },
+  ],
+  [
+    ApprovedSpecsController,
+    {
+      list: {
+        response: arr(
+          z.toJSONSchema(approvedSpec, { target: 'openapi-3.0' }) as Schema,
+        ),
+        paged: true,
+        projectToken: true,
+      },
+      detail: {
+        response: z.toJSONSchema(approvedSpec, {
+          target: 'openapi-3.0',
+        }) as Schema,
+        projectToken: true,
+      },
+    },
+  ],
   [
     CopilotController,
     {
@@ -337,6 +387,7 @@ const definitions: [Type, Record<string, Operation>][] = [
           'requirement_revision',
           'change_request',
           'delivery',
+          'api_token',
         ),
         entityId: uuid,
         eventType: en(...auditEventTypes),
@@ -384,7 +435,11 @@ export async function createDocument() {
       decorate(
         ApiOperation({
           operationId: `${controller.name.replace('Controller', '')}_${key}`,
-          security: spec.public ? [] : [{ session: [] }],
+          security: spec.public
+            ? []
+            : spec.projectToken
+              ? [{ session: [] }, { projectToken: [] }]
+              : [{ session: [] }],
         }),
       );
       const path = `${Reflect.getMetadata(PATH_METADATA, controller)}/${Reflect.getMetadata(PATH_METADATA, descriptor.value)}`;
@@ -453,6 +508,12 @@ export async function createDocument() {
     const config = new DocumentBuilder()
       .setTitle('SpecBridge HTTP API')
       .setVersion('0.2')
+      .addSecurity('projectToken', {
+        type: 'http',
+        scheme: 'bearer',
+        description:
+          'Project-bound approved_specs:read only. GET/HEAD approved-specs routes only; Cookie plus Bearer is rejected. This is not MCP HTTP OAuth.',
+      })
       .addSecurity('session', {
         type: 'apiKey',
         in: 'cookie',

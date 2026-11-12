@@ -1,5 +1,11 @@
 // Unknown events and unknown metadata keys fail closed for every role.
 export const auditPolicy = {
+  'api_token.created': [false, ['scope', 'expiresInDays']],
+  'api_token.revoked': [false, []],
+  'api_token.used': [
+    false,
+    ['principalType', 'operation', 'versionId', 'resultCount'],
+  ],
   'project.created': [false, []],
   'project.developer_added': [false, ['role']],
   'project.client_bound': [false, []],
@@ -89,6 +95,13 @@ export const auditPolicy = {
 } as const;
 export type AuditEventType = keyof typeof auditPolicy;
 export const auditEventTypes = Object.keys(auditPolicy) as AuditEventType[];
+export function canReadAudit(
+  event: AuditEventType,
+  role: 'OWNER' | 'DEVELOPER' | 'CLIENT',
+) {
+  if (event.startsWith('api_token.')) return role === 'OWNER';
+  return role !== 'CLIENT' || auditPolicy[event][0];
+}
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function safeMetadata(
   event: AuditEventType,
@@ -97,7 +110,23 @@ export function safeMetadata(
   const result: Record<string, string | number | string[]> = {};
   for (const key of auditPolicy[event][1]) {
     const value = raw[key];
-    if (key.endsWith('Id')) {
+    if (key === 'scope' && value === 'approved_specs:read') result[key] = value;
+    else if (key === 'principalType' && value === 'project_token')
+      result[key] = value;
+    else if (
+      key === 'operation' &&
+      (value === 'approved_spec.list' || value === 'approved_spec.detail')
+    )
+      result[key] = value;
+    else if (key === 'expiresInDays' || key === 'resultCount') {
+      if (
+        typeof value === 'number' &&
+        Number.isInteger(value) &&
+        value >= (key === 'expiresInDays' ? 1 : 0) &&
+        value <= (key === 'expiresInDays' ? 90 : 100)
+      )
+        result[key] = value;
+    } else if (key.endsWith('Id')) {
       if (typeof value === 'string' && uuid.test(value))
         result[key] = value.toLowerCase();
     } else if (key === 'versionNo' || key === 'draftVersion') {

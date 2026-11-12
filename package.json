@@ -26,7 +26,7 @@
     "test:e2e": "pnpm --filter specbridge-api test:e2e",
     "test:e2e:ai": "node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:ai",
     "test:e2e:db": "node scripts/with-env.mjs .env.test pnpm run test:e2e:db:run",
-    "test:e2e:db:run": "pnpm --filter specbridge-api test:e2e:auth && pnpm --filter specbridge-api test:e2e:rbac && pnpm --filter specbridge-api test:e2e:requirements && pnpm --filter specbridge-api test:e2e:changes && pnpm --filter specbridge-api test:e2e:deliveries && pnpm --filter specbridge-api test:e2e:reads",
+    "test:e2e:db:run": "pnpm --filter specbridge-api test:e2e:auth && pnpm --filter specbridge-api test:e2e:rbac && pnpm --filter specbridge-api test:e2e:requirements && pnpm --filter specbridge-api test:e2e:changes && pnpm --filter specbridge-api test:e2e:deliveries && pnpm --filter specbridge-api test:e2e:reads && pnpm --filter specbridge-api test:e2e:tokens",
     "test:browser": "pnpm --filter specbridge-api build && pnpm --filter web build && pnpm run test:browser:run",
     "test:browser:auth": "node scripts/with-env.mjs .env.test pnpm --filter web test:e2e auth.spec.ts",
     "test:browser:projects": "node scripts/with-env.mjs .env.test pnpm --filter web test:e2e projects.spec.ts",
@@ -36,9 +36,11 @@
     "test:browser:deliveries": "node scripts/with-env.mjs .env.test pnpm --filter web test:e2e deliveries.spec.ts",
     "test:browser:forms": "node scripts/with-env.mjs .env.test pnpm --filter web test:e2e form-preservation.spec.ts",
     "test:browser:run": "R07_EVIDENCE_ROOT=test-results/evidence pnpm run test:browser:phases",
-    "test:browser:phases": "pnpm run test:browser:auth && pnpm run test:browser:projects && pnpm run test:browser:requirements && pnpm run test:browser:changes && pnpm run test:browser:deliveries && pnpm run test:browser:integration && pnpm run test:browser:presentation && pnpm run test:browser:forms && pnpm run test:browser:ai && pnpm run test:browser:copilot",
+    "test:browser:phases": "pnpm run test:browser:auth && pnpm run test:browser:projects && pnpm run test:browser:requirements && pnpm run test:browser:changes && pnpm run test:browser:deliveries && pnpm run test:browser:integration && pnpm run test:browser:presentation && pnpm run test:browser:forms && pnpm run test:browser:ai && pnpm run test:browser:copilot && pnpm run test:browser:tokens",
     "test:browser:presentation": "node scripts/with-env.mjs .env.test pnpm --filter web test:e2e presentation.spec.ts",
     "test:browser:integration": "node scripts/with-env.mjs .env.test pnpm --filter web test:e2e integration.spec.ts",
-    "test:browser:copilot": "R08_AI_FIXTURE=1 node scripts/with-env.mjs .env.test pnpm --filter web test:e2e copilot.spec.ts"
+    "test:browser:copilot": "R08_AI_FIXTURE=1 node scripts/with-env.mjs .env.test pnpm --filter web test:e2e copilot.spec.ts",
+    "test:e2e:tokens": "node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:tokens",
+    "test:browser:tokens": "node scripts/with-env.mjs .env.test pnpm --filter web test:e2e api-tokens.spec.ts"
   }
 }

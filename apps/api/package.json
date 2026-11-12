@@ -35,7 +35,8 @@
     "test:e2e:reads": "vitest run --config ./vitest.config.reads-e2e.ts",
     "test:e2e:ai": "vitest run --config ./vitest.config.ai-e2e.ts",
     "openapi:generate": "pnpm run build && node scripts/openapi.mjs",
-    "openapi:check": "pnpm run build && node scripts/openapi.mjs --check"
+    "openapi:check": "pnpm run build && node scripts/openapi.mjs --check",
+    "test:e2e:tokens": "vitest run --config ./vitest.config.tokens-e2e.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

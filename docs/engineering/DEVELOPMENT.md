@@ -301,3 +301,21 @@ pnpm --filter web exec tsc --noEmit --incremental false
 浏览器环境首次执行 `pnpm --filter web exec playwright install --only-shell chromium`，Linux 缺系统库时在有 sudo 权限的终端运行 `pnpm --filter web exec playwright install-deps chromium`，截图建议安装 Noto CJK。随后 `pnpm run db:test:up` 与 `pnpm run test:browser`；后者构建 API/Web，运行 Next 生产服务器，按 `.env.test` 启动隔离链路。不要与占用 3000/4000 的开发/HTTP 测试并行。
 
 本机 sudo 未完成安装，C 使用临时解包系统库和字体，通过的精确环境前缀见 [C evidence](../ux/evidence/r07-c/README.md)。该目录不保证重启后存在；无需改变应用源码来适配。Web 结构、typed client 与后续 Query 隔离约定见 [apps/web/README](../../apps/web/README.md)。
+
+
+## R08 D 项目 API Token
+
+负责人已批准的0004 SQL及SHA-256见 [D审核包](R08_D_SQL_REVIEW.md)。本轮仅授权5434隔离specbridge_test实例；开发/生产库应用仍需另行授权。现有自动migrate测试入口只应用人工审核SQL，禁止借测试生成新迁移。
+
+```bash
+pnpm db:migrate:test
+pnpm test:e2e:tokens
+# 浏览器前构建最新API/Web，3000/4000需空闲；不要与compiled-proxy测试并行。
+pnpm --filter specbridge-api build
+pnpm --filter web build
+pnpm test:browser:tokens
+```
+
+Owner 从项目导航“访问凭据”创建默认30天、最长90天的固定只读凭据。关窗/隐藏/刷新后不能再读取明文；丢失时撤销并重新创建。未知创建响应先核对列表、撤销可能成功的记录。管理UI使用现有Session，外部客户端通过API origin及Authorization Bearer读取批准规格，不能带Cookie或将Token放入URL。真实使用必须HTTPS；本地隔离验证为loopback HTTP。不要将凭据写入命令历史、日志、截图或浏览器持久存储。
+
+CI纳入SQL集成、Token HTTP与浏览器套件，不需要DeepSeek Key。该阶段不新增依赖/环境变量，不提供MCP或OAuth；不应运行真实DeepSeek Smoke来验证Token功能。

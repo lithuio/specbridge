@@ -102,6 +102,9 @@ jobs:
       - name: R08 analysis and Copilot HTTP permission checks (mock provider, no API key)
         run: pnpm --filter specbridge-api test:e2e:ai
 
+      - name: Project API token authorization and transactions
+        run: pnpm --filter specbridge-api test:e2e:tokens
+
       - name: Install Chromium and system dependencies
         run: pnpm --filter web exec playwright install --with-deps --only-shell chromium
 

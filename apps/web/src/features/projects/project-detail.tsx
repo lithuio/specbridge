@@ -5,7 +5,7 @@ import { useParams, usePathname } from "next/navigation";
 import { Activity, createContext, useContext, useState } from "react";
 import { ApiError } from "@/lib/api/client";
 import { RefreshButton } from "@/components/shared/refresh-button";
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, KeyRound } from "lucide-react";
 import { projectSections, projectTone } from "./presentation";
 import { roleLabel, useProject, type Project } from "./queries";
 import { QueryState } from "./shared";
@@ -109,6 +109,17 @@ function ProjectScope({
             </Link>
           );
         })}
+        {project.capabilities.manageApiTokens.allowed && (
+          <Link
+            href={`${base}/api-tokens`}
+            aria-current={
+              pathname === `${base}/api-tokens` ? "page" : undefined
+            }
+          >
+            <KeyRound size={17} aria-hidden="true" />
+            访问凭据
+          </Link>
+        )}
       </nav>
       {query.error && (
         <>

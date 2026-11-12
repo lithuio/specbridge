@@ -1,6 +1,6 @@
 # R08 — AI & Agent Integration
 
-批准基线：负责人确认的修订计划；Issue [#17](https://github.com/lithuio/specbridge/issues/17)。一个 Issue、一个最终 PR；A–F 各自独立 Session，每阶段负责人本地 Commit。禁止自动 Commit/Push/PR/Merge/部署。本文首次落盘随 Phase A 实施授权；本轮另获 Phase C 授权，不表示 D–F 已实施。
+批准基线：负责人确认的修订计划；Issue [#17](https://github.com/lithuio/specbridge/issues/17)。一个 Issue、一个最终 PR；A–F 各自独立 Session，每阶段负责人本地 Commit。禁止自动 Commit/Push/PR/Merge/部署。本文首次落盘随 Phase A 实施授权；D先生成最小Schema/SQL并停在审批点，负责人随后回复“已审批”。获批0004仅在隔离测试库应用；D已完成本地验证，E–F未开始。
 
 ## 基线与阶段
 
@@ -15,8 +15,8 @@
 |---|---|---|
 | A Provider & Analysis | 配置、Provider、授权分析 API、Schema、限额、异常、契约与定向测试 | 本地完成；Mock/HTTP/DB及真实DeepSeek Smoke PASS |
 | B Assistance UI | 原文对照、编辑建议、人工采用到既有表单、stale/未知结果处理 | 已由负责人本地提交 642954a |
-| C Global Copilot | Shell 项目助手、内存对话、有界只读工具、来源卡片 | 本地实现及 Mock/HTTP/浏览器/真实 DeepSeek 验证完成；待负责人审阅/本地 Commit |
-| D Project Token | Owner 管理、批准规格投影、已审 Schema/SQL 与测试 | NOT STARTED |
+| C Global Copilot | Shell 项目助手、内存对话、有界只读工具、来源卡片 | 已由负责人本地提交 9ba8f34 |
+| D Project Token | Owner 管理、批准规格投影、已审 Schema/SQL 与测试 | 本地完成；获批0004仅在隔离库应用；Token/事务/授权/浏览器验证PASS，待人工本地Commit |
 | E MCP & Skill | SDK v2 stdio、两个工具、requirement-analyst、真实 Host 验证 | NOT STARTED |
 | F Final Integration | 真实 DeepSeek/Web/MCP 与 R01–R08 完整回归、人工 Review、远程 CI | NOT STARTED |
 
@@ -57,7 +57,44 @@ E：apps/mcp 使用 SDK v2 McpServer/serveStdio，编译后直接node启动；st
 
 F：Mock CI与真实联调分开；真实合成数据DeepSeek、Chromium、MCP SDK Client、Inspector及至少一个真实Agent Host/Skill。完整Lint/typecheck/build/unit/integration/HTTP/DB/browser/OpenAPI/db:check/MCP回归，数据库串行。人工安全Review和远程CI独立记录，不以本地测试代替。
 
-## C 实现、验收与交接（2026-11-12）
+## D 实现、验收与交接（2026-11-12）
+
+开工 `feat/17-ai-agent-integration` / HEAD `9ba8f34`，初始工作区干净；已阅读AGENTS、STATE、DATA_MODEL/SECURITY/ADR-002/004、R02 Session/Guard、R03 Project Policy、Database/Audit及测试启动器，在线核对Issue #17。首次生成最小Schema/SQL后按要求停止，未先运行会自动migrate的测试。负责人随后回复“已审批”，本次续接保留候选变更并实施D。
+
+审批对象：[完整SQL Diff及审核记录](R08_D_SQL_REVIEW.md)，`0004_project_api_tokens.sql` SHA-256 `7133f1d8fc11ef93f84314dede4257cbba23452dec9ca49a2fdb57ce5cc0bd0a`。应用前后均核对一致，仅在本机5434/specbridge_test库及账号应用；H-10已完成。9列Token表、PK/hash唯一、5个CHECK、2个RESTRICT FK、分页索引；旧15表及0000–0003 SQL/snapshots/旧journal逐字节保持。
+
+实现：
+
+- Owner Session管理创建/分页列表/幂等撤销，复用CSRF和Workspace→Project事务锁。256-bit随机sbp_凭据，数据库仅SHA-256；固定approved_specs:read、默认30/整数1–90天。每次读取重验创建者Owner资格、ACTIVE项目、未撤销/未过期和精确scope；新Owner可撤销旧Token。归档/资格丢失动态不可用，永久失效用撤销。
+- 两条显式授权GET/HEAD批准规格路由使用独立Token principal，不赋Owner Session。拒绝混合Cookie/Bearer、重复头、跨Project/Workspace及所有普通业务读写。精确同版不同人VENDOR→CLIENT批准，技术范围与引用不可变Revision分开；不读最新草稿/原文/当前标题、商业报价/工时/工期或审批评论/人员邮箱。
+- 创建、撤销、成功使用与审计同事务。使用actor=null并标明project_token；仅保留必要元信息。Owner-only事件在SQL分页前过滤，Developer不因“非Client”获得访问。读取锁与撤销串行；撤销先提交则已认证但尚未读取的请求也失败。已经提交的读取响应不能追溯撤回。
+- 复用单进程限流：创建30/用户/分钟，Bearer120/连接IP/分钟及60/Token/分钟，429有Retry-After。不信任XFF；反向代理用户会共享IP配额。列表1–100条、固定排序，不引入Redis或持久配额。
+- 项目导航Owner专属“访问凭据”，默认只读、期限输入、一次性明文和撤销确认。明文只在组件内存，不入Query/Mutation缓存、URL或浏览器持久存储；关闭、切页、后台、权限丢失和身份边界销毁；取消请求并丢弃迟到响应。创建响应未知先核对并撤销，不自动重发。15秒客户端等待上限不能证明服务器未提交。用户主动复制后自行保管系统剪贴板。
+- 沿用R07 Shell/组件；审计UI支持三种Token事件及Owner管理链接。OpenAPI与Web类型更新至36路径，no-store覆盖错误，Observe忽略Token路由，全局捕获关闭、敏感模式脱敏。无新依赖/环境变量/DeepSeek调用，CI不需真实Key。没有MCP Server/Skill/OAuth实现，未进入E。
+
+| 实际命令 / 检查 | 结果 |
+|---|---|
+| `pnpm db:migrate:test` | PASS；守卫校验隔离库/账号身份；获批0004应用成功；后续各套件重复migrate无变化 |
+| `pnpm --filter specbridge-api test` | PASS；13文件128项，包含Token随机凭据/规范编码、输入及Owner-only审计单元验证 |
+| `pnpm test:e2e:tokens` | PASS；最终9项3.82秒：真实HTTP/DB创建列表撤销过期、scope/CSRF/跨租户、伪造/混合/重复凭据、GET/HEAD、批准投影、Owner变化/归档、审计事务回滚、真实锁等待撤销竞争、限流与日志/错误不泄露 |
+| `node scripts/with-env.mjs .env.test pnpm --filter specbridge-api exec vitest run --config vitest.config.integration.ts test/database/api-token-migration.integration-spec.ts test/database/auth.integration-spec.ts test/database/rbac.integration-spec.ts` | PASS；3文件19项；升级前后15表数据不变、FK/unique/name/hash/scope/期限/撤销约束、Auth/RBAC真实事务 |
+| `node scripts/with-env.mjs .env.test pnpm --filter specbridge-api exec vitest run --config vitest.config.integration.ts test/database/api-token-migration.integration-spec.ts` | PASS；补充多维scope拒绝并修正同一pg client并行查询后，2项464ms，无pg并发查询弃用警告 |
+| `node scripts/with-env.mjs .env.test pnpm --filter specbridge-api exec vitest run --config vitest.config.auth-e2e.ts` | PASS；16项，真实Auth HTTP及编译API/Next代理 |
+| `node scripts/with-env.mjs .env.test pnpm --filter specbridge-api exec vitest run --config vitest.config.rbac-e2e.ts` | PASS；最终13项3.90秒，三角色项目授权与代理 |
+| `node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:reads` | PASS；9项，R07读取/审计/父链/能力与实际HTTP契约 |
+| `pnpm test:browser:tokens` | PASS；最终4场景7.7秒，真实Next/Nest/Chromium/隔离PG；创建→空批准读取→撤销→401、后台/Activity切页/刷新清除、迟到结果丢弃、未知创建不重放、Developer/Client直接路由拒绝、键盘与320/390/1440重排 |
+| `pnpm --filter specbridge-api typecheck`、`pnpm --filter specbridge-api lint`、`pnpm --filter web typecheck`、`pnpm --filter web lint` | PASS；最终无lint警告 |
+| `pnpm --filter specbridge-api openapi:generate`、`pnpm --filter specbridge-api openapi:check` | PASS；包含API生产build，36路径生成及零漂移；Web生产build也PASS |
+| `pnpm --filter specbridge-api db:check`、SQL SHA-256、旧表/snapshot/journal逐字节对照、`git diff --check` | PASS |
+| [截图与可访问性证据](../ux/evidence/r08-d/README.md) | PASS；桌面列表/手机撤销确认2张已逐张查看，无明文；三状态axe违规0，手机裁剪导航颜色未判定项保留并补充计算对比度 |
+
+已解决的FAIL：默认沙箱5434连接EPERM、Turbopack临时端口限制（获授权重跑并保留失败缓存于/tmp）；OpenAPI正整数exclusiveMinimum与现有Ajv兼容问题（改为等价min(1)）；单元测试undefined/null断言；重复头测试TS类型；pg同客户端并行查询弃用警告；Dialog动画中取证、切页尚未提交即reload的测试竞态；RBAC代理与浏览器占用同端口（改串行）。最终无未解决FAIL。既有Node NO_COLOR/FORCE_COLOR提示不影响浏览器结果。
+
+NOT RUN：开发/生产Migration、真实DeepSeek、MCP/Skill/HTTP OAuth、真实Observe外部接收、远程CI、独立人工安全/视觉评审、Firefox/WebKit/真实设备/读屏及R01–R08完整回归。D不调用模型；最终整体验证留F，不将本地PASS当远程CI或人工签字。
+
+收尾：自建测试HTTP子进程已退出，隔离测试DB保持原运行状态；未访问开发业务数据或读取/修改.env。tracked API构建缓存恢复为开工内容。负责人审阅diff及证据后自行本地Commit；开发/生产迁移另行审批。建议摘要：`feat(auth): add owner-managed project API tokens for approved specs (#17)`。本Session停在D，不Commit/Push/PR/Merge/部署，不进入E。
+
+## C 实现、验收与交接（2026-11-12，后续已提交9ba8f34）
 
 仅实施 C。开工分支 `feat/17-ai-agent-integration`，HEAD `642954a`，工作区干净，B 已由负责人提交。已阅读根/API/Web AGENTS、最新交接、R07读取与Dashboard、授权服务、DeepSeek Provider/限额和现有UI组件；在线核对 Issue #17 与 [DeepSeek Tool Calls](https://api-docs.deepseek.com/guides/tool_calls/)、[Chat Completions](https://api-docs.deepseek.com/api/create-chat-completion/)。复用当前 deepseek-flash 非思考模式工具调用，不启用 beta strict，工具参数和最终 JSON 均由服务端 Zod 验证。
 

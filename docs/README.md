@@ -17,6 +17,7 @@
 | 如何开发与验收 | `engineering/WORKFLOW.md`, `engineering/DEVELOPMENT.md`, `engineering/TEST_STRATEGY.md` |
 | 当前进度 / 人工责任 | `STATE.md`, `HUMAN_TASKS.md` |
 | R08 AI/Agent 总计划与 A/B/C 交接 | `engineering/R08_PLAN.md` |
+| R08 D Token候选SQL、Diff/SHA-256与审批点（未应用） | `engineering/R08_D_SQL_REVIEW.md` |
 | R08 AI 建议人工审阅、桌面/手机截图与浏览器验证 | `ux/evidence/r08-b/README.md` |
 | R08 全局项目 Copilot、工具来源与浏览器验证 | `ux/evidence/r08-c/README.md` |
 | 发布前检查 | `release/RELEASE_CHECKLIST.md` |

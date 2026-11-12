@@ -8,8 +8,11 @@ export class AuditWriter {
     event: {
       workspaceId: string;
       projectId?: string;
-      actorId: string;
+      actorId: string | null;
       eventType:
+        | 'api_token.created'
+        | 'api_token.revoked'
+        | 'api_token.used'
         | 'workspace.created'
         | 'workspace.developer_added'
         | 'project.created'
@@ -31,6 +34,7 @@ export class AuditWriter {
         | 'delivery.submitted'
         | 'delivery.reviewed';
       entityType:
+        | 'api_token'
         | 'workspace'
         | 'project'
         | 'requirement'

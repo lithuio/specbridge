@@ -166,6 +166,57 @@ export const projectMembers = pgTable(
   ],
 );
 
+// Project-scoped bearer credentials. The raw token is never persisted.
+// Ownership, current project status and request scope are rechecked by the API.
+export const apiTokens = pgTable(
+  'api_tokens',
+  {
+    id: id(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'restrict' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    name: text('name').notNull(),
+    tokenHash: char('token_hash', { length: 64 }).notNull(),
+    scopes: text('scopes').array().notNull(),
+    createdAt: createdAt(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (t) => [
+    unique('api_tokens_token_hash_unique').on(t.tokenHash),
+    index('api_tokens_project_created_idx').on(
+      t.projectId,
+      t.createdAt.desc(),
+      t.id.desc(),
+    ),
+    check(
+      'api_tokens_name_valid',
+      sql`char_length(${t.name}) BETWEEN 1 AND 100 AND ${t.name} ~ '[^[:space:]]'`,
+    ),
+    check(
+      'api_tokens_token_hash_format',
+      sql`${t.tokenHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+    // Equality rejects extra/duplicate scopes, NULL elements and noncanonical dimensions.
+    check(
+      'api_tokens_scopes_read_only',
+      sql`${t.scopes} = ARRAY['approved_specs:read']::text[]`,
+    ),
+    // Compare elapsed duration, independent of local calendar/DST boundaries.
+    check(
+      'api_tokens_expiry_window',
+      sql`isfinite(${t.createdAt}) AND isfinite(${t.expiresAt}) AND ${t.expiresAt} - ${t.createdAt} BETWEEN interval '24 hours' AND interval '2160 hours'`,
+    ),
+    check(
+      'api_tokens_revocation_time_valid',
+      sql`${t.revokedAt} IS NULL OR (isfinite(${t.revokedAt}) AND ${t.revokedAt} >= ${t.createdAt})`,
+    ),
+  ],
+);
+
 // Explicit callback types break TypeScript's inference cycle for cached version pointers.
 export const requirements = pgTable(
   'requirements',

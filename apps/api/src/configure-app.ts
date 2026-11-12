@@ -66,7 +66,7 @@ export function configureApp(app: INestApplication): void {
   // Only AI endpoints have a larger body budget. Existing routes keep Nest's default limit.
   app.use((req: AuthRequest, res: Response, next: NextFunction) => {
     if (
-      /^\/api\/v1\/(?:requirements\/[^/]+\/ai-analysis|projects\/[^/]+\/copilot\/messages)\/*$/i.test(
+      /^\/api\/v1\/(?:api-tokens\/[^/]+|projects\/[^/]+\/(?:api-tokens|approved-specs(?:\/[^/]+)?)|requirements\/[^/]+\/ai-analysis|projects\/[^/]+\/copilot\/messages)\/*$/i.test(
         req.path,
       )
     ) {

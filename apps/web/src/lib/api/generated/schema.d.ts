@@ -1,4 +1,20 @@
 export interface paths {
+    "/api/v1/api-tokens/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["ApiTokens_revoke"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -247,6 +263,54 @@ export interface paths {
             cookie?: never;
         };
         get: operations["Projects_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{id}/api-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ApiTokens_list"];
+        put?: never;
+        post: operations["ApiTokens_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{id}/approved-specs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ApprovedSpecs_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{id}/approved-specs/{versionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ApprovedSpecs_detail"];
         put?: never;
         post?: never;
         delete?: never;
@@ -526,10 +590,10 @@ export interface components {
             /** Format: uuid */
             entityId: string;
             /** @enum {string} */
-            entityType: "project" | "requirement" | "clarification" | "requirement_revision" | "change_request" | "delivery";
+            entityType: "project" | "requirement" | "clarification" | "requirement_revision" | "change_request" | "delivery" | "api_token";
             entityVersion: number | null;
             /** @enum {string} */
-            eventType: "project.created" | "project.developer_added" | "project.client_bound" | "project.client_replaced" | "requirement.created" | "requirement.draft_updated" | "clarification.question_added" | "clarification.answer_added" | "requirement.revision_created" | "requirement.marked_ready" | "change_request.created" | "change_request.draft_updated" | "change_request.reopened" | "change_request.submitted" | "change_request.vendor_decided" | "change_request.client_decided" | "delivery.submitted" | "delivery.reviewed";
+            eventType: "api_token.created" | "api_token.revoked" | "api_token.used" | "project.created" | "project.developer_added" | "project.client_bound" | "project.client_replaced" | "requirement.created" | "requirement.draft_updated" | "clarification.question_added" | "clarification.answer_added" | "requirement.revision_created" | "requirement.marked_ready" | "change_request.created" | "change_request.draft_updated" | "change_request.reopened" | "change_request.submitted" | "change_request.vendor_decided" | "change_request.client_decided" | "delivery.submitted" | "delivery.reviewed";
             /** Format: uuid */
             id: string;
             metadata: {
@@ -542,15 +606,21 @@ export interface components {
                 /** @enum {string} */
                 decision?: "APPROVED" | "REJECTED" | "ACCEPTED" | "CHANGES_REQUESTED";
                 draftVersion?: number;
+                expiresInDays?: number;
                 fields?: ("title" | "originalText" | "requirementRevisionId" | "scopeSummary" | "estimateHours" | "costDeltaMinor" | "currency" | "scheduleDeltaDays" | "acceptanceCriteria")[];
                 /** @enum {string} */
                 fromStatus?: "DRAFT" | "CLARIFYING" | "READY" | "SUBMITTED" | "VENDOR_APPROVED" | "APPROVED" | "REJECTED" | "ACCEPTED" | "CHANGES_REQUESTED";
+                /** @enum {string} */
+                operation?: "approved_spec.list" | "approved_spec.detail";
                 /** Format: uuid */
                 parentId?: string;
                 /** Format: uuid */
                 previousVersionId?: string;
+                /** @enum {string} */
+                principalType?: "project_token";
                 /** Format: uuid */
                 requirementId?: string;
+                resultCount?: number;
                 /** Format: uuid */
                 reviewId?: string;
                 /** Format: uuid */
@@ -558,9 +628,13 @@ export interface components {
                 /** @enum {string} */
                 role?: "DEVELOPER";
                 /** @enum {string} */
+                scope?: "approved_specs:read";
+                /** @enum {string} */
                 step?: "VENDOR" | "CLIENT";
                 /** @enum {string} */
                 toStatus?: "DRAFT" | "CLARIFYING" | "READY" | "SUBMITTED" | "VENDOR_APPROVED" | "APPROVED" | "REJECTED" | "ACCEPTED" | "CHANGES_REQUESTED";
+                /** Format: uuid */
+                versionId?: string;
                 versionNo?: number;
             };
             /** Format: uuid */
@@ -602,6 +676,11 @@ export interface components {
                 deliveryId: string;
                 /** @enum {string} */
                 kind: "delivery";
+                /** Format: uuid */
+                projectId: string;
+            } | {
+                /** @enum {string} */
+                kind: "api_tokens";
                 /** Format: uuid */
                 projectId: string;
             } | (never | null);
@@ -1357,6 +1436,15 @@ export interface components {
                     /** @enum {string} */
                     reasonCode: "ROLE_FORBIDDEN" | "INVALID_TRANSITION" | "CLIENT_ASSIGNMENT_LOCKED" | "REVIEW_IN_PROGRESS" | "CLIENT_REQUIRED" | "ROLE_CONFLICT" | "REVISION_NOT_READY" | "UNANSWERED_QUESTIONS" | "ASSESSMENT_INCOMPLETE" | "ALREADY_REVIEWED" | "DELIVERY_PENDING" | "DELIVERY_COMPLETED" | "VERSION_EXHAUSTED" | "BUSINESS_RULE_VIOLATION";
                 };
+                manageApiTokens: {
+                    /** @enum {boolean} */
+                    allowed: true;
+                } | {
+                    /** @enum {boolean} */
+                    allowed: false;
+                    /** @enum {string} */
+                    reasonCode: "ROLE_FORBIDDEN" | "INVALID_TRANSITION" | "CLIENT_ASSIGNMENT_LOCKED" | "REVIEW_IN_PROGRESS" | "CLIENT_REQUIRED" | "ROLE_CONFLICT" | "REVISION_NOT_READY" | "UNANSWERED_QUESTIONS" | "ASSESSMENT_INCOMPLETE" | "ALREADY_REVIEWED" | "DELIVERY_PENDING" | "DELIVERY_COMPLETED" | "VERSION_EXHAUSTED" | "BUSINESS_RULE_VIOLATION";
+                };
             };
             clientAssignmentLocked: boolean;
             /** Format: date-time */
@@ -1671,6 +1759,98 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ApiTokens_revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Safe error envelope */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     Auth_login: {
         parameters: {
             query?: never;
@@ -3678,12 +3858,518 @@ export interface operations {
             };
         };
     };
+    ApiTokens_list: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            expiresAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** Format: uuid */
+                            projectId: string;
+                            /** Format: date-time */
+                            revokedAt: string | null;
+                            scopes: "approved_specs:read"[];
+                            /** @enum {string} */
+                            status: "ACTIVE" | "EXPIRED" | "REVOKED" | "UNAVAILABLE";
+                        }[];
+                        meta: {
+                            hasMore: boolean;
+                            limit: number;
+                            offset: number;
+                            /** Format: uuid */
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Safe error envelope */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    ApiTokens_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @default 30 */
+                    expiresInDays?: number;
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            expiresAt: string;
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** Format: uuid */
+                            projectId: string;
+                            /** Format: date-time */
+                            revokedAt: string | null;
+                            scopes: "approved_specs:read"[];
+                            /** @enum {string} */
+                            status: "ACTIVE" | "EXPIRED" | "REVOKED" | "UNAVAILABLE";
+                            token: string;
+                        };
+                        meta: {
+                            /** Format: uuid */
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Safe error envelope */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    ApprovedSpecs_list: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: date-time */
+                            approvedAt: string;
+                            approvedScope: {
+                                acceptanceCriteria: string[];
+                                summary: string;
+                            };
+                            /** Format: uuid */
+                            changeRequestId: string;
+                            /** Format: uuid */
+                            projectId: string;
+                            referencedRequirement: {
+                                acceptanceCriteria: string[];
+                                content: string;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: uuid */
+                                revisionId: string;
+                                revisionNo: number;
+                            };
+                            /** Format: uuid */
+                            requirementId: string;
+                            /** Format: date-time */
+                            submittedAt: string;
+                            /** Format: uuid */
+                            versionId: string;
+                            versionNo: number;
+                        }[];
+                        meta: {
+                            hasMore: boolean;
+                            limit: number;
+                            offset: number;
+                            /** Format: uuid */
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Safe error envelope */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    ApprovedSpecs_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: date-time */
+                            approvedAt: string;
+                            approvedScope: {
+                                acceptanceCriteria: string[];
+                                summary: string;
+                            };
+                            /** Format: uuid */
+                            changeRequestId: string;
+                            /** Format: uuid */
+                            projectId: string;
+                            referencedRequirement: {
+                                acceptanceCriteria: string[];
+                                content: string;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: uuid */
+                                revisionId: string;
+                                revisionNo: number;
+                            };
+                            /** Format: uuid */
+                            requirementId: string;
+                            /** Format: date-time */
+                            submittedAt: string;
+                            /** Format: uuid */
+                            versionId: string;
+                            versionNo: number;
+                        };
+                        meta: {
+                            /** Format: uuid */
+                            requestId: string;
+                        };
+                    };
+                };
+            };
+            /** @description Safe error envelope */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Safe error envelope */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     AuditRead_list: {
         parameters: {
             query?: {
                 entityId?: string;
-                entityType?: "project" | "requirement" | "clarification" | "requirement_revision" | "change_request" | "delivery";
-                eventType?: "project.created" | "project.developer_added" | "project.client_bound" | "project.client_replaced" | "requirement.created" | "requirement.draft_updated" | "clarification.question_added" | "clarification.answer_added" | "requirement.revision_created" | "requirement.marked_ready" | "change_request.created" | "change_request.draft_updated" | "change_request.reopened" | "change_request.submitted" | "change_request.vendor_decided" | "change_request.client_decided" | "delivery.submitted" | "delivery.reviewed";
+                entityType?: "project" | "requirement" | "clarification" | "requirement_revision" | "change_request" | "delivery" | "api_token";
+                eventType?: "api_token.created" | "api_token.revoked" | "api_token.used" | "project.created" | "project.developer_added" | "project.client_bound" | "project.client_replaced" | "requirement.created" | "requirement.draft_updated" | "clarification.question_added" | "clarification.answer_added" | "requirement.revision_created" | "requirement.marked_ready" | "change_request.created" | "change_request.draft_updated" | "change_request.reopened" | "change_request.submitted" | "change_request.vendor_decided" | "change_request.client_decided" | "delivery.submitted" | "delivery.reviewed";
                 limit?: number;
                 offset?: number;
             };

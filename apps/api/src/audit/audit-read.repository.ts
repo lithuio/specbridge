@@ -9,12 +9,14 @@ import {
   changeRequests,
   changeRequestVersions,
   deliveries,
+  apiTokens,
 } from '../database/schema/index.js';
 import type { Connection } from '../authorization/authorization.repository.js';
 import { DatabaseService } from '../database/database.service.js';
 import type { AuditListDto } from './audit-read.dto.js';
-import { auditEventTypes, auditPolicy } from './audit-read.policy.js';
+import { auditEventTypes, canReadAudit } from './audit-read.policy.js';
 export type AuditTarget =
+  | { kind: 'api_tokens'; projectId: string }
   | { kind: 'project'; projectId: string }
   | {
       kind: 'requirement';
@@ -41,10 +43,10 @@ export class AuditReadRepository {
   list(
     db: Connection,
     projectId: string,
-    client: boolean,
+    role: 'OWNER' | 'DEVELOPER' | 'CLIENT',
     input: AuditListDto,
   ) {
-    const events = auditEventTypes.filter((e) => !client || auditPolicy[e][0]);
+    const events = auditEventTypes.filter((e) => canReadAudit(e, role));
     return db
       .select({
         event: auditEvents,
@@ -58,6 +60,7 @@ export class AuditReadRepository {
           eq(auditEvents.projectId, projectId),
           inArray(auditEvents.eventType, events),
           inArray(auditEvents.entityType, [
+            'api_token',
             'project',
             'requirement',
             'clarification',
@@ -86,6 +89,13 @@ export class AuditReadRepository {
     event: typeof auditEvents.$inferSelect,
   ): Promise<AuditTarget | null> {
     const id = event.entityId;
+    if (event.entityType === 'api_token') {
+      const [row] = await db
+        .select({ id: apiTokens.id })
+        .from(apiTokens)
+        .where(and(eq(apiTokens.id, id), eq(apiTokens.projectId, projectId)));
+      return row ? { kind: 'api_tokens', projectId } : null;
+    }
     if (event.entityType === 'project')
       return id === projectId ? { kind: 'project', projectId } : null;
     if (event.entityType === 'requirement') {

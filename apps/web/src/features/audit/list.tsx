@@ -12,6 +12,9 @@ import type { components } from "@/lib/api/generated/schema";
 
 type Event = components["schemas"]["AuditEvent"];
 const labels: Record<Event["eventType"], string> = {
+  "api_token.created": "创建访问凭据",
+  "api_token.revoked": "撤销访问凭据",
+  "api_token.used": "凭据读取批准规格",
   "project.created": "创建项目",
   "project.developer_added": "分配开发成员",
   "project.client_bound": "绑定客户",
@@ -42,6 +45,8 @@ function targetPath(event: Event) {
   if (!t || t.projectId !== event.projectId) return null;
   const base = `/app/projects/${t.projectId}`;
   switch (t.kind) {
+    case "api_tokens":
+      return `${base}/api-tokens`;
     case "project":
       return base;
     case "requirement":
@@ -97,13 +102,14 @@ export function AuditList() {
   // This only trims filter options; the API performs event/metadata authorization before pagination.
   const options = Object.entries(labels).filter(
     ([type]) =>
-      project.projectRole !== "CLIENT" ||
-      (!type.startsWith("project.") &&
-        ![
-          "change_request.created",
-          "change_request.draft_updated",
-          "change_request.reopened",
-        ].includes(type)),
+      (!type.startsWith("api_token.") || project.projectRole === "OWNER") &&
+      (project.projectRole !== "CLIENT" ||
+        (!type.startsWith("project.") &&
+          ![
+            "change_request.created",
+            "change_request.draft_updated",
+            "change_request.reopened",
+          ].includes(type))),
   );
   return (
     <>
@@ -163,7 +169,11 @@ export function AuditList() {
                         )}
                       </div>
                       <p className="record-meta">
-                        {event.actor?.displayName ?? "未知操作人"} ·{" "}
+                        {event.actor?.displayName ??
+                          (event.metadata.principalType === "project_token"
+                            ? "项目访问凭据"
+                            : "未知操作人")}{" "}
+                        ·{" "}
                         <time dateTime={event.createdAt}>
                           {new Date(event.createdAt).toLocaleString("zh-CN")}
                         </time>

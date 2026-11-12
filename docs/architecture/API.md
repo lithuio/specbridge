@@ -14,7 +14,7 @@
 - 与需求分析共享用户/项目/实例配额；每次 API 对话轮次预留一次计数和并发槽，最多含3次模型请求，输出总预算相同。调用失败不退日计数；无自动重试。调用模型前/工具读取前/返回前重验 Session、项目及角色；权限撤销或角色改变则丢弃在途结果。
 - 400非法请求；401Session失效；403CSRF；404不可见项目/对象/父链或在途角色变更；413上下文过大；429 RATE_LIMITED 带 Retry-After；503 AI_UNAVAILABLE / AI_INVALID_RESPONSE。沿用 Phase A 的供应商超时、402/429/503、空/非法JSON处理。日志不记录聊天、工具正文或完整Prompt。
 
-实际实现、测试和限制见 [R08_PLAN](../engineering/R08_PLAN.md)。Token/MCP 为后续 D/E，C 未实现。
+实际实现、测试和限制见 [R08_PLAN](../engineering/R08_PLAN.md)。Project Token 已在 D 实现（见下文），MCP 留 E。
 
 ## R08 Phase A — 需求分析（2026-11-12）
 
@@ -212,10 +212,27 @@ API-32 实际完整路径为 `GET /api/v1/health`，无需认证，返回 HTTP 2
 | `POST /requirements/{id}/ai-analysis` | 创建 AI 分析作业/返回建议；结果必须人工确认 |
 | `GET /ai-analysis/{runId}` | 查询结构化建议及错误 |
 | `POST /projects/{projectId}/api-tokens` | Owner 创建项目只读 Token，明文只展示一次 |
+| `GET /projects/{projectId}/api-tokens` | Owner 分页查看安全元信息，不返回明文或摘要 |
 | `DELETE /api-tokens/{tokenId}` | 撤销 Token |
 | `GET /projects/{projectId}/approved-specs` | Owner/Developer/Client/Scoped Token 查已批准快照 |
+| `GET /projects/{projectId}/approved-specs/{versionId}` | 精确已批准版本的技术投影 |
 
 MCP `list_project_requirements` 和 `get_approved_spec` 通过上述授权 API 访问，不提供审批工具。GitHub Issue URL P1 作为普通链接字段，不需要 GitHub OAuth 或 Webhook。
+
+### R08 D 已实现 Token 契约
+
+路由统一前缀 `/api/v1`。管理接口仅接受当前项目 Owner 的 Session；创建/撤销沿用 Origin、CSRF 校验。创建必须项目 ACTIVE；归档后仍可列出及撤销。创建 body 严格为 `{name, expiresInDays?}`：name 去首尾空白后1–100字符，expiresInDays 为整数1–90、默认30，不接受 userId/projectId/scope/hash/时间覆盖。
+
+- POST 201：`{data:{id,projectId,name,scopes,createdAt,expiresAt,revokedAt,status,token},meta:{requestId}}`；`token` 仅此响应一次。不提供重新读取/续期/恢复接口。
+- GET 列表 200：标准 `limit` 1–100（默认20）、offset 分页；按创建时间及id倒序。相同元信息，无 token/tokenHash/userId。status 为 REVOKED、EXPIRED、UNAVAILABLE（项目归档或创建者已非当前Owner）、ACTIVE；顺序即优先级。
+- DELETE 204：幂等，只在首次撤销时写审计；未知/跨项目对象404、同项目非Owner403。拒绝额外请求字段。
+- 批准规格 GET/HEAD：Session 三角色可读，或独立 `Authorization: Bearer sbp_…` 身份。拒绝任何 Cookie 与 Bearer 混用、重复认证头、URL/body 凭据和普通业务路由的 Bearer；无效/撤销/过期/资格丢失401，Token跨项目和不可见版本404。不会将Token提升为Owner Session。
+- 精确投影：`projectId,requirementId,changeRequestId,versionId,versionNo,submittedAt,approvedAt,approvedScope:{summary,acceptanceCriteria},referencedRequirement:{revisionId,revisionNo,content,acceptanceCriteria,createdAt}`。必须同一不可变版本有不同人的 VENDOR→CLIENT 两次 APPROVED。列表按提交时间倒序、id正序分页；不要求它仍是当前 activeVersion，保留历史批准规格。
+- `approvedScope` 是批准交付范围；`referencedRequirement` 是该快照引用的原始规格版本，不能据此扩张批准范围。不返回当前需求标题/原文/最新Revision、报价/工时/工期、审批评论、人员邮箱。
+- 上述接口（含错误）`Cache-Control: no-store`。创建限额30次/用户/分钟，Bearer 120次/连接IP/分钟、60次/Token/分钟，429带Retry-After；限额是单进程内存计数，不承诺跨实例或重启持久限额。
+- `api_token.created/revoked/used` 仅Owner可见，分页前过滤。成功Bearer读取（含空列表/HEAD）与使用审计同事务；actor=null、principalType=project_token，保留Token id、项目、时间、操作、精确versionId（详情）/resultCount，不记录正文/名称/凭据/摘要。审计失败拒绝读取；Session读取不新增Token使用事件。
+
+这不是 HTTP OAuth MCP 授权；D未实现MCP Server/Skill。
 
 ## 6. 契约落地要求
 

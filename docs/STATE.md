@@ -1,8 +1,25 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-12。R08 Phase C Global Project Copilot 本地实现、定向回归与真实 DeepSeek HTTP Smoke 完成，未提交；B 已提交642954a，A已提交6bfe681。远程CI、独立人工评审及最终全量回归 NOT RUN。下方保留历史检查点。
+> 更新时间：2026-11-12。R08 Phase D 本地实现与验证完成；获批0004仅在隔离测试库应用，待负责人本地Commit。C已提交9ba8f34，B642954a，A6bfe681；未进入E。下方保留历史交接。
 
-## R08 Phase C — Global Project Copilot 完成，待负责人审阅
+## R08 Phase D — 本地交接（未提交）
+
+分支 `feat/17-ai-agent-integration` / HEAD `9ba8f34`。首次生成候选Schema/SQL后遵守暂停要求；本轮负责人回复“已审批”，获准只在隔离PostgreSQL应用并继续D。未Commit/Push/PR/Merge/部署。
+
+- `0004_project_api_tokens.sql` SHA-256：`7133f1d8fc11ef93f84314dede4257cbba23452dec9ca49a2fdb57ce5cc0bd0a`，应用前后未变。`pnpm db:migrate:test` 在5434/specbridge_test库及账号成功；H-10已完成。[完整审核记录](engineering/R08_D_SQL_REVIEW.md)。原15表和0000–0003 SQL/snapshots/旧journal保持，新增表不含明文列；未迁移开发/生产库。
+- Owner创建/分页列表/幂等撤销，256-bit随机凭据、SHA-256摘要、固定approved_specs:read、默认30天/整数1–90天。每次请求重验期限/撤销/scope/ACTIVE项目及创建者当前Owner资格。创建与撤销审计同事务，无恢复或续期接口。
+- 独立Token principal仅用于两条批准规格GET/HEAD；拒绝混合Cookie/Bearer、重复头、跨Project/Workspace及普通业务读写。只投影精确同版双方批准的技术范围及关联不可变Revision，二者分开；不泄露当前草稿/原文/商业详情/审批评论/人员邮箱。无AI自动业务写入。
+- 使用审计actor=null/principalType=project_token，Owner-only在SQL分页前过滤。读取锁与撤销串行，等待撤销提交后重新检查并拒绝；已提交读取响应无法追溯撤回。审计失败拒绝读取，创建/撤销失败事务回滚。单进程创建/Token/IP限流，无新依赖或环境变量。
+- 沿用R07项目导航与组件，Owner“访问凭据”UI一次性明文、期限、列表和撤销确认。明文仅组件内存，关闭/隐藏/切页/权限/身份变化销毁，迟到结果不恢复；未知创建结果先核对撤销。无Query/Mutation缓存或浏览器持久化凭据；日志/错误/URL不含Token。
+- PASS：API单元128；最终Token HTTP/DB9；迁移+Auth/RBAC数据库19（补充迁移2项亦PASS）；Auth HTTP/代理16、RBAC HTTP/代理13、R07读取/审计9；Token浏览器4场景7.7秒。API/Web typecheck/lint及生产build、36路径OpenAPI生成/漂移、db:check、SQL/旧Schema对照与diff检查通过。精确命令及已解决FAIL见 [R08_PLAN D](engineering/R08_PLAN.md)。
+- [桌面/手机证据](ux/evidence/r08-d/README.md)：2张已逐张查看，无明文；键盘及320/390/1440重排，三状态axe自动违规0，导航裁剪导致的颜色未判定项保留并补充对比度。截图/trace不采集凭据。
+- 已解决：沙箱网络/构建端口限制、OpenAPI正整数边界兼容、测试类型/断言及pg查询警告、Dialog动画与导航等待竞态、回归端口冲突（改串行）。最终无未解决FAIL。自建HTTP进程退出，隔离DB保持运行，tracked API构建缓存恢复；未读取/修改.env或访问开发业务数据。
+- NOT RUN：开发/生产迁移、真实DeepSeek（D无模型调用）、MCP/Skill/HTTP OAuth、远程CI、真实Observe外部接收、独立人工安全/视觉Review、多浏览器/真实设备/读屏、完整R01–R08回归。E/F尚未开始；本地PASS不替代最终F。
+- 人工：审阅diff与截图后自行本地Commit；部署及开发/生产迁移另行审批。关注单进程/共享代理IP限额、不可追溯收回在途响应及审计保留容量。建议提交摘要：`feat(auth): add owner-managed project API tokens for approved specs (#17)`。本Session到D结束。
+
+---
+
+## R08 Phase C — 历史交接（后续已提交9ba8f34）
 
 开工分支 `feat/17-ai-agent-integration` / HEAD `642954a`，工作区干净；已核对 Issue #17、R08批准基线、R07 Dashboard/授权读取与当前DeepSeek Tool Calling契约。负责人仅授权C，未进入D，未Commit/Push/PR/Merge/部署。
 

@@ -71,6 +71,16 @@
 - stdio MCP 默认只读工具；调用后端时使用项目限定、可过期、可撤销的 Token；不提供 `approve_change_request` 等高影响工具。
 - MCP 工具说明/注解不替代服务器授权。远程 MCP/OAuth 不是 v1 的安全承诺。
 
+### R08 D 项目凭据边界
+
+- 仅当前Owner可创建、列出、撤销；256-bit CSPRNG、固定sbp_前缀和规范base64url编码，数据库只存完整凭据SHA-256。高熵随机凭据不使用密码KDF；hash不返回Web或写日志。只能读取绑定项目的已批准技术规格，不能读取商业详情或调用业务写API。
+- 每个请求按数据库当前关系重验创建者Owner资格、项目ACTIVE、expires_at > clock_timestamp()、未撤销及精确只读scope。所有普通业务路由拒绝Bearer；仅显式注册的两条批准读取路由接受独立Token principal。拒绝Cookie/Bearer混合及重复Authorization头；HEAD同等鉴权。缺少/错误身份不回退到其他认证方式。
+- 创建/撤销和Token读取遵循Workspace→Project→Token行锁顺序；读取返回前再次验证并写使用审计。撤销先获锁提交则后续读取被拒绝；已先完成授权/读取/审计事务的在途响应可能抵达客户端，不能追溯收回已交付数据。当前授权变更遵循相同Workspace/Project锁协议；以后新增资格变更功能需延续这一协议。
+- api_token审计只对Owner可见，SQL分页前过滤；使用actor为null而非冒充创建者。成功使用保存必要元信息，401/404失败不写高基数审计正文。保留现有受控错误日志，不采集Token路由HTTP trace/正文；全局Observe捕获关闭且脱敏键及模式包含Token。
+- 浏览器通过Session管理，不把Bearer设置为浏览器身份。明文仅组件内存，不入Query/Mutation缓存、URL、localStorage/sessionStorage；关闭、隐藏、切页、换身份或权限丢失销毁，取消在途请求并丢弃迟到结果。复制仅由用户明确触发；操作系统剪贴板由用户保管。未知创建结果先核对列表并撤销，不自动重放。
+- 生命周期1–90天、默认30天；不提供恢复/续期。归档和资格变化为动态不可用，若条件恢复且未过期/撤销可重新有效；需要永久失效必须显式撤销。新Owner可撤销旧Owner创建的凭据。
+- 限流复用单进程内存服务：创建30/用户/分钟，读取120/连接IP/分钟及60/Token/分钟；使用socket peer，不信任可伪造XFF。反向代理可能使多个客户端共享IP配额；多实例/持久配额及使用审计长期保留策略需要后续容量评审。未引入Redis或HTTP OAuth。
+
 ## 8. 密钥管理、日志与部署
 
 - `.env` 不入库；提交 `.env.example`；生产使用服务端密钥注入，不在镜像里 Bake Secret。

@@ -4,6 +4,7 @@ import { auditEventTypes, type AuditEventType } from './audit-read.policy.js';
 export class AuditListDto extends PageDto {
   @IsOptional()
   @IsIn([
+    'api_token',
     'project',
     'requirement',
     'clarification',

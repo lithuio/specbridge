@@ -1,5 +1,6 @@
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { AiModule } from './ai/ai.module.js';
+import { ApiTokensModule } from './api-tokens/api-tokens.module.js';
 import { AuditReadModule } from './audit/audit-read.module.js';
 import { DeliveriesModule } from './deliveries/deliveries.module.js';
 import { ChangesModule } from './changes/changes.module.js';
@@ -20,6 +21,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
 
 @Module({
   imports: [
+    ApiTokensModule,
     AiModule,
     DashboardModule,
     AuditReadModule,
@@ -43,6 +45,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
       http: {
         capture: false,
         ignore: [
+          /^\/api\/v1\/(?:api-tokens(?:\/|$|\?)|projects\/[^/]+\/(?:api-tokens|approved-specs)(?:\/|$|\?))/i,
           /^\/api\/v1\/(?:auth(?:\/|$)|me(?:\/|$|\?)|requirements\/[^/]+\/ai-analysis(?:\/|$|\?)|projects\/[^/]+\/copilot\/messages(?:\/|$|\?))/i,
         ],
       },
@@ -56,6 +59,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
           'set-cookie',
           'authorization',
           'apiKey',
+          'token',
           'prompt',
           'messages',
           'content',
@@ -63,6 +67,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
           'body',
         ],
         patterns: [
+          /\bsbp_[A-Za-z0-9_-]{43}\b/,
           /\$argon2id\$[^\s,"']+/,
           /\b[A-Za-z0-9_-]{43}\b/,
           /\b[0-9a-f]{64}\b/,

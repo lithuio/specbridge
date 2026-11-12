@@ -107,6 +107,14 @@ COMMIT;
 - `api_tokens`：`id`, `user_id`, `project_id`, `token_hash`, `scopes`, `expires_at`, `revoked_at`；仅 MCP 只读 Token，支持撤销与审计。
 - `external_links`：已批准版本与 GitHub Issue URL 对应，**不自动抓取 URL**。
 
+### R08 Phase D 增量（2026-11-12，已批准并在隔离测试库应用）
+
+当前仓库新增 `apiTokens` Drizzle声明及 `0004_project_api_tokens.sql`；负责人明确批准后，仅在5434隔离specbridge_test库应用，未迁移开发/生产库。完整SQL Diff、批准的SHA-256及验证记录见 [D SQL审核包](../engineering/R08_D_SQL_REVIEW.md)。现有15张表、0000–0003迁移均未修改。
+
+`api_tokens`：UUID id PK、project_id→projects.id / user_id→users.id两个RESTRICT外键（user_id为创建者）、非空name≤100、unique char(64) token_hash、固定 `['approved_specs:read']` text[] scopes、created_at默认now()、expires_at必填、revoked_at可空。时间均timestamptz；有限创建/过期时间，期限为创建后24–2160小时；撤销时间有限且不早于创建。索引 `(project_id,created_at DESC,id DESC)`。不存明文、可恢复密文、冗余active状态或聊天资料；复用既有audit_events，不新增审计表。
+
+API每次读取检查Owner资格、ACTIVE项目、过期/撤销和固定scope；外键/CHECK不等于授权。应用默认30天、整数1–90天，使用同一数据库时间计算创建及过期，不提供续期/恢复接口。高熵随机明文只在创建响应返回；摘要为完整sbp_凭据的SHA-256。创建、撤销及成功Bearer使用均与安全审计同事务；撤销幂等，不删除历史行。批准记录不扩展为其他SQL或开发/生产迁移授权。
+
 ## 7. 未定与简化方案
 
 - `baseline_scope` 已确认只作创建时固定的参考快照，不提供双方初始签认；如需要 ProjectScopeVersion/Approval，将作为后续版本的独立需求处理。
