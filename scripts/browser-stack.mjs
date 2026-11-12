@@ -84,7 +84,7 @@ try {
         : reject(new Error("Test DB unavailable or migration failed")),
     ),
   );
-  const api = start(["dist/main.js"], apiDir, {
+  const api = start([process.env.R08_AI_FIXTURE === "1" ? "scripts/browser-ai-fixture.mjs" : "dist/main.js"], apiDir, {
     NODE_ENV: "test",
     PORT: "4000",
     DATABASE_URL: database,

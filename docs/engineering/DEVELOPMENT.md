@@ -19,7 +19,30 @@ node scripts/with-env.mjs .env node apps/api/scripts/ai-smoke.mjs --run
 
 Smoke 直接验证生产 Provider/Schema，最多2048 output tokens/30秒，不查询数据库或启动Web；只输出状态/模型/用量/耗时，不输出Prompt、响应正文或Key。脚本在CI或未显式--run时跳过，不作为CI步骤；已知泄露或未确认安全的Key不得使用。没有Key或未获安全确认记录NOT RUN，网络/模型失败记录FAIL，不自动重试。API完整授权/版本边界由Mock Provider真实HTTP/DB套件验证。
 
-本地计数为单实例内存、UTC日重置、重启清零；不是持久费用账本。AI失败不修改业务，不自动重试；人工采用留给Phase B。
+本地计数为单实例内存、UTC日重置、重启清零；不是持久费用账本。AI失败不修改业务，不自动重试。
+
+## R08 Phase B 需求分析与人工采用
+
+在项目内创建并保存 Requirement 后，从详情页原文下方的「AI 需求分析」进入。三角色均依后端权限读取分析；Client 只能采用问题，创建 Revision 仍限供应方。调用只发送已保存的原文、最新 Revision 与可选澄清，不发送当前打开表单的未保存输入。发送前页面提示材料将提供给 DeepSeek。
+
+建议标为「AI 草稿」，默认不选中。摘要可作为新 Revision 正文，选中的验收标准追加到已有标准（精确重复项去重），单次只采用一个问题；假设与风险可编辑或删除，但不自动转为事实。确认采用仅打开预填表单，继续通过 R04 的保存/提交问题按钮及 expectedVersion 写入。不会覆盖 originalText、修改已有 Revision，或自动 Mark Ready/Submit/审批。
+
+来源版本变化需对照最新资料后明确确认；保存 409 保留输入，沿用原有重新核对按钮。未知写入结果禁重放。AI 35 秒浏览器等待上限、503/格式错误/413/429 提供安全提示与手动重试，429 倒计时遵守 Retry-After；服务端超时统一表现为 AI_UNAVAILABLE，不能在前端推断为某种供应商故障。失败不妨碍手动编辑。
+
+建议只在页面内存保存；同账号短暂会话/项目读取失败保留编辑，切页取消在途分析，撤权/换号/退出卸载旧私有状态。刷新、路由缓存淘汰会丢失建议；没有持久 AI 历史，也没有逐句来源证明。
+
+```bash
+pnpm run db:test:up
+pnpm --filter specbridge-api build
+pnpm --filter web build
+pnpm run test:browser:ai
+# 按受影响范围运行，端口 3000/4000 必须空闲：
+R07_EVIDENCE_ROOT=test-results/evidence pnpm run test:browser:requirements
+R07_EVIDENCE_ROOT=test-results/evidence pnpm run test:browser:forms
+R07_EVIDENCE_ROOT=test-results/evidence pnpm run test:browser:auth
+```
+
+AI 浏览器入口运行真实 Next/Nest/5434 隔离数据库；仅通过独立测试启动脚本 `apps/api/scripts/browser-ai-fixture.mjs` 注入模拟 DeepSeek HTTP transport，保留真实 Adapter/JSON/Zod/授权/限流。脚本只接受 NODE_ENV=test 和受限测试数据库，覆盖为合成凭据；生产 main 不加载该脚本。失败路径额外拦截浏览器响应/网络。CI 和 `test:browser:phases` 已包含该入口，不需要真实 Key，也不会加载 `.env`。单独运行默认输出 [B 截图](../ux/evidence/r08-b/README.md)；全量入口通过 R07_EVIDENCE_ROOT 将证据放入忽略目录，避免覆盖已审历史截图。
 
 ## 本地环境（2026-11-11）
 

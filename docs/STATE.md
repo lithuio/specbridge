@@ -1,8 +1,25 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-12。R08 Phase A 代码、本地Mock/HTTP/DB及真实DeepSeek Smoke验证完成，未提交；远程CI、人工评审 NOT RUN。下方保留历史检查点。
+> 更新时间：2026-11-12。R08 Phase B AI Assistance UX 本地实现与定向浏览器回归完成，未提交；Phase A 已提交 6bfe681。远程CI、独立人工评审 NOT RUN。下方保留历史检查点。
 
-## R08 Phase A — Provider 与需求分析完成，真实 Smoke PASS
+## R08 Phase B — AI Assistance UX 完成，待负责人审阅
+
+开工分支 `feat/17-ai-agent-integration` / HEAD `6bfe681`，工作区干净；已核对 Issue #17、AC-18/19、R07设计与当前 Next/Activity 文档。负责人本轮只授权 B，未进入 C，未 Commit/Push/PR/Merge/部署。
+
+- 保存后的 Requirement 详情新增 AI 分析入口和五类结构化审阅；选择/编辑/删除、显式人工采用、来源版本/读取时间/Revision链接。原文保留；假设/风险标为未确认推断，不能自动写为事实。
+- 采用仅预填既有 Revision 或单条问题编辑器，再次保存才调用 R04 API；Client 无 Revision 入口。expectedVersion/409保留输入并人工核对；未知写结果禁重放；不自动 Ready/Submit/审批，旧 Revision 保持不变。
+- 迟到结果不覆盖编辑；35秒等待上限、503/格式异常/413/429/网络失败、手动重试与可选排除问答。AI不可用时手动流程正常。沿用 R07浅色/面板/44px控件，无Shell重设计。
+- 页面内存按既有身份/项目边界隔离，切页取消在途分析、同账号临时读取失败保留、撤权/退出清除；控件ID/radio组隔离，删除后保持组内键盘焦点。刷新/切换动态需求页面可能丢失AI草稿，不承诺持久历史。
+- PASS：API生产build、Web生产build/typecheck/lint、脚本语法/diff检查；AI浏览器6项52.3秒，最后控件隔离与证据定向2项8.7秒；R04浏览器2项16.7秒、表单保留6项12.5秒、Auth浏览器6项6.1秒。精确命令与已解决失败见 [R08_PLAN B交接](engineering/R08_PLAN.md)。
+- [桌面/手机截图与验证记录](ux/evidence/r08-b/README.md)：4张已自检，1440×1000/390×844视口及完整页面；最终取证场景1项5.0秒PASS，修正滚动时机与高表单定位并断言正文/保存按钮进入画面；320/390/768/1440重排；两状态axe自动违规0，手机3个被裁剪导航项的对比度未判定保留，补充计算5.94:1。
+- 无依赖/API契约/业务后端/Schema/Migration变更。新增独立测试启动脚本注入模拟外部DeepSeek HTTP transport，真实Adapter/授权/JSON/Zod/DB仍运行；CI入口不需要真实Key。不读取真实.env，不打印正文/密钥。测试仅5434隔离库，既有已审迁移复用，HTTP进程已退出，DB保持运行；tracked构建缓存已恢复。
+- 已解决：初次capability字段类型错误、沙箱Docker/编译端口限制与失败缓存、删除焦点、补充测试对动态页面返回保留内存的错误假设；最终无未解决FAIL。
+- NOT RUN：本阶段真实DeepSeek浏览器联调、远程CI、独立人工视觉/安全评审、完整R01–R08回归；最终联调留F。A历史真实Smoke不替代B模型端到端验证。
+- 人工：审阅diff和截图后自行本地Commit；实际使用需服务端 `DEEPSEEK_ENABLED=true` 与安全Key。建议摘要：`feat(web): add human-reviewed AI requirement assistance (#17)`。本Session到B结束。
+
+---
+
+## R08 Phase A — 历史交接（后续已提交 6bfe681），真实 Smoke PASS
 
 `feat/17-ai-agent-integration` / 开工 HEAD `9d43f8f`，开工工作区干净。负责人授权仅A；原 `R08_PLAN.md` 不存在，已按获批修订方案创建 [总计划与精确验证记录](engineering/R08_PLAN.md)。未Commit/Push/PR/Merge/部署，未进入B。
 

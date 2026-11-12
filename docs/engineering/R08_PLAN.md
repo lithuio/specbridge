@@ -1,6 +1,6 @@
 # R08 — AI & Agent Integration
 
-批准基线：本轮负责人确认的修订计划；Issue [#17](https://github.com/lithuio/specbridge/issues/17)。一个 Issue、一个最终 PR；A–F 各自独立 Session，每阶段负责人本地 Commit。禁止自动 Commit/Push/PR/Merge/部署。本文首次落盘随 Phase A 实施授权，不表示 B–F 已实施。
+批准基线：负责人确认的修订计划；Issue [#17](https://github.com/lithuio/specbridge/issues/17)。一个 Issue、一个最终 PR；A–F 各自独立 Session，每阶段负责人本地 Commit。禁止自动 Commit/Push/PR/Merge/部署。本文首次落盘随 Phase A 实施授权；本轮另获 Phase B 授权，不表示 C–F 已实施。
 
 ## 基线与阶段
 
@@ -14,7 +14,7 @@
 | 阶段 | 可运行交付 | 状态 |
 |---|---|---|
 | A Provider & Analysis | 配置、Provider、授权分析 API、Schema、限额、异常、契约与定向测试 | 本地完成；Mock/HTTP/DB及真实DeepSeek Smoke PASS |
-| B Assistance UI | 原文对照、编辑建议、人工采用到既有表单、stale/未知结果处理 | NOT STARTED |
+| B Assistance UI | 原文对照、编辑建议、人工采用到既有表单、stale/未知结果处理 | 本地实现及浏览器验证完成；待负责人审阅/本地 Commit |
 | C Global Copilot | Shell 项目助手、内存对话、有界只读工具、来源卡片 | NOT STARTED |
 | D Project Token | Owner 管理、批准规格投影、已审 Schema/SQL 与测试 | NOT STARTED |
 | E MCP & Skill | SDK v2 stdio、两个工具、requirement-analyst、真实 Host 验证 | NOT STARTED |
@@ -43,7 +43,7 @@ result 为 `summary:string, assumptions:string[], openQuestions:string[], accept
 
 日志只含 requestId、actor/project ID、模型、usage、耗时、结果；没有原始异常、Prompt、正文、Key。AI 路由成功/失败 no-store，Observe 禁止内容捕获和 AI HTTP trace。仅 AI 请求允许 256 KiB JSON，其他路由保留 100 KiB。
 
-## B–F 已批准边界（后续独立启动）
+## B–F 已批准边界（各阶段独立启动）
 
 B：分析前先保存 Requirement；summary/criteria 填入现有 Revision 编辑器，问题可填单条澄清。AI 不覆盖 originalText；assumptions/risks 默认不当作确认事实。保留分析版本及本地草稿，迟到结果不覆盖编辑。版本变化必须人工对照再更新 expectedVersion；未知写结果不重放。Mark Ready 独立人工操作。不持久保存 AI 正文或逐句来源证据。
 
@@ -57,7 +57,54 @@ E：apps/mcp 使用 SDK v2 McpServer/serveStdio，编译后直接node启动；st
 
 F：Mock CI与真实联调分开；真实合成数据DeepSeek、Chromium、MCP SDK Client、Inspector及至少一个真实Agent Host/Skill。完整Lint/typecheck/build/unit/integration/HTTP/DB/browser/OpenAPI/db:check/MCP回归，数据库串行。人工安全Review和远程CI独立记录，不以本地测试代替。
 
-## A 验证与交接
+## B 实现、验收与交接（2026-11-12）
+
+本 Session 仅 B。开工分支 `feat/17-ai-agent-integration`，HEAD `6bfe681`，工作区干净；Phase A 已由负责人提交。在线核对 Issue #17、AC-18/19 及 AC-06/08/16，阅读 R07 设计、已安装 Next 的 Client Components/Activity 文档与 R04 编辑器。没有更改 App Shell、业务 API/权限/状态机、依赖、Schema 或 Migration，没有读取真实 `.env` 或调用真实模型。
+
+实现范围：新增 `apps/web/src/features/requirements/analysis.tsx`；详情接入面板，既有编辑器增加一次性 AI 草稿预填；局部 R07 样式；独立测试 Provider transport 启动脚本、浏览器入口与六场景、文档和截图。生产服务不提供 Mock 切换点。
+
+- 先通过既有流程保存 Requirement，详情页原文下方分析；包含最新 Revision，可选择排除澄清。当前打开表单必须先保存/关闭才能发起新的分析或采用；已在生成中的分析不会阻止手动编辑，也不会覆盖表单。
+- 五类结果明示「AI 草稿」。摘要/验收标准默认不选中，问题单选；所有建议可编辑/删除。假设与风险仅待核实推断，不自动写入事实。结果及来源版本保存在页面内存，展示读取时间、问答数量、可点击的来源 Revision。
+- 「确认采用」只把摘要/criteria 填入新 Revision 编辑器，或把一条问题填入澄清编辑器；摘要不选时保留原有规格正文，criteria 保留已有标准并追加去重，R04 表单校验合并后的总长度/数量。只有再次保存/提交问题才调用既有写 API。AI 不覆盖 originalText，不更新不可变 Revision，不 Mark Ready/Submit/审批。
+- 生成结束重读当前需求。source.draftVersion 过期时保留建议但禁采用，必须人工对照新资料后确认。采用后的写入继续使用 R04 expectedVersion；409 保留输入并要求再次确认版本，未知结果禁重放。原始分析来源版本始终保留，不因人工核对而伪装成新分析。
+- Loading、35 秒浏览器等待上限、503/格式错误/413/429/网络失败均有安全反馈；重试只由人触发，429 等待 Retry-After。服务端超时与其他 AI_UNAVAILABLE 不做虚假的原因区分。AI 失败可继续手动保存。
+- AbortController/请求身份检查取消隐藏页面的在途工作，结合现有 epoch/user/project 边界处理会话恢复、撤权和退出。同身份临时读取失败保留编辑；明确失权清除。控件 ID 和 radio 组按组件隔离，兼容 Next 保留隐藏页面；删除后焦点留在建议组。纯文本显示，不执行模型 HTML/指令，不使用 localStorage，不输出模型正文到日志。
+
+最小验收矩阵（真实 Next 生产构建 / Nest / 5434 隔离 PostgreSQL / Chromium；仅外部模型 transport 为固定合成响应）：
+
+| 场景 | 已验证结果 |
+|---|---|
+| Draft 从 UI 创建、五类结构化结果、选择/编辑/删除/采用 | 分析与采用前后业务读取完全相同；人工保存后才新增 Revision，原文保留且不自动 Ready |
+| 生成期间编辑与版本变化 | 迟到结果不覆盖手动内容；旧 source 禁采用，明确核对后继续 |
+| 采用后并发保存 | 实际 R04 POST 返回409；正文保留、禁重试，人工更新 expectedVersion 后成功 |
+| 503/非法结构/413/429/409/35秒等待超时 | 安全提示、Retry-After 倒计时、手动草稿保存正常；失败后显式重试成功 |
+| Client 与不可信文本 | 只能采用一条问题，无 Revision 入口；HTML 字符串不执行；换 Client 后移除私有审阅 |
+| 不可变历史与未知结果 | 旧 Revision 可追溯且内容未改；写成功但503响应后禁止自动/重复写入 |
+| 生命周期与父链 | 项目500/同用户复核保留；切页取消迟到响应；错项目URL拒绝；不同需求控件及草稿隔离；退出清除 |
+| R07 视觉/可访问性 | 桌面1440、手机390截图；320/390/768/1440无横向溢出；删除焦点；两状态axe自动违规0，未判定项保留 |
+
+| 实际命令 / 检查 | 结果 |
+|---|---|
+| `pnpm run db:test:up` | PASS；确认既有隔离库健康，首次沙箱 Docker socket 拒绝后获准重跑 |
+| `pnpm --filter specbridge-api build` | PASS；编译既有 API 供浏览器运行 |
+| `pnpm --filter web build` | PASS；最终生产构建。首次沙箱 CSS 编译端口 EPERM、缓存重复失败，移开失败缓存后获准重跑通过 |
+| `pnpm --filter web typecheck`、`pnpm --filter web lint` | PASS；最终类型与 ESLint 无错误/警告 |
+| `pnpm run test:browser:ai` | PASS；六场景52.3秒，含真实35秒超时；最终控件隔离后的相关场景另定向复测，见下方补充记录 |
+| `R08_AI_FIXTURE=1 node scripts/with-env.mjs .env.test pnpm --filter web test:e2e ai-assistance.spec.ts --grep '真实 Draft\|审阅编辑跨'` | PASS；最终2场景8.7秒，验证删除焦点、桌面/手机截图、不同需求控件ID/radio分组、读取失败/切页/退出隔离 |
+| `R08_AI_FIXTURE=1 node scripts/with-env.mjs .env.test pnpm --filter web test:e2e ai-assistance.spec.ts --grep '真实 Draft'` | PASS；最终1场景5.0秒，修正取证滚动位置后重采4张截图；断言摘要、手机正文及保存按钮确实进入视口 |
+| `R07_EVIDENCE_ROOT=test-results/evidence pnpm run test:browser:requirements` | PASS；2场景16.7秒，包含 Pending/Ready/409/不可变历史 |
+| `R07_EVIDENCE_ROOT=test-results/evidence pnpm run test:browser:forms` | PASS；6项12.5秒（5 Chromium 场景+1会话状态测试） |
+| `R07_EVIDENCE_ROOT=test-results/evidence pnpm run test:browser:auth` | PASS；6场景6.1秒，含切号、迟到响应、401/网络恢复与手机Shell |
+| `node --check scripts/browser-stack.mjs`、`node --check apps/api/scripts/browser-ai-fixture.mjs`、`git diff --check` | PASS |
+| 真实 DeepSeek 浏览器调用、远程 CI、独立人工视觉/安全评审、R01–R08全量回归 | NOT RUN；B 使用模拟外部 transport，A 的历史真实 Smoke 不充作 B 浏览器模型联调；最终全量与真实联调留 F |
+
+首次新增类型检查误用 capability 字段名，已改为既有 allowed/reasonCode 判别联合并复测。测试服务首次受沙箱监听限制未启动，获准外部运行后通过。移缓存第一次跨设备 rename 失败，改用安全移动后成功。最后补充测试曾错误要求切换动态 Requirement 再返回必定保留 AI 内存；既有 keyed 详情可能重建，该保证不在本阶段契约中。保留临时读取失败/同身份复核的严格输入保持断言，改为验证不同需求的控件与输入隔离、退出清除，最终2项PASS。截图自检发现平滑滚动尚未完成；新增视口断言又发现手机表单高于视口，改用即时滚动和表单末端定位后重采，最终1项PASS。没有将这些失败记为 PASS，也没有启用测试自动重试掩盖失败；最终无未解决实现 FAIL。
+
+正式截图及证据：[B evidence](../ux/evidence/r08-b/README.md)。测试只用公开一次性合成账号/数据和5434隔离库，启动器复用此前已审迁移，未生成/应用新SQL；不访问开发/生产DB。测试自建HTTP服务退出，既有测试DB保持运行；tracked API 构建缓存恢复开工内容。Mock浏览器入口加入全量脚本，CI不依赖真实密钥；历史R07截图未覆盖。
+
+人工后续：审阅diff、桌面/手机截图、AI内容质量及未判定可访问性项，自行本地Commit；实际调用需服务端 `DEEPSEEK_ENABLED=true` 与安全Key。页面内存草稿可能因刷新/路由缓存淘汰丢失，不提供持久来源历史或费用硬上限；B 不代表最终发布验收。建议提交摘要：`feat(web): add human-reviewed AI requirement assistance (#17)`。本 Session 到 B 停止，未 Commit/Push/PR/Merge/部署，不开始 C。
+
+## A 验证与交接（历史记录，后续已提交 6bfe681）
 
 工作分支 feat/17-ai-agent-integration；起始 HEAD 9d43f8f，工作区干净。R08_PLAN 原不存在，本次依据对话批准基线创建。无需 Schema/Migration，无新依赖。受影响文件范围：API ai模块、配置接线/异常/Observe/OpenAPI、生成Web类型、测试入口/CI、本文/API/DEVELOPMENT/STATE。
 

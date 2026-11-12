@@ -21,6 +21,7 @@ import {
 import { offsetValue, PersonTime, RevisionContent } from "./shared";
 import { RequirementEditor, type Selection } from "./editor";
 import { CreateChange } from "@/features/changes/list-create";
+import { RequirementAnalysis } from "./analysis";
 
 export function RequirementDetail() {
   const { requirementId } = useParams<{ requirementId: string }>();
@@ -102,6 +103,16 @@ function Detail({ id }: { id: string }) {
             <div className="record-text">{r.originalText}</div>
             <p className="field-hint">原文仅在草稿阶段由作者或负责人编辑。</p>
           </section>
+          <RequirementAnalysis
+            requirement={r}
+            available={available}
+            editorOpen={!!selection}
+            refresh={() => query.refetch()}
+            onAdopt={(next) => {
+              setSaved(false);
+              setSelection(next);
+            }}
+          />
           <section className="surface-panel" aria-label="澄清问答">
             <div className="section-heading">
               <h3>
