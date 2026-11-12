@@ -1,8 +1,25 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-12。R08 Phase E本地实现与SDK/数据库/Codex Host验证完成，待负责人本地Commit；D已提交55ad908、C9ba8f34、B642954a、A6bfe681。未进入F。下方保留历史交接。
+> 更新时间：2026-11-12。R08 Phase F本地最终联调与完整回归完成，待负责人验收/本地Commit及后续远程CI；E已提交d75d39e、D55ad908、C9ba8f34、B642954a、A6bfe681。未Commit/Push/PR/Merge/部署。下方保留历史交接。
 
-## R08 Phase E — 本地交接（未提交）
+## R08 Phase F — 最终本地交接（未提交）
+
+开工 `feat/17-ai-agent-integration` / HEAD `d75d39e`；初始仅 `apps/api/tsconfig.build.tsbuildinfo` 有改动，已保留开工内容。已核对AGENTS/Issue #17/R08计划和A–E交接。本轮验证完整AI/Agent，不新增业务功能或改变批准基线。
+
+- 新受控真实浏览器入口：真实DeepSeek分析→人工编辑采用→原R04 expectedVersion保存→Copilot只读工具和真实Revision来源。只有独立API子进程加载.env；Next/Playwright无Key，最多4请求/8192预留输出tokens、CI禁止运行。原文保留，AI不自动Ready/Submit/审批/验收，Copilot前后业务/审计/Revision快照不变。
+- PASS：本轮独立Provider Smoke 225输入/295输出tokens、2405ms；真实浏览器16.4s，4次模型请求均200，6505输入/1791输出tokens，1次工具读取/2条实际来源。没有故意制造付费服务故障或自动重试；异常走Mock验证。
+- PASS：API128/MCP16单元、数据库92、基础HTTP5、Auth16/RBAC13/Requirement9/Change8/Delivery7/reads9/Token9/MCP6、AI/Copilot HTTP19；最终全部36个浏览器场景；根Lint/build、三包typecheck、36路径OpenAPI漂移、db:check。精确命令/已解决FAIL见 [F工程证据](engineering/evidence/r08-f/README.md)。
+- PASS：Inspector2.15.0真实tools/list与两个tools/call；Codex0.167.1+Skill真实list→detail，43.03s，批准事实/背景/提议分离，嵌入泄露/审批指令忽略，业务快照不变；Skill格式通过。客户端用隔离项目/临时Token，结束撤销和清理，未改用户配置；[本轮合成答案](engineering/evidence/r08-f/host-smoke.json)。
+- CI补4项真实Smoke拒绝验证，保留AI/Agent Mock、MCP实际stdio/API/DB及浏览器回归；无真实Key依赖。修复旧基础测试15表/PK/id断言；修复Copilot对比度检查采样到启用动画中间帧的竞态（opacity0.5→1，阈值不变）。无生产源码、Schema/SQL或依赖变更。
+- [六张真实浏览器截图与键盘/响应式结果](ux/evidence/r08-f/README.md) 已逐张查看；1440/390/320视口无阻断布局问题，真实AI五状态axe自动违规0。未判定的叠层颜色/焦点守卫保留；模型长回答和内部状态码作为文案验收项，不扩大范围改UI。
+- API/Token安全自查无未解决越权/自动审批/历史可变/凭据泄露发现；隔离、撤权重验、事务审计、只读scope、注入/限额/失败恢复均有负面证据。仍有单实例内存预算、共享代理IP限额、Host自有权限和已返回资料无法撤回等边界；不等于独立人工安全签字。
+- 最终无未解决FAIL/本地实施BLOCKED。NOT RUN：远程CI、独立人工安全/视觉验收、多浏览器/OS/真实手机/读屏/真实200%缩放、Observe真实外部接收、开发/生产迁移和部署、备份恢复演练。H-11待负责人处理；不能以本地PASS关闭整个Issue验收门槛。
+- 所有数据库验证仅5434/specbridge_test；0004仍为已审SHA-256 `7133f1d8fc11ef93f84314dede4257cbba23452dec9ca49a2fdb57ce5cc0bd0a`，无新迁移。测试HTTP/stdio进程已退出，既有隔离DB保持运行。未读取/修改真实用户数据或打印密钥。
+- 后续：负责人审阅diff、答案、截图和 [最终Commit/PR草案](engineering/R08_PR_DRAFT.md)，自行本地Commit；远程CI/PR/合并/部署另行授权。本Session在F停止。
+
+---
+
+## R08 Phase E — 历史交接（后续已提交d75d39e）
 
 开工分支 `feat/17-ai-agent-integration` / HEAD `55ad908`，初始工作区干净；已核对Issue #17/AC-20、D Token与批准读取实现、当前官方MCP协议/SDK/Skill/Codex规范。只实施E，未Commit/Push/PR/Merge/部署，不进入F。
 

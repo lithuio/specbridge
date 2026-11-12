@@ -24,13 +24,14 @@ describe('PostgreSQL foundation (structural guarantees, not business APIs)', () 
     await pool?.end();
   });
 
-  it('migrates all 15 tables and preserves data when migrations run again', async () => {
+  it('migrates all 16 tables and preserves data when migrations run again', async () => {
     const tables = await pool.query(
       "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename",
     );
     expect(
       tables.rows.map((row: { tablename: string }) => row.tablename),
     ).toEqual([
+      'api_tokens',
       'approvals',
       'audit_events',
       'change_request_versions',
@@ -82,11 +83,11 @@ describe('PostgreSQL foundation (structural guarantees, not business APIs)', () 
     const primaryKeys = await pool.query(
       "SELECT count(*)::int AS count FROM pg_constraint WHERE contype='p' AND connamespace='public'::regnamespace",
     );
-    expect(primaryKeys.rows[0].count).toBe(15);
+    expect(primaryKeys.rows[0].count).toBe(16);
     const ids = await pool.query(
       "SELECT udt_name, column_default FROM information_schema.columns WHERE table_schema='public' AND column_name='id'",
     );
-    expect(ids.rows).toHaveLength(15);
+    expect(ids.rows).toHaveLength(16);
     expect(
       ids.rows.every(
         (row: { udt_name: string; column_default: string }) =>

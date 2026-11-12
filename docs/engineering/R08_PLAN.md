@@ -1,6 +1,6 @@
 # R08 — AI & Agent Integration
 
-批准基线：负责人确认的修订计划；Issue [#17](https://github.com/lithuio/specbridge/issues/17)。一个 Issue、一个最终 PR；A–F 各自独立 Session，每阶段负责人本地 Commit。禁止自动 Commit/Push/PR/Merge/部署。本文首次落盘随 Phase A 实施授权；D先生成最小Schema/SQL并停在审批点，负责人随后回复“已审批”。获批0004仅在隔离测试库应用；D已由负责人提交55ad908。E已完成本地实现与SDK/数据库/Codex Host验证，待人工本地Commit；F未开始。
+批准基线：负责人确认的修订计划；Issue [#17](https://github.com/lithuio/specbridge/issues/17)。一个 Issue、一个最终 PR；A–F 各自独立 Session，每阶段负责人本地 Commit。禁止自动 Commit/Push/PR/Merge/部署。本文首次落盘随 Phase A 实施授权；D先生成最小Schema/SQL并停在审批点，负责人随后回复“已审批”。获批0004仅在隔离测试库应用；D已由负责人提交55ad908，E已提交d75d39e。F本地联调和完整回归已完成，待负责人验收/本地Commit及后续远程CI；本地PASS不等于整个Issue DoD或发布批准。
 
 ## 基线与阶段
 
@@ -13,12 +13,12 @@
 
 | 阶段 | 可运行交付 | 状态 |
 |---|---|---|
-| A Provider & Analysis | 配置、Provider、授权分析 API、Schema、限额、异常、契约与定向测试 | 本地完成；Mock/HTTP/DB及真实DeepSeek Smoke PASS |
+| A Provider & Analysis | 配置、Provider、授权分析 API、Schema、限额、异常、契约与定向测试 | 已由负责人本地提交6bfe681；真实DeepSeek Smoke PASS |
 | B Assistance UI | 原文对照、编辑建议、人工采用到既有表单、stale/未知结果处理 | 已由负责人本地提交 642954a |
 | C Global Copilot | Shell 项目助手、内存对话、有界只读工具、来源卡片 | 已由负责人本地提交 9ba8f34 |
 | D Project Token | Owner 管理、批准规格投影、已审 Schema/SQL 与测试 | 已由负责人本地提交55ad908；获批0004仅在隔离库应用 |
-| E MCP & Skill | SDK v2 stdio、两个工具、requirement-analyst、真实 Host 验证 | 本地完成；16项MCP、6项真实HTTP/DB、真实Codex Host/Skill PASS；待人工本地Commit |
-| F Final Integration | 真实 DeepSeek/Web/MCP 与 R01–R08 完整回归、人工 Review、远程 CI | NOT STARTED |
+| E MCP & Skill | SDK v2 stdio、两个工具、requirement-analyst、真实 Host 验证 | 已由负责人本地提交d75d39e |
+| F Final Integration | 真实 DeepSeek/Web/MCP 与 R01–R08 完整回归、人工 Review、远程 CI | 本地自动验证PASS；人工Review与远程CI待完成，未提交 |
 
 ## A：接口与实现约束
 
@@ -57,7 +57,40 @@ E：apps/mcp 使用 SDK v2 McpServer/serveStdio，编译后直接node启动；st
 
 F：Mock CI与真实联调分开；真实合成数据DeepSeek、Chromium、MCP SDK Client、Inspector及至少一个真实Agent Host/Skill。完整Lint/typecheck/build/unit/integration/HTTP/DB/browser/OpenAPI/db:check/MCP回归，数据库串行。人工安全Review和远程CI独立记录，不以本地测试代替。
 
-## E 实现、验收与交接（2026-11-12）
+## F 最终联调与交接（2026-11-12，未提交）
+
+开工分支 `feat/17-ai-agent-integration`，HEAD `d75d39e`；初始仅 tracked `apps/api/tsconfig.build.tsbuildinfo` 有改动，备份并保留其开工字节，不恢复到HEAD。已阅读AGENTS、A–E交接/STATE/本计划、Issue #17、R07设计、相关业务/授权/AI/Token/MCP源码与测试。仅完成本轮验证范围；没有新增业务功能、生产代码、Schema/SQL、依赖版本或远程操作。
+
+交付：
+
+- 新真实浏览器测试入口 `test:browser:real-ai`，密钥仅API子进程加载；生产Provider真实请求有4次/8192预留输出tokens上限，显式opt-in、禁止CI/Mock混用。验证Draft五类分析→人工编辑选择→R04 expectedVersion保存→真实Copilot工具/版本来源，业务和审计不变量不变。
+- 新官方Inspector CLI受控测试，两个工具经真实stdio→Nest→隔离PG读取；凭据只从环境传入，CLI参数仅进程内组装，memory store，不写系统argv/配置/日志。真实Codex Host/Skill重验且可指定F证据目录；真实客户端结束撤销临时Token、清临时目录。
+- CI增加4项真实Smoke拒绝检查；保留既有AI/Copilot Mock、MCP SDK/DB和全部浏览器验证，常规CI不依赖付费模型或用户凭据。
+- 修复全量回归发现的旧15表/PK/id计数断言，使之精确包含D已审Token表；Copilot axe等按钮启用过渡结束后检查，保留同样阈值。无产品主题/业务改动。
+
+实际验证：
+
+| 检查 | 结果 |
+|---|---|
+| 根Lint/单元/生产build，API/Web/MCP typecheck | PASS；API128、MCP16，Web25路由 |
+| OpenAPI/Web类型漂移、Drizzle db:check | PASS，36路径；迁移SQL未变 |
+| 数据库集成 | 最终92 PASS；含升级、事务/并发、不可变历史、Token约束 |
+| HTTP/代理/R01–R07业务与Token/MCP回归 | 基础5；Auth16/RBAC13/Requirement9/Change8/Delivery7/reads9/Token9/MCP6 PASS |
+| AI/Copilot HTTP/DB Mock | 19 PASS；授权/注入/正文泄露/预算/模型异常 |
+| 完整浏览器 | 最终36 PASS；初次Copilot过渡帧失败后定向4+4通过，未重复已通过组 |
+| 真实DeepSeek Provider独立Smoke | PASS，225输入/295输出tokens，2405ms |
+| 真实DeepSeek浏览器 | PASS 1，16.4s；4请求全部200，6505输入/1791输出tokens，1次实际工具读取，Requirement与Revision真实引用 |
+| 官方Inspector2.15.0 | PASS 1；tools/list严格Schema检查，两个tools/call与结果校验 |
+| Codex Host0.167.1 / Skill | PASS 1，43.03s；list→detail、范围分离、注入忽略、无写操作；Skill格式PASS |
+| CI真实Smoke防护 | 4 PASS；真实模型/外部Inspector默认不执行 |
+
+精确命令、初次FAIL与最终结果、负面矩阵、用量及安全自查见 [F工程证据](evidence/r08-f/README.md)；[真实桌面/手机与键盘证据](../ux/evidence/r08-f/README.md)、[本轮Host合成答案](evidence/r08-f/host-smoke.json) 已逐项查看。六张截图无阻断布局问题，真实AI五状态axe自动违规0；叠层/裁剪对比度与焦点守卫未判定项保留。真实回答偏长、偶有内部状态码，留人工产品验收。
+
+安全自查未发现未解决的越权/自动审批/可变历史/凭据泄露缺陷；不替代独立人工Review。保留单实例内存配额、外部Host独立权限、已返回数据无法撤回等边界。未故意对真实供应商制造402/429/503；异常确定性模拟验证。没有持久聊天正文或扩展为HTTP OAuth MCP。
+
+最终本地无未解决FAIL/实施BLOCKED。NOT RUN：远程CI、独立人工安全/视觉签字、多浏览器/OS/真实手机/读屏/真实200%缩放、Observe真实外部接收、开发/生产迁移/部署及备份恢复演练；后者仍属原有发布前风险。H-11列出负责人动作。建议F Commit及覆盖A–F的最终PR文案见 [草案](R08_PR_DRAFT.md)。未执行Commit/Push/PR/Merge/部署；本Session在F停止。
+
+## E 实现、验收与交接（2026-11-12，后续已提交d75d39e）
 
 开工 `feat/17-ai-agent-integration` / HEAD `55ad908`，工作区干净；D已由负责人本地提交。已阅读根/API AGENTS、最新STATE与R08计划、Issue #17、AC-20、Token/授权读取实现、配置/CI/测试模式，并在线核对MCP当前2026-07-28协议、TypeScript SDK v2 2.4.0、Agent Skills及Codex官方规范。本轮只实施E，不修改P0业务/审批基线。
 

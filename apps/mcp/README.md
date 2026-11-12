@@ -118,7 +118,18 @@ R08_MCP_HOST_SMOKE=1 node scripts/with-env.mjs .env.test pnpm --filter specbridg
 
 测试把 Skill 复制到临时工作区，`--ignore-user-config --ephemeral --sandbox read-only`，禁用Shell/插件/hooks/委派/浏览能力，环境只传合成凭据；不读取凭据文件。90秒终止、95秒强制终止，输出总量2 MiB；结束后撤销 Token 并删除临时工作区。仅在全部断言通过后保存验证过的合成答案至 `test-results/r08-e/host-smoke.json`，不保留原始日志。CI明确拒绝此开关，普通套件跳过它。此 Smoke 验证当前 Host 单场景表现，不代表通用 prompt-injection 防护保证。
 
-具体结果、已解决失败与限制见 [Phase E 测试证据](../../docs/engineering/evidence/r08-e/README.md)。
+F可通过 `R08_MCP_EVIDENCE_DIR=../../test-results/r08-f` 把Host证据写入当前阶段，避免覆盖E历史记录；路径相对 `apps/api` 测试工作目录。
+
+可选官方Inspector验证（本轮精确2.15.0，需要符合其engine的本地Node；不加入仓库依赖、不使用真实项目Token）：
+
+```bash
+npm install --prefix /tmp/specbridge-r08-f-inspector --ignore-scripts --no-audit --no-fund @modelcontextprotocol/inspector@2.15.0
+R08_MCP_INSPECTOR_SMOKE=1 R08_MCP_INSPECTOR_ENTRY=/tmp/specbridge-r08-f-inspector/node_modules/@modelcontextprotocol/inspector/clients/cli/build/index.js node scripts/with-env.mjs .env.test pnpm --filter specbridge-api exec vitest run --config vitest.config.mcp-e2e.ts -t 'official Inspector CLI'
+```
+
+测试使用官方CLI的 `runCli` 入口：先严格检查tools/list的Schema，再执行两个tools/call并校验真实API结果。专用Owner生成的临时Token仅通过环境传给测试适配器，转换为进程内解析参数，**不放操作系统argv、文件配置或URL**；memory secret store、不持久化Token、不打开Inspector Web服务。原始诊断不保存，结果仅保留安全断言；结束撤销Token并清临时目录。适配器锁定该Inspector版本，升级时需重新验证内部入口兼容性。CI拒绝此opt-in，普通MCP套件默认跳过Host和Inspector。
+
+具体结果、已解决失败与限制见 [Phase E 历史证据](../../docs/engineering/evidence/r08-e/README.md) 和 [Phase F 最终验证](../../docs/engineering/evidence/r08-f/README.md)。本轮SDK Client、Inspector、Codex Host实际联通；不等于其他Host/OS或远程HTTP OAuth均已验证。
 
 ## 官方依据（2026-11-12核对）
 

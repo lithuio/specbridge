@@ -1,0 +1,33 @@
+{
+  "status": "CALLS_COMPLETED",
+  "model": "deepseek-flash",
+  "modelCalls": 4,
+  "reservedOutputTokens": 8192,
+  "promptTokens": 6505,
+  "completionTokens": 1791,
+  "usageMissing": 0,
+  "upstreamStatuses": [
+    200,
+    200,
+    200,
+    200
+  ],
+  "results": [
+    {
+      "status": "PASS",
+      "durationMs": 3469
+    },
+    {
+      "status": "PASS",
+      "durationMs": 1205
+    },
+    {
+      "status": "PASS",
+      "durationMs": 5743
+    },
+    {
+      "status": "PASS",
+      "durationMs": 2877
+    }
+  ]
+}

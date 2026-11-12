@@ -1,5 +1,6 @@
 // Playwright owns this process. Use only the existing isolated test DB and
-// reviewed migrations; never read .env or reuse an already-running API/Web.
+// reviewed migrations; never reuse an already-running API/Web. Real provider
+// opt-in loads .env only inside the dedicated API child, never in Web or tests.
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 import { fileURLToPath } from "node:url";
@@ -70,6 +71,9 @@ async function ready(child, url) {
   throw new Error("Startup timed out");
 }
 try {
+  const realProvider = process.env.R08_REAL_PROVIDER === "1";
+  if (realProvider && (process.env.CI || process.env.R08_AI_FIXTURE === "1"))
+    throw new Error("Real provider is forbidden in CI or fixture mode");
   await free(4000);
   await free(3000);
   const migration = start(
@@ -84,13 +88,24 @@ try {
         : reject(new Error("Test DB unavailable or migration failed")),
     ),
   );
-  const api = start([process.env.R08_AI_FIXTURE === "1" ? "scripts/browser-ai-fixture.mjs" : "dist/main.js"], apiDir, {
-    NODE_ENV: "test",
-    PORT: "4000",
-    DATABASE_URL: database,
-    AUTH_TRUSTED_ORIGINS: "http://127.0.0.1:3000",
-    AUTH_TRUSTED_PROXIES: "loopback",
-  });
+  const api = start(
+    [
+      realProvider
+        ? "scripts/browser-ai-real.mjs"
+        : process.env.R08_AI_FIXTURE === "1"
+          ? "scripts/browser-ai-fixture.mjs"
+          : "dist/main.js",
+    ],
+    apiDir,
+    {
+      NODE_ENV: "test",
+      PORT: "4000",
+      DATABASE_URL: database,
+      AUTH_TRUSTED_ORIGINS: "http://127.0.0.1:3000",
+      AUTH_TRUSTED_PROXIES: "loopback",
+      ...(realProvider ? { R08_REAL_PROVIDER: "1" } : {}),
+    },
+  );
   await ready(api, "http://127.0.0.1:4000/api/v1/health");
   const web = start(
     [

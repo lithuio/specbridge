@@ -33,6 +33,9 @@ jobs:
       - name: Test
         run: pnpm run test
 
+      - name: Real provider and external client smoke must refuse CI execution
+        run: pnpm test:smoke-guards
+
       - name: API typecheck (including tests and Drizzle configuration)
         run: pnpm --filter specbridge-api typecheck
 
@@ -117,7 +120,7 @@ jobs:
       - name: Build production Web for browser acceptance
         run: pnpm --filter web build
 
-      - name: R07 browser regression and three-role integration
+      - name: R01–R08 browser regression, AI/Copilot mocks and token lifecycle
         run: |
           cp .env.test.example .env.test
           pnpm run test:browser:run

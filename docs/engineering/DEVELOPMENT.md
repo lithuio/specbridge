@@ -1,5 +1,13 @@
 # SpecBridge — Local Development
 
+## R08 Phase F 最终验证
+
+本地回归顺序：`pnpm lint`、`pnpm test`、`pnpm build`，三个包分别 `typecheck`；`pnpm --filter specbridge-api openapi:check`、`pnpm db:check`、`pnpm test:smoke-guards`。隔离数据库组必须串行：`pnpm test:integration && pnpm test:e2e && pnpm test:e2e:db && pnpm test:e2e:ai && pnpm test:browser:run`。需现有5434测试实例、已审迁移和Playwright Chromium；不要与本地3000/4000开发进程同时运行。
+
+只有明确授权的本地付费模型验证使用 `pnpm test:browser:real-ai`。该入口只在独立API子进程加载根.env，强制隔离测试DB；Next/Playwright不接收Key，最多4次请求/8192预留输出tokens，禁止CI或Mock模式混用。当前实际浏览器输出 `test-results/r08-f/browser-real/` 与仅含计数的 `test-results/r08-f/real-provider.json`；原始Prompt/Key不落盘。普通CI不执行这个入口。
+
+MCP SDK、Inspector和真实Host的安全复现见 [MCP README](../../apps/mcp/README.md)。最终结果、负面安全矩阵、已解决失败和NOT RUN项见 [F验证记录](evidence/r08-f/README.md)。真实调用只用合成项目，人工验收不能由自动测试替代。
+
 ## R08 Phase C 本地 Copilot
 
 App Shell 顶部「Copilot」打开项目抽屉。项目页面自动选择当前项目和页面资源；其他页面先从授权列表选项目。提问不会发送尚未保存的表单内容；答案给出业务来源、版本与读取时间，仅建议人工核对，不执行 Ready/Submit/审批/验收。对话最多保留10轮，仅当前浏览器内存；刷新/切换项目或账号清空。Drawer 关闭保留已完成对话并取消在途请求，再次打开先重新核验项目。
@@ -86,7 +94,7 @@ chmod 600 .env .env.test
 
 新机器须将 `.env` 中两处 `replace_me` 改为同一个本地密码；建议使用十六进制随机值，特殊字符需要在 DATABASE_URL 中做 URL 编码。开发库用户/库名均为 `specbridge`。已有卷不会因修改 POSTGRES_PASSWORD 自动更新数据库密码，认证失败时先排查配置，不删卷重建。
 
-`.env` 只存开发数据库和认证配置；`.env.test` 只存公开的一次性测试 URL 与 `NODE_ENV=test`。无需 DeepSeek 或 Observe 密钥即可开发 P0；不要向 Web 环境变量复制数据库凭据。
+`.env` 保存开发数据库、认证及可选服务端 AI 配置；`.env.test` 只存公开的一次性测试 URL 与 `NODE_ENV=test`。无需 DeepSeek 或 Observe 密钥即可开发 P0；不要向 Web 环境变量复制数据库凭据或模型 Key。
 
 ### 启动开发
 

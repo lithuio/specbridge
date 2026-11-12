@@ -3,6 +3,7 @@
 仅列必须由项目负责人决定或亲自核验的事项；Agent 不得把本表当作自动执行指令。
 
 ## 现在
+- [ ] H-11：R08最终人工验收与安全Review。A–E已提交，F本地全量回归、真实DeepSeek浏览器、Inspector与Codex Host/Skill通过，见 [F工程证据](engineering/evidence/r08-f/README.md)、[截图/键盘/axe未判定项](ux/evidence/r08-f/README.md) 与 [PR草案](engineering/R08_PR_DRAFT.md)。请核对人工采用/expectedVersion/不可变历史、Client草稿隔离、工具父链及推理前后授权、Token scope/撤销竞争/摘要与日志、外部Host数据边界；审阅合成回答的准确性与偏长/内部状态码文案。读屏/真实设备及独立视觉签字尚无结论。Issue #17要求的人工安全Review与远程CI不能由Agent自查代替；远程CI NOT RUN，需后续授权提交/推送/PR后执行。不阻塞已授权本地F验证，不授权自动Commit/Push/PR/Merge/部署或开发/生产迁移；负责人审阅后自行本地Commit。
 - [x] H-10：R08 Phase D SQL 已获负责人“已审批”明确批准。对应 `0004_project_api_tokens.sql` SHA-256：`7133f1d8fc11ef93f84314dede4257cbba23452dec9ca49a2fdb57ce5cc0bd0a`。重新核对哈希后，仅在5434隔离specbridge_test库/账号执行 `pnpm db:migrate:test` 成功。完整Diff见 [审核包](engineering/R08_D_SQL_REVIEW.md)。不授权开发/生产迁移、其他SQL、E或自动Commit/Push/Merge/部署。D最终验证及人工Review项见R08_PLAN/STATE。
 - [ ] H-09：R07 最终视觉/API集成/安全评审。A–H本地实现与最终回归已完成，见 [H正式截图与验证](ux/evidence/r07-h/README.md)、[总计划最终交接](engineering/R07_PLAN.md) 与 [STATE](STATE.md)。请核对中文浅色桌面/手机视觉、版本/金额/拒绝重提与验收历史、Client审计裁剪/三类Dashboard口径、会话/项目隔离、409不重放、键盘/读屏及axe未判定项的补充证据。15场景最终浏览器PASS、17状态0自动违规与代理截图自检不等于独立人工签字；720px重排不等于实际200%zoom。状态：人工视觉/API集成/安全结论未记录，远程CI NOT RUN；不是已授权本地H的实施阻塞。后续提交/推送/PR/合并或发布需负责人另行授权，本轮未执行。
 - [ ] H-08：R06 人工安全/并发 Review。负责人已批准方案 A 并授权实施；本地 240 项测试、类型/Lint/完整构建已通过。重点核对父链/角色锁后重验、同版本批准证据、Workspace→Project→Requirement→CR→Delivery 锁序、SUBMITTED 条件更新、真实 23505 回滚映射、退回重交/Accepted 终态和审计原子性。原因：Issue #13 DoD 要求人工安全/并发评审。状态：待审核，不阻塞已完成本地实现；不授权提交/推送/合并/部署，远程 CI/PR 需后续授权。无新增 Schema/Migration 或 SQL 审批任务。

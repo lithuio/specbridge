@@ -43,6 +43,8 @@
     "test:e2e:tokens": "node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:tokens",
     "test:browser:tokens": "node scripts/with-env.mjs .env.test pnpm --filter web test:e2e api-tokens.spec.ts",
     "test:mcp": "pnpm --filter specbridge-mcp test",
-    "test:e2e:mcp": "node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:mcp"
+    "test:e2e:mcp": "node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:mcp",
+    "test:browser:real-ai": "R08_REAL_PROVIDER=1 node scripts/with-env.mjs .env.test pnpm --filter web test:e2e real-ai.spec.ts",
+    "test:smoke-guards": "node --test scripts/smoke-guards.test.mjs"
   }
 }

@@ -100,6 +100,26 @@ test("真实授权项目 → 多轮工具读取与版本来源；键盘、桌面
     "href",
     `/app/projects/${p.id}/requirements/${r.id}/revisions/${v.id}`,
   );
+  // The shared Button fades from disabled opacity 0.5 when the request ends.
+  // Inspect the settled interactive state, not a frame during that transition.
+  const clear = drawer.getByRole("button", { name: "清空对话", exact: true });
+  await expect(clear).toBeEnabled();
+  const transition = await clear.evaluate((el) => ({
+    opacity: getComputedStyle(el).opacity,
+    animations: el.getAnimations().map((a) => a.playState),
+  }));
+  await expect(clear).toHaveCSS("opacity", "1");
+  await writeFile(
+    resolve(evidence, "button-transition.json"),
+    JSON.stringify(
+      {
+        before: transition,
+        settledOpacity: "1",
+      },
+      null,
+      2,
+    ) + "\n",
+  );
   const checks = [await accessibility(page, "copilot-desktop")];
   await page.screenshot({ path: resolve(evidence, "desktop-copilot.png") });
   await page.keyboard.press("Escape");

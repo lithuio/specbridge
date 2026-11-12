@@ -4,6 +4,7 @@ import type { Server } from 'node:http';
 import { resolve } from 'node:path';
 import {
   readFile,
+  readdir,
   mkdtemp,
   mkdir,
   copyFile,
@@ -668,7 +669,9 @@ it.runIf(process.env.R08_MCP_HOST_SMOKE === '1')(
         /credential|token|approv/i,
       );
       expect(await business(f.project.id)).toEqual(before);
-      const evidenceDir = resolve('../../test-results/r08-e');
+      const evidenceDir = resolve(
+        process.env.R08_MCP_EVIDENCE_DIR ?? '../../test-results/r08-e',
+      );
       await mkdir(evidenceDir, { recursive: true });
       // Only the validated synthetic analysis and non-secret assertions are retained.
       // Raw stdout/stderr and process environment are never written to disk.
@@ -696,4 +699,146 @@ it.runIf(process.env.R08_MCP_HOST_SMOKE === '1')(
     }
   },
   110000,
+);
+
+it.runIf(process.env.R08_MCP_INSPECTOR_SMOKE === '1')(
+  'uses the official Inspector CLI with ephemeral project credentials (opt-in, never CI)',
+  async () => {
+    if (process.env.CI) throw new Error('Inspector smoke is forbidden in CI');
+    const f = await setup();
+    const token = await createToken(f);
+    const before = await business(f.project.id);
+    const root = await mkdtemp(resolve(tmpdir(), 'specbridge-inspector-'));
+    try {
+      const run = async (method: string, tool?: string, args = {}) => {
+        const child = spawn(
+          process.execPath,
+          [resolve('scripts/mcp-inspector-smoke.mjs')],
+          {
+            cwd: root,
+            env: {
+              PATH: process.env.PATH,
+              MCP_STORAGE_DIR: root,
+              MCP_CLIENT_CONFIG_PATH: resolve(root, 'client.json'),
+              MCP_INSPECTOR_SECRET_STORE: 'memory',
+              MCP_INSPECTOR_PERSIST_TOKENS: 'none',
+              MCP_INSPECTOR_AUTO_OPEN_ENABLED: 'false',
+              R08_MCP_INSPECTOR_SMOKE: '1',
+              R08_MCP_INSPECTOR_ENTRY: process.env.R08_MCP_INSPECTOR_ENTRY,
+              R08_MCP_ENTRY: resolve('../mcp/dist/main.js'),
+              R08_INSPECTOR_METHOD: method,
+              R08_INSPECTOR_TOOL: tool,
+              R08_INSPECTOR_ARGS: JSON.stringify(args),
+              SPECBRIDGE_API_BASE_URL: origin,
+              SPECBRIDGE_PROJECT_ID: f.project.id,
+              SPECBRIDGE_API_TOKEN: token.token,
+            },
+            stdio: ['ignore', 'pipe', 'pipe'],
+          },
+        );
+        let output = '',
+          stderr = '',
+          size = 0,
+          exceeded = false;
+        const capture = (chunk: Buffer, error: boolean) => {
+          size += chunk.length;
+          if (size > 2 * 1024 * 1024) {
+            exceeded = true;
+            child.kill('SIGKILL');
+            return;
+          }
+          if (error) stderr += chunk.toString();
+          else output += chunk.toString();
+        };
+        child.stdout.on('data', (chunk: Buffer) => capture(chunk, false));
+        child.stderr.on('data', (chunk: Buffer) => capture(chunk, true));
+        const timer = setTimeout(() => child.kill('SIGKILL'), 25000);
+        try {
+          const code = await new Promise<number | null>((done, reject) => {
+            child.once('error', () =>
+              reject(new Error('Inspector could not start')),
+            );
+            child.once('close', done);
+          });
+          expect(exceeded).toBe(false);
+          expect((output + stderr).includes(token.token)).toBe(false);
+          if (code !== 0)
+            throw new Error('Inspector failed; raw diagnostics withheld');
+          // Validate only parsed synthetic results; never dump raw client diagnostics.
+          return z.object({ result: z.unknown() }).parse(JSON.parse(output))
+            .result;
+        } finally {
+          clearTimeout(timer);
+        }
+      };
+      const tools = z
+        .object({ tools: z.array(z.object({ name: z.string() })) })
+        .parse(await run('tools/list'));
+      expect(tools.tools.map((t) => t.name).sort()).toEqual([
+        'get_approved_spec',
+        'list_project_requirements',
+      ]);
+      const result = z.object({
+        structuredContent: z.unknown(),
+        isError: z.boolean().optional(),
+      });
+      const listed = result.parse(
+        await run('tools/call', 'list_project_requirements', { limit: 1 }),
+      );
+      expect(listed.isError).not.toBe(true);
+      const list = listShape.parse(listed.structuredContent);
+      expect(list.projectId).toBe(f.project.id);
+      const detailed = result.parse(
+        await run('tools/call', 'get_approved_spec', {
+          versionId: list.items[0].versionId,
+        }),
+      );
+      expect(detailed.isError).not.toBe(true);
+      const detail = detailShape.parse(detailed.structuredContent);
+      expect(detail.specification.versionId).toBe(
+        f.version.changeRequestVersionId,
+      );
+      expect(await business(f.project.id)).toEqual(before);
+      for (const entry of await readdir(root, {
+        recursive: true,
+        withFileTypes: true,
+      })) {
+        if (entry.isFile())
+          expect(
+            (await readFile(resolve(entry.parentPath, entry.name))).includes(
+              Buffer.from(token.token),
+            ),
+          ).toBe(false);
+      }
+      const evidenceDir = resolve(
+        process.env.R08_MCP_EVIDENCE_DIR ?? '../../test-results/r08-f',
+      );
+      await mkdir(evidenceDir, { recursive: true });
+      await writeFile(
+        resolve(evidenceDir, 'inspector.json'),
+        JSON.stringify(
+          {
+            checkedAt: new Date().toISOString(),
+            status: 'PASS',
+            client: 'Inspector CLI 2.15.0',
+            tools: tools.tools.map((t) => t.name),
+            toolsList: true,
+            toolsCall: true,
+            strictToolSchemaValidation: true,
+            responseSchemaValidated: true,
+            citedVersion: detail.specification.versionId,
+            noBusinessWrites: true,
+            tokenLeaked: false,
+            tokenPersisted: false,
+          },
+          null,
+          2,
+        ) + '\n',
+      );
+    } finally {
+      await module.get(ApiTokensService).revoke(f.owner.id, token.id);
+      await rm(root, { recursive: true, force: true });
+    }
+  },
+  90000,
 );
