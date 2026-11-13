@@ -4,7 +4,20 @@ import Link from "next/link";
 import { useProposalWorkspace } from "./proposals";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { MessageCircle, X } from "lucide-react";
+import {
+  MessageCircle,
+  X,
+  Sparkles,
+  ArrowUp,
+  ArrowRight,
+  ListChecks,
+  FileSearch,
+  TriangleAlert,
+  BookOpen,
+  Trash2,
+  LoaderCircle,
+  FolderOpen,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -94,7 +107,12 @@ function CopilotDrawer({ children }: { children: React.ReactNode }) {
     >
       <div className="copilot-heading">
         <div>
-          <DialogTitle>项目 Copilot</DialogTitle>
+          <DialogTitle className="feature-title">
+            <span className="copilot-mark">
+              <Sparkles aria-hidden="true" />
+            </span>
+            项目 Copilot
+          </DialogTitle>
           <DialogDescription>
             了解状态、核对阻塞点，规划下一步。
           </DialogDescription>
@@ -309,7 +327,10 @@ function Conversation({
   return (
     <CopilotDrawer>
       <div className="copilot-context">
-        <strong>{verified ? project?.name : "正在核验项目"}</strong>
+        <strong>
+          <FolderOpen aria-hidden="true" />
+          {verified ? project?.name : "正在核验项目"}
+        </strong>
         <span>当前页面：{label}</span>
         {onChoose && (
           <Button variant="ghost" onClick={onChoose}>
@@ -325,8 +346,44 @@ function Conversation({
         {verified && tasks.view}
         {verified && !tasks.expanded && !turns.length && (
           <div className="copilot-empty">
+            <span className="copilot-welcome-icon">
+              <Sparkles aria-hidden="true" />
+            </span>
+            <p className="eyebrow">YOUR PROJECT, IN CONTEXT</p>
             <h3>从当前项目开始</h3>
-            <p>可以问“项目有哪些阻塞点？”或“当前需求下一步应该做什么？”</p>
+            <p>一起理清现状，让下一步更明确。</p>
+            <div className="copilot-suggestions" aria-label="提问建议">
+              {[
+                {
+                  icon: FileSearch,
+                  title: "了解项目现状",
+                  text: "请总结当前项目状态，并附真实业务来源。",
+                },
+                {
+                  icon: TriangleAlert,
+                  title: "找出阻塞点",
+                  text: "当前项目有哪些阻塞点和待澄清问题？请附来源。",
+                },
+                {
+                  icon: ListChecks,
+                  title: "梳理下一步",
+                  text: "当前页面对应的业务下一步应该做什么？请区分事实和建议并附来源。",
+                },
+              ].map(({ icon: Icon, title, text }) => (
+                <Button
+                  key={title}
+                  variant="outline"
+                  onClick={() => {
+                    setDraft(text);
+                    document.getElementById(fieldId)?.focus();
+                  }}
+                >
+                  <Icon aria-hidden="true" />
+                  <span>{title}</span>
+                  <ArrowRight aria-hidden="true" />
+                </Button>
+              ))}
+            </div>
             <p className="field-hint">
               提问会将必要的已授权项目资料发送给
               DeepSeek。对话仅保存在当前页面内存中，刷新、切换项目或账号会清空；最多保留最近
@@ -343,22 +400,37 @@ function Conversation({
                 <p>{t.question}</p>
               </div>
               <div className="copilot-answer">
-                <strong>Copilot · 待核实建议</strong>
-                <p>{t.answer.result.answer}</p>
+                <strong className="copilot-author">
+                  <Sparkles aria-hidden="true" />
+                  Copilot <span>待核实建议</span>
+                </strong>
+                <div className="copilot-answer-text">
+                  {t.answer.result.answer
+                    .split(/\n\s*\n/)
+                    .map((paragraph, i) => (
+                      <p key={i}>{paragraph}</p>
+                    ))}
+                </div>
                 {!!t.answer.result.blockers.length && (
-                  <>
-                    <h4>可能的阻塞点</h4>
+                  <section className="copilot-blockers">
+                    <h4>
+                      <TriangleAlert aria-hidden="true" />
+                      可能的阻塞点
+                    </h4>
                     <ul>
                       {t.answer.result.blockers.map((v, i) => (
                         <li key={i}>{v}</li>
                       ))}
                     </ul>
-                  </>
+                  </section>
                 )}
                 {!!t.answer.result.nextSteps.length && (
                   <>
-                    <h4>建议下一步</h4>
-                    <ul>
+                    <h4 className="feature-title">
+                      <ListChecks aria-hidden="true" />
+                      建议下一步
+                    </h4>
+                    <ol className="copilot-steps">
                       {t.answer.result.nextSteps.map((s, i) => (
                         <li key={i}>
                           {s.text}{" "}
@@ -367,10 +439,13 @@ function Conversation({
                           </span>
                         </li>
                       ))}
-                    </ul>
+                    </ol>
                   </>
                 )}
-                <h4>本轮业务来源</h4>
+                <h4 className="feature-title">
+                  <BookOpen aria-hidden="true" />
+                  本轮业务来源
+                </h4>
                 <ul className="copilot-sources">
                   {t.answer.sources.map((s) => (
                     <li key={s.key}>
@@ -400,7 +475,12 @@ function Conversation({
               </div>
             </article>
           ))}
-        {pending && <p role="status">正在读取已授权资料并整理回答…</p>}
+        {pending && (
+          <p role="status" className="copilot-loading">
+            <LoaderCircle aria-hidden="true" className="refresh-spinning" />
+            正在读取已授权资料并整理回答…
+          </p>
+        )}
         {failure && (
           <p role="alert" className="form-error">
             {failure}
@@ -435,9 +515,15 @@ function Conversation({
                 setFailure(null);
               }}
             >
+              <Trash2 aria-hidden="true" />
               清空对话
             </Button>
             <Button type="submit" disabled={pending || !draft.trim()}>
+              {pending ? (
+                <LoaderCircle aria-hidden="true" className="refresh-spinning" />
+              ) : (
+                <ArrowUp aria-hidden="true" />
+              )}
               {pending ? "正在回答…" : failure ? "重试发送" : "发送"}
             </Button>
           </div>

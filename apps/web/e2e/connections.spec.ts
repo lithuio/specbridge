@@ -183,12 +183,29 @@ test("真实网页确认→CLI兑换→私有凭据→stdio MCP/API；重连、�
     await expect(
       page.getByRole("button", { name: "复制连接命令" }),
     ).toBeVisible();
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.getByRole("button", { name: "复制连接命令" }).click();
+    await expect(page.getByRole("status")).toHaveText(
+      "已复制，可在本地终端执行。",
+    );
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toContain(projectId);
+    expect(copied).not.toContain(credential.token);
     await page.setViewportSize({ width: 320, height: 740 });
     checks.push(await accessibility(page, "connect-manager-320"));
     await page.screenshot({
       path: join(evidence, "mobile-manager.png"),
       fullPage: true,
     });
+    await page
+      .getByLabel("目标代码目录绝对路径")
+      .fill("/home/me/another-project");
+    await expect(
+      page.getByRole("button", { name: "复制连接命令" }),
+    ).toHaveCount(0);
+    await expect(page.getByText("已复制，可在本地终端执行。")).toHaveCount(0);
     const tokens = await page.request.get(
       `/api/v1/projects/${projectId}/api-tokens`,
     );

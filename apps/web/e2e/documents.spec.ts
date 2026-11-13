@@ -68,18 +68,50 @@ test("创建项目后可选上传：明确共享、内部替换、Client版本�
   await page.keyboard.press("Enter");
   const confirm = page.getByRole("region", { name: "确认背景资料操作" });
   await expect(confirm).toBeVisible();
+  const modal = page.getByRole("dialog", {
+    name: "将 v1 共享给客户",
+    exact: true,
+  });
+  await expect(modal).toBeVisible();
+  await expect
+    .poll(() => modal.evaluate((el) => el.contains(document.activeElement)))
+    .toBe(true);
+  await expect(modal).toHaveCSS("opacity", "1");
+  const modalChecks = [await accessibility(page, "share-confirm-desktop")];
+  await page.screenshot({
+    path: resolve(evidence, "share-confirm-desktop.png"),
+    animations: "disabled",
+  });
+  await page.setViewportSize({ width: 320, height: 740 });
+  modalChecks.push(await accessibility(page, "share-confirm-320"));
+  await page.screenshot({
+    path: resolve(evidence, "share-confirm-mobile.png"),
+    animations: "disabled",
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.keyboard.press("Escape");
+  await expect(modal).not.toBeVisible();
+  await expect(share).toBeFocused();
+  await share.click();
+  await expect(modal).toBeVisible();
   await client.reload();
   await expect(
     client.getByText("暂无当前账号可读取的背景资料。"),
   ).toBeVisible();
   await confirm.getByRole("button", { name: "确认操作", exact: true }).click();
   await expect(confirm).not.toBeVisible();
+  await expect(
+    page.getByRole("status").filter({ hasText: "共享给客户，已保存" }),
+  ).toBeVisible();
   await client.reload();
   await client.getByRole("link", { name: "查看共享文字" }).click();
   await expect(
     client.getByText("已访谈：积分有效期一年。", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "上传替换版本" }).click();
+  await expect(
+    page.getByLabel("背景文件", { exact: true }).filter({ visible: true }),
+  ).toBeFocused();
   await page
     .getByLabel("背景文件", { exact: true })
     .filter({ visible: true })
@@ -98,7 +130,10 @@ test("创建项目后可选上传：明确共享、内部替换、Client版本�
     path: resolve(evidence, "documents-desktop.png"),
     fullPage: true,
   });
-  const checks = [await accessibility(page, "documents-desktop")];
+  const checks = [
+    ...modalChecks,
+    await accessibility(page, "documents-desktop"),
+  ];
   await client.goto(`/app/projects/${project}/documents`);
   await expect(client.getByText("内部补充.txt", { exact: false })).toHaveCount(
     0,

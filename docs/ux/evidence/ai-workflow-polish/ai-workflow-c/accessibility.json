@@ -1,0 +1,83 @@
+[
+  {
+    "name": "proposal-desktop",
+    "violations": [],
+    "passedRules": 26,
+    "supplementalComputedContrast": [],
+    "incomplete": [
+      {
+        "id": "aria-hidden-focus",
+        "nodes": [
+          {
+            "target": [
+              "div[data-base-ui-inert=\"\"][aria-hidden=\"true\"]:nth-child(9)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(3)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(5)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "proposal-mobile",
+    "violations": [],
+    "passedRules": 26,
+    "supplementalComputedContrast": [
+      {
+        "target": [
+          ".work-mode-switch > .bg-primary.text-primary-foreground.hover\\:bg-primary\\/80"
+        ],
+        "ratio": 7.9,
+        "threshold": 4.5
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "aria-hidden-focus",
+        "nodes": [
+          {
+            "target": [
+              "div[data-base-ui-inert=\"\"][aria-hidden=\"true\"]:nth-child(9)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(3)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(5)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          }
+        ]
+      },
+      {
+        "id": "color-contrast",
+        "nodes": [
+          {
+            "target": [
+              ".work-mode-switch > .bg-primary.text-primary-foreground.hover\\:bg-primary\\/80"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          }
+        ]
+      }
+    ]
+  }
+]

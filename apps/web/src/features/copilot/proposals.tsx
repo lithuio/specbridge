@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
+import { ListChecks, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useProjectApi, type Project } from "@/features/projects/queries";
 import { ApiError, errorMessage, type ApiResult } from "@/lib/api/client";
@@ -438,10 +439,13 @@ export function useProposalWorkspace({
       <section className="copilot-proposals" aria-label="Copilot 人工确认任务">
         <Button
           variant="outline"
+          className="proposal-toggle"
           aria-expanded={expanded}
           onClick={() => setExpanded((v) => !v)}
         >
-          准备操作与个人提案
+          <ListChecks aria-hidden="true" />
+          <span>准备操作与个人提案</span>
+          <ChevronDown aria-hidden="true" />
         </Button>
         {expanded && (
           <>

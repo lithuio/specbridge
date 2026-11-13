@@ -1,9 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import {
+  FileText,
+  Upload,
+  LockKeyhole,
+  Users,
+  FileCheck2,
+  Layers,
+  CheckCircle2,
+} from "lucide-react";
+import { RefreshButton } from "@/components/shared/refresh-button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useCurrentProject } from "@/features/projects/project-detail";
 import { useProjectApi } from "@/features/projects/queries";
@@ -54,6 +70,7 @@ export function DocumentUpload({
   onDone?: () => void;
 }) {
   const project = useCurrentProject();
+  const fileLabelId = useId();
   const { api, queryClient, key } = useProjectApi();
   const [file, setFile] = useState<File | null>(null),
     [busy, setBusy] = useState(false),
@@ -75,6 +92,13 @@ export function DocumentUpload({
       }
     };
   }, []);
+  const replacementId = replacement?.id;
+  useEffect(() => {
+    if (replacementId) {
+      input.current?.scrollIntoView({ block: "center", behavior: "instant" });
+      input.current?.focus({ preventScroll: true });
+    }
+  }, [replacementId]);
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: key("documents", project.id) });
   async function send() {
@@ -158,30 +182,49 @@ export function DocumentUpload({
       className="document-upload"
       aria-label={replacement ? "上传替换版本" : "上传背景文件"}
     >
-      <h3>
+      <h3 className="feature-title">
+        <Upload aria-hidden="true" />
         {replacement ? `替换：${replacement.title}` : "添加项目背景（可选）"}
       </h3>
       <p className="muted-copy">
         文件先保存在项目中。AI
         会按当前权限选取少量相关文字发送给模型；资料中的内容不代表已批准范围。对客澄清和规格只使用已共享版本。
       </p>
-      <label className="form-field">
-        背景文件
-        <input
-          ref={input}
-          type="file"
-          accept=".pdf,.docx,.md,.txt"
-          disabled={busy}
-          onChange={(e) => {
-            setFile(e.target.files?.[0] ?? null);
-            setMessage("");
-          }}
-        />
+      <label className="form-field document-file-picker">
+        <span id={fileLabelId}>背景文件</span>
+        <span className="document-file-control">
+          <span className="file-picker-caption" aria-hidden="true">
+            <span>
+              <Upload />
+              选择文件
+            </span>
+            <span>{file ? file.name : "PDF、DOCX、Markdown 或 TXT"}</span>
+          </span>
+          <input
+            ref={input}
+            aria-labelledby={fileLabelId}
+            type="file"
+            accept=".pdf,.docx,.md,.txt"
+            disabled={busy}
+            onChange={(e) => {
+              setFile(e.target.files?.[0] ?? null);
+              setMessage("");
+            }}
+          />
+        </span>
       </label>
       <p className="field-hint">
         文本 PDF、DOCX、MD/TXT；单个 10 MiB，项目最多 20 份 / 100
         MiB（含历史原件）。不支持扫描件、图片或旧 DOC。
       </p>
+      {file && (
+        <p className="file-selection">
+          <FileCheck2 aria-hidden="true" />
+          <span>
+            {file.name} · {(file.size / 1024).toFixed(1)} KiB
+          </span>
+        </p>
+      )}
       {replacement && (
         <p className="notice">
           替换不会自动共享新版本，原共享版本保持可读，直至负责人更改或撤回。
@@ -204,6 +247,7 @@ export function DocumentUpload({
       )}
       <div className="form-actions">
         <Button disabled={busy || unknown || !file} onClick={() => void send()}>
+          <Upload aria-hidden="true" />
           {busy
             ? "正在上传并解析…"
             : replacement
@@ -228,6 +272,7 @@ export function DocumentsPage() {
   const project = useCurrentProject();
   const { api, queryClient, key } = useProjectApi();
   const query = useDocuments();
+  const [feedback, setFeedback] = useState("");
   const [replace, setReplace] = useState<string | null>(null);
   const [pending, setPending] = useState<{
     doc: Internal;
@@ -262,6 +307,7 @@ export function DocumentsPage() {
         signal: controller.signal,
       });
       if (active.current !== controller) return;
+      setFeedback(`${pending.doc.title}：${pending.label}，已保存。`);
       setPending(null);
       await queryClient.invalidateQueries({
         queryKey: key("documents", project.id),
@@ -287,11 +333,16 @@ export function DocumentsPage() {
         <div className="section-heading">
           <div>
             <p className="eyebrow">PROJECT BACKGROUND</p>
-            <h2>项目背景资料</h2>
+            <h2 className="feature-title">
+              <Layers aria-hidden="true" />
+              项目背景资料
+            </h2>
           </div>
-          <Button variant="outline" onClick={() => void query.refetch()}>
-            刷新资料
-          </Button>
+          <RefreshButton
+            label="刷新资料"
+            busy={query.isFetching}
+            onClick={() => void query.refetch()}
+          />
         </div>
         <p className="muted-copy">
           背景资料辅助理解项目，不替代正式规格或客户批准。文件解析失败不影响手动业务流程。
@@ -299,7 +350,13 @@ export function DocumentsPage() {
         <DocumentUpload
           key={replacement?.id ?? "new"}
           replacement={replacement}
-          onDone={() => setReplace(null)}
+          onDone={() => {
+            if (replacement)
+              setFeedback(
+                `${replacement.title}：新版本已上传，请核对共享范围。`,
+              );
+            setReplace(null);
+          }}
         />
         {replace && (
           <Button variant="outline" onClick={() => setReplace(null)}>
@@ -307,6 +364,12 @@ export function DocumentsPage() {
           </Button>
         )}
       </section>
+      {feedback && (
+        <p className="operation-feedback" role="status">
+          <CheckCircle2 aria-hidden="true" />
+          {feedback}
+        </p>
+      )}
       {query.isPending && <p role="status">正在读取资料…</p>}
       {query.error && (
         <p role="alert" className="notice">
@@ -314,7 +377,11 @@ export function DocumentsPage() {
         </p>
       )}
       {!query.error && query.data?.items.length === 0 && (
-        <p className="notice">暂无当前账号可读取的背景资料。</p>
+        <div className="feature-empty">
+          <FileText aria-hidden="true" />
+          <p>暂无当前账号可读取的背景资料。</p>
+          <span>补充项目背景，让讨论与需求有据可循。</span>
+        </div>
       )}
       {!query.error &&
         query.data?.items.map((doc) => (
@@ -323,10 +390,16 @@ export function DocumentsPage() {
             key={doc.id}
             aria-label={doc.title}
           >
-            <h3>{doc.title}</h3>
+            <div className="document-card-heading">
+              <span className="feature-icon">
+                <FileText aria-hidden="true" />
+              </span>
+              <h3>{doc.title}</h3>
+            </div>
             {"sharedVersion" in doc ? (
               <>
-                <p className="muted-copy">
+                <p className="visibility-label">
+                  <Users aria-hidden="true" />
                   负责人共享版本 · v{doc.sharedVersion.versionNo}
                 </p>
                 <VersionLink
@@ -339,14 +412,28 @@ export function DocumentsPage() {
               </>
             ) : (
               <>
-                <p className="muted-copy">
+                <p className="visibility-label">
+                  {doc.sharedVersionId ? (
+                    <Users aria-hidden="true" />
+                  ) : (
+                    <LockKeyhole aria-hidden="true" />
+                  )}
                   {doc.status === "ACTIVE" ? "使用中" : "已停用"} · 资料版本{" "}
                   {doc.version} ·{" "}
                   {doc.sharedVersionId ? "已明确共享一个版本" : "仅内部可见"}
                 </p>
-                {doc.historyTruncated && <p className="field-hint">仅显示最近 50 次上传及当前 / 共享版本。旧来源链接仍可验证访问。</p>}
+                {doc.historyTruncated && (
+                  <p className="field-hint">
+                    仅显示最近 50 次上传及当前 /
+                    共享版本。旧来源链接仍可验证访问。
+                  </p>
+                )}
                 {doc.versions.map((v) => (
-                  <div className="document-version" key={v.id}>
+                  <div
+                    className="document-version"
+                    data-status={v.status}
+                    key={v.id}
+                  >
                     <p>
                       v{v.versionNo} · {v.originalName} ·{" "}
                       {v.status === "READY"
@@ -450,40 +537,58 @@ export function DocumentsPage() {
             )}
           </article>
         ))}
-      {pending && (
-        <section
-          className="surface-panel"
-          role="region"
-          aria-label="确认背景资料操作"
-        >
-          <h3>{pending.label}</h3>
-          <p>
-            请核对目标资料：{pending.doc.title}。共享后客户及对客 AI
-            可读取该版本；撤回或停用只影响后续访问，无法收回已读内容。
-          </p>
-          {!!error && <p role="alert">{errorMessage(error)}</p>}
-          {uncertain && (
-            <p className="notice">
-              请刷新资料并重新选择操作，核对最新状态后再确认。
-            </p>
-          )}
-          <div className="form-actions">
-            <Button disabled={busy || uncertain} onClick={() => void confirm()}>
-              {busy ? "正在保存…" : "确认操作"}
-            </Button>
-            <Button
-              variant="outline"
-              disabled={busy}
-              onClick={() => {
-                setPending(null);
-                void query.refetch();
-              }}
+      <Dialog
+        open={!!pending}
+        onOpenChange={(open) => {
+          if (!open && !busy) {
+            setPending(null);
+            void query.refetch();
+          }
+        }}
+      >
+        {pending && (
+          <DialogContent className="feature-dialog" showCloseButton={false}>
+            <section
+              className="document-confirm"
+              role="region"
+              aria-label="确认背景资料操作"
             >
-              取消并刷新
-            </Button>
-          </div>
-        </section>
-      )}
+              <span className="feature-icon">
+                <Users aria-hidden="true" />
+              </span>
+              <DialogTitle>{pending.label}</DialogTitle>
+              <DialogDescription>
+                请核对目标资料：{pending.doc.title}。共享后客户及对客 AI
+                可读取该版本；撤回或停用只影响后续访问，无法收回已读内容。
+              </DialogDescription>
+              {!!error && <p role="alert">{errorMessage(error)}</p>}
+              {uncertain && (
+                <p className="notice">
+                  请刷新资料并重新选择操作，核对最新状态后再确认。
+                </p>
+              )}
+              <div className="form-actions">
+                <Button
+                  disabled={busy || uncertain}
+                  onClick={() => void confirm()}
+                >
+                  {busy ? "正在保存…" : "确认操作"}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => {
+                    setPending(null);
+                    void query.refetch();
+                  }}
+                >
+                  取消并刷新
+                </Button>
+              </div>
+            </section>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }

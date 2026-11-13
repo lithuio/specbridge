@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { z } from "zod";
+import { MessagesSquare, FilePenLine, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useProjectApi } from "@/features/projects/queries";
 import { ApiError, errorMessage, type ApiResult } from "@/lib/api/client";
@@ -112,7 +113,10 @@ export function RequirementWorkbench(props: Props) {
       <div className="section-heading">
         <div>
           <p className="eyebrow">ASSISTED REVIEW</p>
-          <h3>需求工作台</h3>
+          <h3 className="feature-title">
+            <Sparkles aria-hidden="true" />
+            需求工作台
+          </h3>
         </div>
         <span className="status-badge">仅本人可见</span>
       </div>
@@ -136,12 +140,17 @@ export function RequirementWorkbench(props: Props) {
         </>
       ) : (
         <>
-          <div className="form-actions" role="group" aria-label="选择任务">
+          <div
+            className="form-actions work-mode-switch"
+            role="group"
+            aria-label="选择任务"
+          >
             <Button
               variant={mode === "clarify" ? "default" : "outline"}
               aria-pressed={mode === "clarify"}
               onClick={() => setMode("clarify")}
             >
+              <MessagesSquare aria-hidden="true" />
               帮我问清楚
             </Button>
             {props.supplier && (
@@ -150,6 +159,7 @@ export function RequirementWorkbench(props: Props) {
                 aria-pressed={mode === "specification"}
                 onClick={() => setMode("specification")}
               >
+                <FilePenLine aria-hidden="true" />
                 帮我整理规格
               </Button>
             )}

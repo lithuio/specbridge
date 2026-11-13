@@ -1,8 +1,21 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-13。AI工作流A–D已由负责人提交至e9e5efd，E本地最终验证完成、改动未提交。44浏览器、141 HTTP、102数据库通过，三种真实DeepSeek场景及真实Codex Host/Inspector有成功证据；单次真实响应校验失败与27条依赖公告保留为风险。0005–0008仍仅获批5434隔离应用；开发启用、独立人工/真实信任加载/远程CI未完成。无自动Commit/Push/PR/Merge/部署。
+> 更新时间：2026-11-13。AI工作流A–E已由负责人提交至184112e，并反馈本地验证成立。本轮完成新增AI组件的视觉与交互统一：31项受影响回归、Web类型/Lint/Build通过，28界面状态0自动无障碍违规（18状态有未判定项）。改动未提交；未改变业务API、Schema、依赖或App Shell。详细截图与限制见[视觉验证](ux/evidence/ai-workflow-polish/README.md)。无自动Commit/Push/PR/Merge/部署。
 
-## AI工作流升级 — E完成最终本地集成验证
+## AI组件视觉与交互统一 — 本地完成
+
+负责人要求沿用R07风格，优化新增背景资料、访问凭据、Copilot及工作台的视觉与操作反馈。开工分支`feat/17-ai-agent-integration`、HEAD`184112e`，初始仅`apps/api/tsconfig.build.tsbuildinfo`有已有改动；该文件与开工备份逐字节一致，未覆盖。复核Issue #17与AC-28–34，仅实施此次获授权的Web优化。
+
+- 统一图标刷新、组件间距、状态标签、原生选择控件与确认弹窗。背景资料支持中文文件选择、已选大小、替换时定位/聚焦、明确共享确认与成功反馈；Client读取范围、409和未知结果不变。
+- 凭据创建/列表桌面分栏、手机堆叠，明文/撤销弹窗统一；本地连接增加步骤说明和实际复制反馈，改变路径会清除旧命令显示。Token清理、过期/撤销与本地安全安装流程不变。
+- Copilot新增仅填入输入框的提问建议、消息层次、阻塞提示、编号下一步与真实来源卡；统一个人提案选择/编辑和需求工作台。没有新增图表数据、自动发送、自动Ready/审批/验收或业务写入路径。
+- PASS：Web `typecheck`、`lint`（0警告）、`build`；九套件31项回归（资料2/Copilot4/Token4/连接2/提案4/工作台6/表单保留6/项目2/原界面1）。真实Chromium/Nest/5434隔离库，模型使用既有Mock；连接套件包含真实CLI→网页确认→私有凭据→stdio MCP链路与剪贴板验证。详细命令见[证据](ux/evidence/ai-workflow-polish/README.md)。
+- 代表性桌面/320/390px图像已打开复查；28个axe状态0自动违规，18状态有incomplete并保留补充对比度。新增共享弹窗焦点/Escape/返回焦点、替换文件定位、建议不发请求和复制反馈断言。初版文件标签匹配失败已通过显式ARIA关联修复并复验。
+- NOT RUN：本次真实付费DeepSeek/真实Codex模型Host、全量API/数据库回归与远程CI；本轮无相关逻辑变更。独立人工视觉、真实设备与读屏仍需负责人复核。既有模型可靠性、H-17依赖公告与H-20/H-21人工事项没有被此次视觉检查关闭。
+
+用户停止开发服务后完成浏览器验证；测试子进程已退出，3000/4000空闲，可按原命令重新启动开发服务。仅隔离测试栈沿用已审迁移，没有生成SQL、改动.env或访问开发数据库。更新R07设计补充与文档索引，停止在本次视觉范围。建议本地Commit：`style(web): unify AI workflow surfaces and copilot interactions`；PR摘要与人工核对入口见[视觉交接](ux/evidence/ai-workflow-polish/README.md)。
+
+## AI工作流升级 — E完成最终本地集成验证（历史交接，后续已提交184112e）
 
 负责人“继续阶段E”，开工分支`feat/17-ai-agent-integration`、HEAD`e9e5efd`、工作区干净。读取AGENTS、Issue #17、AC-28–34与A–D交接后，仅补测试/编排/证据与文档，无业务功能/Schema/依赖变更。[全部命令与结果](engineering/evidence/ai-workflow-e/README.md)、[综合人工范例](engineering/AI_WORKFLOW_E_ACCEPTANCE.md)、[截图](ux/evidence/ai-workflow-e/README.md)。
 

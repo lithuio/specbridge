@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Terminal, Link2, Copy, Check, ShieldCheck } from "lucide-react";
+import { RefreshButton } from "@/components/shared/refresh-button";
 import { Button } from "@/components/ui/button";
 import { useCurrentProject } from "@/features/projects/project-detail";
 import { useProjectApi } from "@/features/projects/queries";
@@ -21,7 +23,9 @@ export function ConnectionsPanel() {
   const { api, key } = useProjectApi();
   const [repo, setRepo] = useState("");
   const [workspace, setWorkspace] = useState("");
+  const [copiedCommand, setCopiedCommand] = useState("");
   const [command, setCommand] = useState("");
+  const copied = !!command && copiedCommand === command;
   const [error, setError] = useState("");
   const [offset, setOffset] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -45,6 +49,7 @@ export function ConnectionsPanel() {
       setError("请填写本机 Linux/WSL 的绝对路径。");
       return;
     }
+    setCopiedCommand("");
     setCommand(
       [
         "node",
@@ -83,7 +88,27 @@ export function ConnectionsPanel() {
   }
   return (
     <section className="connection-panel">
-      <h2>连接本地 Codex</h2>
+      <div className="connection-heading">
+        <span className="feature-icon">
+          <Terminal aria-hidden="true" />
+        </span>
+        <div>
+          <p className="eyebrow">LOCAL ASSISTANT</p>
+          <h2>连接本地 Codex</h2>
+        </div>
+        <span className="access-status">项目只读</span>
+      </div>
+      <ol className="connection-steps" aria-label="连接步骤">
+        <li>
+          <span>1</span>生成命令
+        </li>
+        <li>
+          <span>2</span>浏览器确认
+        </li>
+        <li>
+          <span>3</span>开始协作
+        </li>
+      </ol>
       <p className="muted">
         先在 SpecBridge 仓库安装依赖并构建 MCP（pnpm --filter specbridge-mcp
         build）。首版支持本机 Linux/WSL 和已安装的 Codex CLI。
@@ -113,10 +138,13 @@ export function ConnectionsPanel() {
             required
           />
         </label>
-        <Button type="submit">生成连接命令</Button>
+        <Button type="submit">
+          <Terminal aria-hidden="true" />
+          生成连接命令
+        </Button>
       </form>
       {command && (
-        <div>
+        <div className="connection-command-panel">
           <p>
             在本机终端执行，或交给本地 Codex 执行。命令不含
             Token；请自行在浏览器核对项目、连接指纹和期限后确认。
@@ -127,11 +155,22 @@ export function ConnectionsPanel() {
             onClick={() => {
               void navigator.clipboard
                 .writeText(command)
+                .then(() => setCopiedCommand(command))
                 .catch(() => setError("复制失败，请手动选择命令。"));
             }}
           >
+            {copied ? (
+              <Check aria-hidden="true" />
+            ) : (
+              <Copy aria-hidden="true" />
+            )}
             复制连接命令
           </Button>
+          {copied && (
+            <span className="copy-feedback" role="status">
+              已复制，可在本地终端执行。
+            </span>
+          )}
         </div>
       )}
       <p className="muted">
@@ -139,10 +178,17 @@ export function ConnectionsPanel() {
         Skill；不更改其他设置或自动信任目录。凭据保存于仓库外私有文件，本地卸载后仍需在此撤销远端
         Token。
       </p>
-      <h3>本人连接授权记录</h3>
-      <Button variant="outline" onClick={() => void query.refetch()}>
-        刷新连接记录
-      </Button>
+      <div className="section-heading">
+        <h3 className="feature-title">
+          <Link2 aria-hidden="true" />
+          本人连接授权记录
+        </h3>
+        <RefreshButton
+          label="刷新连接记录"
+          busy={query.isFetching}
+          onClick={() => void query.refetch()}
+        />
+      </div>
       {error && (
         <p role="alert" className="notice">
           {error}
@@ -156,7 +202,9 @@ export function ConnectionsPanel() {
         {query.data?.data.map((row) => (
           <li key={row.id}>
             <strong>{row.name}</strong>
-            <span>{names[row.status]}</span>
+            <span className="access-status" data-status={row.status}>
+              {names[row.status]}
+            </span>
             <small>
               授权记录 {row.id}
               <br />
@@ -342,7 +390,10 @@ export function AgentConnectPage() {
     return <p className="notice">仅项目负责人可授权本地连接。</p>;
   return (
     <section className="connection-panel">
-      <h1>授权本地 Codex 连接</h1>
+      <h1 className="feature-title">
+        <ShieldCheck aria-hidden="true" />
+        授权本地 Codex 连接
+      </h1>
       <p>
         项目：<strong>{project.name}</strong>
       </p>

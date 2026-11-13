@@ -76,6 +76,19 @@ test("真实授权项目 → 多轮工具读取与版本来源；键盘、桌面
     await page.request.get(`/api/v1/requirements/${r.id}`)
   ).json();
   const drawer = await open(page);
+  let suggestionRequests = 0;
+  const countRequest = (request: import("@playwright/test").Request) => {
+    if (request.url().endsWith("/copilot/messages")) suggestionRequests++;
+  };
+  page.on("request", countRequest);
+  await drawer.getByRole("button", { name: "找出阻塞点", exact: true }).click();
+  await expect(drawer.getByLabel("询问当前项目")).toHaveValue(
+    "当前项目有哪些阻塞点和待澄清问题？请附来源。",
+  );
+  await expect(drawer.getByLabel("询问当前项目")).toBeFocused();
+  await page.screenshot({ path: resolve(evidence, "welcome-desktop.png") });
+  expect(suggestionRequests).toBe(0);
+  page.off("request", countRequest);
   await drawer.getByLabel("询问当前项目").focus();
   for (const key of ["Tab", "Tab", "Shift+Tab", "Shift+Tab"]) {
     await page.keyboard.press(key);
