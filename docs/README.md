@@ -10,6 +10,7 @@
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | 了解项目                           | [项目 README](../README.md) → [产品概览](product/PRD.md)                                                                 |
 | 在本地运行                         | [运行指南](guides/GETTING_STARTED.md) → [使用指南](guides/USER_GUIDE.md)                                                 |
+| 向老师演示项目与开发流程           | [讲解稿与完整演示脚本](guides/TEACHER_DEMO.md)                                                                          |
 | 以 Owner / Developer / Client 使用 | [使用指南](guides/USER_GUIDE.md) → [综合人工验收示例](engineering/AI_WORKFLOW_E_ACCEPTANCE.md)                           |
 | 开发或修复问题                     | [STATE](STATE.md) → 当前 GitHub Issue → [验收标准](product/ACCEPTANCE.md) → 相关契约 → [工程入口](engineering/README.md) |
 | 接入本地 Agent                     | [MCP README](../apps/mcp/README.md) → [连接与恢复手册](engineering/AI_WORKFLOW_D_MANUAL.md)                              |

@@ -1,5 +1,15 @@
 # SpecBridge — Current Project State
 
+## 教师演示指南（2026-11-13）
+
+按负责人要求新增 [项目与开发流程演示](guides/TEACHER_DEMO.md)，并在文档中心增加入口。开工 HEAD `72a4262`、工作区干净；本轮仅新增指南、修改导航和本节，不改变产品基线、业务代码或运行环境。
+
+- 正文约 1600 汉字，介绍项目、技术取舍、文档追踪、工程阶段、Git/Agent 流程及 AI 亮点；独立 D0–D14 脚本包含合成账号/资料、终端与文件展示、三角色业务、四类提案、审批拒绝重提、交付退回、MCP/Skill 读取与撤销、故障降级和功能覆盖表。
+- 核对 Issue #17、PR #18、AC-01–20/22–34、既有契约、脚本与 Git 历史。明确 AC-21 产品内 GitHub Issue 绑定未实现；演示覆盖计划不冒充本次人工验收。工作稿更新后重新核对业务版本再准备提案，避免照稿操作即遇到来源过期。
+- GitHub 只读查询：PR #18 已合并，Issue #17 仍 open；[合并后 CI run 43403007988](https://github.com/lithuio/specbridge/actions/runs/43403007988) 的 quality 成功，database 在 Full browser regression 步骤失败，前序数据库/HTTP 步骤成功。本轮未诊断失败根因或修改 CI，不能沿用早期 pending 快照宣称全绿。
+- PASS：`python3 /tmp/specbridge-teacher-demo-check.py`（临时只读检查器，检查本轮三份文档本地链接、指南 Bash 语法、19 个 package script 引用、13 个 Git 提交、目录/版本、步骤与正文长度）；`pnpm --filter specbridge-api exec prettier --check ../../docs/guides/TEACHER_DEMO.md`（初检提示后已格式化）；`bash scripts/check-workspace.sh`；`git diff --check`。首次临时检查器将 `pnpm --version` 当成 package script，修正检查器后通过，未更改正确的命令示例。
+- 未执行指南中的服务/数据库/浏览器/模型/安装命令，未重跑业务回归，未 Commit/Push/PR/Merge/部署。人工下一步：按指南排练并填写实际覆盖结果，另行定位 CI 失败、核对 Issue 验收与既有安全待办。建议提交：`docs: add teacher presentation and complete demo walkthrough`。
+
 ## 文档整理与使用说明（2026-11-13）
 
 按负责人要求完成文档规划与正式 README。入口为 [项目首页](../README.md)、[文档中心](README.md)、[运行指南](guides/GETTING_STARTED.md)、[使用指南](guides/USER_GUIDE.md) 和 [文档规划](engineering/DOCUMENTATION.md)。基于相关 Issue #17、AC-01–16/18–20/22–34 与现有脚本核对角色、版本、审批、AI/MCP 和操作说明；不改变批准基线。
