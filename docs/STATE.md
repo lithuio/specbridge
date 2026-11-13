@@ -1,6 +1,35 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-13。AI工作流及视觉统一已提交至c6f9efb。本轮修复Review指出的中断替换上传CAS死循环；文档HTTP/数据库回归12项、API类型/Lint及格式检查通过。改动未提交，无Schema/依赖变更；未执行Commit/Push/PR/Merge/部署。
+## 文档整理与使用说明（2026-11-13）
+
+按负责人要求完成文档规划与正式 README。入口为 [项目首页](../README.md)、[文档中心](README.md)、[运行指南](guides/GETTING_STARTED.md)、[使用指南](guides/USER_GUIDE.md) 和 [文档规划](engineering/DOCUMENTATION.md)。基于相关 Issue #17、AC-01–16/18–20/22–34 与现有脚本核对角色、版本、审批、AI/MCP 和操作说明；不改变批准基线。
+
+- 新建根 README（品牌、现有合成数据截图、流程图、启动及使用介绍）；重组文档导航，增加工程阶段 / 证据索引；清理 API 脚手架 README，旧建议稿改为入口，标明历史环境说明。STATE / DEVELOPMENT 的历史拆分仅规划，原始记录与证据路径保留。
+- 开工已有 HUMAN_TASKS、STATE、AI_WORKFLOW_E_ACCEPTANCE、DEVELOPMENT 四份未提交改动；已逐项检查保留，本轮仅向 STATE / DEVELOPMENT 添加介绍，没有覆盖既有记录。没有业务代码、SQL、依赖、密钥或服务运行状态变更。
+- PASS：`python3 /tmp/specbridge-docs-check.py`，检查本轮12份文档的本地链接、图片、标题锚点、脚本引用、Bash语法、版本声明及已有改动保留。脚本为本轮临时只读检查，不属于仓库测试入口；外部URL未抓取，命令示例未执行。
+- PASS：`pnpm --filter specbridge-api exec prettier --check ../../README.md ../../docs/README.md ../../docs/guides/GETTING_STARTED.md ../../docs/guides/USER_GUIDE.md ../../docs/engineering/README.md ../../docs/engineering/DOCUMENTATION.md ../../docs/engineering/README_ROOT_SUGGESTED.md README.md`（8份新建/重写文件；初检格式提示经现有Prettier格式化后通过）；`bash scripts/check-workspace.sh`；`git diff --check`。
+- 本轮为纯文档调整，未重跑业务/数据库/浏览器回归，未执行迁移、付费模型调用、Commit/Push/PR/Merge/部署。人工可预览README并审阅文档；既有发布/安全/设备验收待办不变。建议Commit：`docs: organize documentation and add project onboarding guides`。
+
+以下保留此前开发迁移与各阶段交接原始记录，历史“未完成”按对应阶段理解。
+
+---
+
+> 更新时间：2026-11-13。按负责人追加授权完成本机开发库0005–0008迁移，备份与旧数据保持验证通过；真实开发AI、MCP及重启持久化通过。开工HEAD为0a5eb0a，工作区干净；本轮仅更新文档，无业务代码/SQL/依赖/密钥变更，未执行Commit/Push/PR/Merge/部署。
+
+## 本地开发库AI启用与演示准备
+
+负责人明确要求“帮我在本地开发库进行AI功能的迁移，并给出运行命令，能够完整演示本项目”，将既有0005–0008的已审SQL目标扩展至 `127.0.0.1:5433/specbridge` / `specbridge`。复核Issue #17、AC-17/18–20/28–34、四份审核包及迁移策略；只操作本机开发库，生产未涉及。[持久化运行命令](engineering/DEVELOPMENT.md#完整本地演示持久化开发库)。
+
+- 执行前确认0000–0004数据库记录的哈希/时间与journal一致，0005–0008 SHA-256与审核包完全一致。开发库由16表/5迁移变为23表/9迁移/10个自定义触发器；原16表的行数/内容摘要、列、约束、索引及原触发器完全一致。第二次迁移保持不变。
+- 迁移前使用 `docker exec specbridge-dev-db-1 pg_dump -U specbridge -d specbridge -Fc` 保存私有备份：`test-results/dev-ai-migration-2026-11-13T10-03-36-299Z/before.dump`（67327字节，0600，父目录0700，Git忽略）。`pg_restore --list`检查通过，SHA-256 `cef2920115dbc6200cd6c4f6ad1d1dc473d6dc6998c4208f0af65e72ce0699c1`。本轮没有执行备份恢复演练或开发库重启。
+- PASS：`node /tmp/specbridge-dev-ai-migration.mjs --apply`（保护脚本核对目标/哈希、备份后两次调用既有 `node --experimental-strip-types scripts/migrate.mjs --development`，与 `pnpm db:migrate` 的runner相同）；`pnpm db:check`；`pnpm --filter specbridge-api typecheck`；`pnpm test:integration`（5434隔离库，13文件102项）；`pnpm build`（API/Web/MCP）。本轮没有新增或生成SQL。
+- PASS：`pnpm dev:api` + `pnpm dev:web` 使用真实开发配置；`node /tmp/specbridge-dev-ai-smoke.mjs` 经Next代理验证登录/新建合成项目与需求、个人工作稿保存读取、TXT解析/明确共享、未执行提案准备读取、连接授权列表、真实DeepSeek澄清及Copilot来源。共4次模型调用（澄清1、Copilot3），需求保持DRAFT、无正式问答/Revision/审批/交付。真实stdio暴露两个只读工具，未批准目录可读取，撤销临时Token后拒绝；三个认证页面加载、0浏览器pageerror。
+- 重启本轮API后，`node /tmp/specbridge-dev-ai-restart-check.mjs` 验证工作稿、共享文件/原件及DRAFT提案保留；背景原件在 `~/.local/share/specbridge/documents`（0700/0600），开发数据沿用持久卷。验证生成1个独立合成账号/空间/项目/需求及对应草稿/资料；不触碰已有项目，所有验证Session和临时Token已撤销，临时账号凭据文件已移除。结果位于同一忽略目录的 `result.json`、`smoke.json`、`restart.json`。
+- 环境失败已处理：沙箱5433连接EPERM，授权后复验；首次Next构建被沙箱端口限制并缓存失败，授权重跑仍命中旧缓存。保留失败缓存至 `test-results/dev-ai-failed-build-p4nqkx/next` 后干净构建通过（一次向/tmp移动遇跨设备错误，未删除原缓存）；首次重启检查早于API就绪，等待启动后复验通过。没有将这些失败记为业务验证通过。
+
+收尾恢复tracked API构建缓存的开工字节，`git diff --check`通过，最终仅4份文档有改动。前端3000、API4000和开发数据库5433保持运行，可直接访问 `http://localhost:3000`；重新启动命令见上方链接。
+
+本轮没有全量HTTP/浏览器回归、实际Codex目标目录安装/信任、远程CI或独立人工安全/设备验收；H-15仅关闭开发启用子项，其余H-17/H-20/H-21保持。使用者需用自己的Owner/Developer/Client账号准备演示并亲自完成商业审批、交付验收；MCP需按项目访问凭据页选择目标目录授权。建议Commit：`docs(dev): record AI migrations and persistent local demo setup`。
 
 ## Review修复 — 中断替换上传的版本校验
 

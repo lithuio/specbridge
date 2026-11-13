@@ -2,7 +2,7 @@
 
 R08 Phase E：本地 stdio Server，仅把 Phase D 授权 API 的批准规格开放给 Agent。无 HTTP MCP 监听、OAuth Server、PostgreSQL 连接或业务写工具；MCP 进程不需要 DeepSeek Key。
 
-AI工作流D已实现Owner网页授权与本地Codex安装器。项目“访问凭据 → 连接本地 Codex”生成不含Token的命令，CLI完成PKCE兑换、仓库外私有凭据、项目配置与Skill安装和真实MCP诊断。支持重复检查、`--status`、`--uninstall`；不自动更改信任或其他设置。完整[安装、恢复与人工验收](../../docs/engineering/AI_WORKFLOW_D_MANUAL.md)、[设计](../../docs/engineering/AI_WORKFLOW_D_DESIGN.md)、[实际证据](../../docs/engineering/evidence/ai-workflow-d/README.md)。0008目前只在获批5434隔离库应用，开发5433的新安装授权尚未启用。以下旧手动Token配置方式仍可用。
+AI工作流D已实现Owner网页授权与本地Codex安装器。项目“访问凭据 → 连接本地 Codex”生成不含Token的命令，CLI完成PKCE兑换、仓库外私有凭据、项目配置与Skill安装和真实MCP诊断。支持重复检查、`--status`、`--uninstall`；不自动更改信任或其他设置。完整[安装、恢复与人工验收](../../docs/engineering/AI_WORKFLOW_D_MANUAL.md)、[设计](../../docs/engineering/AI_WORKFLOW_D_DESIGN.md)、[实际证据](../../docs/engineering/evidence/ai-workflow-d/README.md)。新环境先按[运行指南](../../docs/guides/GETTING_STARTED.md)准备API及经审核的迁移；本机0005–0008后续已获授权应用，最新执行记录见[STATE](../../docs/STATE.md)。以下手动Token配置方式仍可用。
 
 从需求分析、人工双重批准到MCP/Skill的完整演示，见 [本地人工测试手册](../../docs/engineering/R08_MANUAL_TEST.md)。2026-11-12已按追加授权在本机5433开发库应用0004，并完成真实Web/DeepSeek/Token/MCP验证；本机服务与证据见 [联通记录](../../docs/engineering/evidence/r08-local/README.md)。
 

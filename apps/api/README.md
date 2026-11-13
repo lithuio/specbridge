@@ -1,141 +1,66 @@
-<p align="center">
+# SpecBridge API
 
-## SpecBridge 项目背景解析（AI工作流B）
+NestJS 模块化单体，负责服务端身份与项目授权、需求版本、商业审批、交付验收、事务审计，以及可选 AI 和项目背景解析。数据库访问通过 API 的持久化层；Web 和本地 MCP 不直接访问数据库。
 
-项目命令与环境以仓库根README和[开发文档](../../docs/engineering/DEVELOPMENT.md)为准，下面Nest模板不是SpecBridge部署操作指南。
+[项目首页](../../README.md) · [运行指南](../../docs/guides/GETTING_STARTED.md) · [API 契约](../../docs/architecture/API.md) · [当前状态](../../docs/STATE.md)
 
-文件解析需Linux/WSL、Node22权限模式、`/usr/bin/prlimit`及可读`/proc`。启动产物除`dist`外必须保留`apps/api/scripts/document-parser.mjs`及pnpm解析依赖路径；只有dist的复制部署不支持上传解析。运行环境不满足时上传安全失败，不阻断手动业务。
+## 本地运行
 
-原件默认保存在API用户的`~/.local/share/specbridge/documents`；可由服务器环境`DOCUMENT_STORAGE_DIR`覆盖，必须在仓库之外，目录0700、原件0600。不配置到Next public目录；没有原件下载端点。Node权限/进程资源限制不是完整OS沙箱，生产部署需另行验证。
-
-- `pnpm test:e2e:documents`：仓库根运行，Mock AI、真实HTTP/隔离PG/解析进程。
-- `pnpm test:browser:documents`：仓库根运行，浏览器和临时原件目录，不依赖真实Key。
-- 真实DeepSeek为单独opt-in，详见[实际证据](../../docs/engineering/evidence/ai-workflow-b/README.md)；不要把真实密钥传给Web或解析子进程。
-
-0006已获批仅在5434隔离库应用；本次没有授权开发/生产新增迁移。[人工测试与边界](../../docs/engineering/AI_WORKFLOW_B_MANUAL.md)。
-
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
-
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+使用仓库指定的 Node / pnpm，在**仓库根目录**安装依赖、配置 `.env`，按 [运行指南](../../docs/guides/GETTING_STARTED.md) 完成经审核的本地数据库迁移。随后执行：
 
 ```bash
-$ pnpm install
+pnpm dev:api
 ```
 
-## Compile and run the project
+根命令显式加载 `.env` 并设置 `PORT=4000`；已有终端变量优先。API 本身不自动加载环境文件，直接运行子包脚本时需自行注入环境。Web 使用 `/api/v1` 同源代理，开发可信来源为 `http://localhost:3000`。
 
-```bash
-# development
-$ pnpm run start
+- API 健康检查：`http://localhost:4000/api/v1/health`；该检查不访问数据库。
+- 数据库：开发默认 `127.0.0.1:5433/specbridge`；自动化测试使用 5434 隔离库。
+- 认证：数据库 Session、HttpOnly Cookie 与 CSRF 校验，详见 [安全模型](../../docs/architecture/SECURITY.md)。
 
-# watch mode
-$ pnpm run start:dev
+## 业务与集成边界
 
-# production mode
-$ pnpm run start:prod
-```
+- 每次资源访问均执行工作空间 / 项目权限校验，不能依赖 UI 隐藏按钮。
+- 规格 Revision 和已提交变更版本不可变；审批、状态与审计在同一事务中处理。
+- Owner 先批准，Client 再批准同一版本；审批中的需求禁止新建 Revision。
+- 交付绑定已批准版本；客户退回后创建新交付，保留历史。
+- AI 输出需校验并经人工采用，不能自动审批或验收；关闭 AI 不阻断手动主流程。
+- 外部 MCP 通过项目作用域凭据调用授权 API，仅能读取批准规格。
 
-## Run tests
+详细定义见 [状态机](../../docs/architecture/STATE_MACHINES.md)、[数据模型](../../docs/architecture/DATA_MODEL.md) 和 [验收标准](../../docs/product/ACCEPTANCE.md)。
 
-```bash
-# unit tests
-$ pnpm run test
+## 构建、测试与契约
 
-# e2e tests
-$ pnpm run test:e2e
+以下命令均从仓库根目录执行：
 
-# test coverage
-$ pnpm run test:cov
-```
+| 命令                                            | 用途                                        |
+| ----------------------------------------------- | ------------------------------------------- |
+| `pnpm --filter specbridge-api build`            | 编译 API                                    |
+| `pnpm --filter specbridge-api typecheck`        | 检查源码、测试与配置类型                    |
+| `pnpm --filter specbridge-api lint`             | 静态检查                                    |
+| `pnpm --filter specbridge-api test`             | Vitest 单元测试                             |
+| `pnpm test:e2e`                                 | 基础 HTTP 回归                              |
+| `pnpm test:integration`                         | 显式加载 `.env.test` 的 PostgreSQL 集成测试 |
+| `pnpm test:e2e:db`                              | 显式加载 `.env.test` 的业务 HTTP / 代理回归 |
+| `pnpm --filter specbridge-api openapi:check`    | 校验 OpenAPI 与 Web 生成类型是否漂移        |
+| `pnpm --filter specbridge-api openapi:generate` | 契约变更后重生成 OpenAPI 与 Web 类型        |
 
-## Deployment
+数据库 / HTTP 测试的准备和端口互斥要求见 [测试运行说明](../../docs/guides/GETTING_STARTED.md#运行检查与测试)。不要手改 [openapi.json](../../docs/architecture/openapi.json) 或 Web 生成类型。新增 SQL 须人工审核，运行时迁移目录为 `drizzle/`，历史 SQL 不覆盖。
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## 项目背景解析
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+解析要求 Linux / WSL、Node 22 权限模式、`/usr/bin/prlimit` 及可读 `/proc`。运行产物除 `dist` 外必须保留 `apps/api/scripts/document-parser.mjs` 和 pnpm 解析依赖路径，仅复制 `dist` 不支持背景上传解析。
 
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
+原件默认保存在 API 用户的 `~/.local/share/specbridge/documents`；服务端 `DOCUMENT_STORAGE_DIR` 可覆盖，但必须是仓库外私有目录，目录权限 0700、原件 0600。不能指向 Next public 目录；当前没有原件下载端点。Node 权限和进程资源限制不等于完整 OS 沙箱，生产环境需另行验证。
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+- `pnpm test:e2e:documents`：真实 HTTP / 隔离 PostgreSQL / 解析进程，Mock AI。
+- `pnpm test:browser:documents`：已构建 API / Web 后运行浏览器验证，使用临时原件目录。
+- 手册与边界：[背景资料](../../docs/engineering/AI_WORKFLOW_B_MANUAL.md)；实际证据：[工程记录](../../docs/engineering/evidence/ai-workflow-b/README.md)。
 
-## Observability
+## AI、观测与部署
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+AI 配置只在服务端，见 [.env.example](../../.env.example) 与 [启用说明](../../docs/guides/GETTING_STARTED.md#可选启用-ai)。真实模型测试是独立的可选验证，普通 CI 无需真实 Key。
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+现有应用集成 NestJS Observe；是否启用由服务端环境配置决定，日常 P0 开发无需其密钥。密钥、会话和业务私有正文不得写入日志。观测与生产配置需要按实际环境核对。
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-This project is already instrumented. To connect it, run this and approve the code it prints at [observe.nestjs.com/link](https://observe.nestjs.com/link) - signing up for free if you have no account:
-
-```bash
-$ npx @nestjs/observe link
-```
-
-It writes the app key and secret into `.env` and makes every `nest start` script (`start`, `start:dev`, `start:debug`) load it. In production, set `OBSERVE_APP_KEY` and `OBSERVE_APP_SECRET` in the environment instead.
-
-Or do it by hand: create an application and an API key at [observe.nestjs.com](https://observe.nestjs.com), and set the pair as `OBSERVE_APP_KEY` and `OBSERVE_APP_SECRET` in the environment the app runs in.
-
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+仓库中的本地 Compose 仅启动数据库。生产部署、迁移与备份恢复需遵循 [发布检查表](../../docs/release/RELEASE_CHECKLIST.md)，本 README 不代表生产验收已完成。API 包的许可证字段为 `UNLICENSED`，框架许可证不代表项目授权。

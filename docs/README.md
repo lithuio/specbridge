@@ -1,48 +1,75 @@
-# SpecBridge 文档索引
+# SpecBridge 文档中心
 
-**状态**：产品决策 D-01～D-04 已由项目负责人确认，v0.2 是设计基线，**不代表代码已经实现**。
+[项目首页](../README.md) · [快速启动](guides/GETTING_STARTED.md) · [使用指南](guides/USER_GUIDE.md) · [当前状态](STATE.md)
 
-| 问题 | 主要文档 |
-|---|---|
-| 为什么做、目标用户和 P0 范围 | `product/PRD.md`, `product/DECISIONS.md` |
-| 用户怎样使用 | `product/USER_STORIES.md`, `ux/WIREFRAMES.md` |
-| 怎样判断完成 | `product/ACCEPTANCE.md` |
-| 版本与时间安排 | `product/ROADMAP.md` |
-| 服务、模块、集成关系 | `architecture/ARCHITECTURE.md` |
-| 数据库和并发约束 | `architecture/DATA_MODEL.md` |
-| 状态转换与异常分支 | `architecture/STATE_MACHINES.md` |
-| REST 接口设计 | `architecture/API.md` |
-| 权限、安全和密钥 | `architecture/SECURITY.md` |
-| 为什么如此设计 | `adr/` |
-| 如何开发与验收 | `engineering/WORKFLOW.md`, `engineering/DEVELOPMENT.md`, `engineering/TEST_STRATEGY.md` |
-| 当前进度 / 人工责任 | `STATE.md`, `HUMAN_TASKS.md` |
-| R08 AI/Agent 总计划与 A–F 交接 | `engineering/R08_PLAN.md` |
-| R08后续AI工作流、A/B/C人工测试与迁移审核 | `engineering/AI_WORKFLOW_PLAN.md`, `engineering/AI_WORKFLOW_CHECKPOINT.md`, `engineering/AI_WORKFLOW_A_MANUAL.md`, `engineering/AI_WORKFLOW_B_SQL_REVIEW.md`, `engineering/AI_WORKFLOW_B_MANUAL.md`, `engineering/AI_WORKFLOW_C_SQL_REVIEW.md`, `engineering/AI_WORKFLOW_C_MANUAL.md` |
-| AI工作流D本地Codex安装授权、已审0008与联调证据 | `engineering/AI_WORKFLOW_D_DESIGN.md`, `engineering/AI_WORKFLOW_D_MANUAL.md`, `engineering/AI_WORKFLOW_D_SQL_REVIEW.md`, `engineering/evidence/ai-workflow-d/README.md` |
-| AI工作流E最终回归、真实模型/Host、综合人工验收与PR草案 | `engineering/evidence/ai-workflow-e/README.md`, `ux/evidence/ai-workflow-e/README.md`, `engineering/AI_WORKFLOW_E_ACCEPTANCE.md`, `engineering/AI_WORKFLOW_PR_DRAFT.md` |
-| R08 本地真实启用、AI503排查与全功能人工测试范例 | `engineering/R08_MANUAL_TEST.md`, `engineering/evidence/r08-local/README.md` |
-| R08 F 最终回归、安全自查、真实Provider/MCP/Host与PR草案 | `engineering/evidence/r08-f/README.md`, `engineering/R08_PR_DRAFT.md` |
-| R08 F 真实AI浏览器、Token桌面/手机与键盘检查 | `ux/evidence/r08-f/README.md` |
-| R08 D Token SQL、Diff/SHA-256与审批记录（隔离库及获新增授权的本机开发库已应用） | `engineering/R08_D_SQL_REVIEW.md` |
-| R08 E 本地MCP、Codex配置与Skill安装 | `../apps/mcp/README.md`, `../skills/requirement-analyst/SKILL.md` |
-| R08 E 真实SDK Client/数据库与Codex Host/Skill测试证据 | `engineering/evidence/r08-e/README.md` |
-| R08 AI 建议人工审阅、桌面/手机截图与浏览器验证 | `ux/evidence/r08-b/README.md` |
-| R08 全局项目 Copilot、工具来源与浏览器验证 | `ux/evidence/r08-c/README.md` |
-| 发布前检查 | `release/RELEASE_CHECKLIST.md` |
-| 竞品调研 | `research/COMPETITOR_RESEARCH.md` |
-| R07 只读契约、Audit/Dashboard 与生成 OpenAPI（Phase B 本地完成） | `architecture/R07_READ_MODELS.md`, `architecture/openapi.json` |
-| R07 视觉规范、交互原型与浏览器截图 | `ux/R07_DESIGN.md`, `ux/prototypes/r07/README.md` |
-| R07 正式 Web 认证/Shell 与生产浏览器证据（Phase C 本地完成） | `../apps/web/README.md`, `ux/evidence/r07-c/README.md` |
-| R07 项目准备/两级成员/唯一客户与真实浏览器证据（Phase D 本地完成） | `../apps/web/README.md`, `ux/evidence/r07-d/README.md` |
-| R07 需求/问答/Revision/Ready 与真实浏览器证据（Phase E 本地完成） | `../apps/web/README.md`, `ux/evidence/r07-e/README.md` |
-| R07 商业评估/顺序审批/拒绝重提与真实浏览器证据（Phase F 本地完成） | `../apps/web/README.md`, `ux/evidence/r07-f/README.md` |
-| R07 交付/验收、真实 Dashboard/Audit 与浏览器证据（Phase G 本地完成） | `../apps/web/README.md`, `ux/evidence/r07-g/README.md` |
-| R07 最终三角色集成、集中回归与正式可访问性证据（H 本地完成） | `ux/evidence/r07-h/README.md`, `ux/evidence/r07-h/accessibility.json` |
-| 本地 UI 细化、项目侧栏和完整回归截图 | `ux/evidence/ui-polish/README.md` |
-| AI组件视觉统一、背景资料/访问凭据/Copilot交互与浏览器证据 | `ux/evidence/ai-workflow-polish/README.md` |
-| R07 总规划、当前进度、跨 Session 提示词与精简验证 | `engineering/R07_PLAN.md` |
+按你要完成的事情选择入口。产品规范说明“应当怎样”，[STATE](STATE.md) 与验证证据说明“已经做到哪里”；批准的设计不等于功能已发布。
 
-**权威优先级**：负责人确认的业务决策 → 已接受 PRD/ADR → 状态机、数据、API 契约 → 当前 Issue。
-出现矛盾时不要擅自判断，必须记录并经负责人批准调整。
+## 从这里开始
 
-**维护原则**：文档随被批准的行为变更同步更新；STATE 是状态快照，不复制长篇 PRD；Issue 是具体任务，不取代架构文档。
+| 你的目标                           | 推荐阅读顺序                                                                                                             |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 了解项目                           | [项目 README](../README.md) → [产品概览](product/PRD.md)                                                                 |
+| 在本地运行                         | [运行指南](guides/GETTING_STARTED.md) → [使用指南](guides/USER_GUIDE.md)                                                 |
+| 以 Owner / Developer / Client 使用 | [使用指南](guides/USER_GUIDE.md) → [综合人工验收示例](engineering/AI_WORKFLOW_E_ACCEPTANCE.md)                           |
+| 开发或修复问题                     | [STATE](STATE.md) → 当前 GitHub Issue → [验收标准](product/ACCEPTANCE.md) → 相关契约 → [工程入口](engineering/README.md) |
+| 接入本地 Agent                     | [MCP README](../apps/mcp/README.md) → [连接与恢复手册](engineering/AI_WORKFLOW_D_MANUAL.md)                              |
+| 准备评审或发布                     | [人工待办](HUMAN_TASKS.md) → [测试策略](engineering/TEST_STRATEGY.md) → [发布检查表](release/RELEASE_CHECKLIST.md)       |
+
+## 产品与业务规范
+
+| 文档                                  | 回答的问题                             |
+| ------------------------------------- | -------------------------------------- |
+| [PRD](product/PRD.md)                 | 为谁解决什么问题，P0 / P1 的边界是什么 |
+| [产品决策](product/DECISIONS.md)      | 哪些业务选择已经由负责人批准           |
+| [用户故事](product/USER_STORIES.md)   | 各角色需要完成哪些任务                 |
+| [验收标准](product/ACCEPTANCE.md)     | 通过哪些 AC 判断行为正确               |
+| [路线图](product/ROADMAP.md)          | 规划阶段与依赖，实际进度另看 STATE     |
+| [基线变更记录](BASELINE_CHANGELOG.md) | 产品规范如何演变                       |
+
+## 技术与设计规范
+
+| 文档                                                                                                       | 回答的问题                               |
+| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| [系统架构](architecture/ARCHITECTURE.md)                                                                   | 服务和模块如何划分                       |
+| [数据模型](architecture/DATA_MODEL.md)                                                                     | 实体、关系、事务与并发约束               |
+| [状态机](architecture/STATE_MACHINES.md)                                                                   | 哪些转换允许，哪些历史不可修改           |
+| [API 契约](architecture/API.md)                                                                            | 接口、授权、输入输出与错误语义           |
+| [OpenAPI](architecture/openapi.json) · [R07 读取契约](architecture/R07_READ_MODELS.md)                     | 生成的机器契约与读取模型；OpenAPI 不手改 |
+| [安全模型](architecture/SECURITY.md)                                                                       | 身份、租户隔离、凭据与 AI 边界           |
+| [ADR-001 架构](adr/ADR-001-modular-monolith.md) · [ADR-002 认证](adr/ADR-002-auth-tenancy.md)              | 关键技术取舍                             |
+| [ADR-003 版本审批](adr/ADR-003-versioned-approval.md) · [ADR-004 AI / MCP](adr/ADR-004-ai-mcp-boundary.md) | 冻结版本与外部工具的设计理由             |
+| [线框](ux/WIREFRAMES.md) · [R07 视觉规范](ux/R07_DESIGN.md) · [交互原型](ux/prototypes/r07/README.md)      | 页面结构、视觉和交互设计                 |
+
+## 开发、状态与验证
+
+| 文档                                                                                                            | 用途                                             |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| [工程文档入口](engineering/README.md)                                                                           | 开发流程、阶段计划、SQL 审核、人工手册与证据索引 |
+| [Web README](../apps/web/README.md) · [API README](../apps/api/README.md) · [MCP README](../apps/mcp/README.md) | 各应用的实现与维护说明                           |
+| [STATE](STATE.md)                                                                                               | 最近已验证的工作，以及保留的历史交接             |
+| [HUMAN_TASKS](HUMAN_TASKS.md)                                                                                   | 待负责人处理的评审、决定与环境事项               |
+| [发布检查表](release/RELEASE_CHECKLIST.md)                                                                      | 发布门槛、运维和恢复验收                         |
+| [竞品调研](research/COMPETITOR_RESEARCH.md)                                                                     | 调研记录，不作为已经验证的产品结论               |
+
+阶段文档名称中的 R07 / R08 / AI_WORKFLOW 用于追溯任务；其中的“本轮未做”“尚未迁移”描述写作当时的状态。日常安装从运行指南进入，最新执行情况看 STATE。所有阶段、截图与测试记录集中在 [工程索引](engineering/README.md#阶段记录与证据)，不需要首次使用时全部阅读。
+
+## 文档组织与维护
+
+```text
+README.md                  项目门面：介绍、预览、启动摘要
+docs/README.md             文档导航：按读者任务找入口
+docs/guides/               当前可操作的安装与使用指南
+docs/product/              产品范围、决策、故事、验收
+docs/architecture/         架构、数据、状态、API、安全契约
+docs/adr/                  架构决策及理由
+docs/engineering/          工程流程、阶段记录、迁移审核与证据
+docs/ux/                   设计规范、原型与视觉验证
+docs/release/              发布与运维检查
+docs/research/             调研材料
+docs/STATE.md              实施状态入口
+docs/HUMAN_TASKS.md        人工事项入口
+```
+
+文档整理方案、后续历史归档步骤、命名和更新规则见 [文档规划](engineering/DOCUMENTATION.md)。本次保留现有规范与证据路径，减少历史 Issue、PR 和文档链接失效。
+
+**规范优先级**：负责人确认的业务决策 → 已接受 PRD / ADR → 状态机、数据、API 契约 → 当前 Issue。发现冲突应记录并交负责人确认，不依据 README 或运行指南改变批准基线。

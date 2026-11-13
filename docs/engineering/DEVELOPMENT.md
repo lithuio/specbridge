@@ -1,6 +1,43 @@
 # SpecBridge — Local Development
 
-R08本机配置修复与完整人工测试见 [R08_MANUAL_TEST](R08_MANUAL_TEST.md)。2026-11-12已持久开启本机AI，并按追加授权将0004应用到5433开发库；启动 `pnpm dev:api` 时从.env加载。终端已有变量优先，若曾导出false，用 `DEEPSEEK_ENABLED=true pnpm dev:api`；修改.env后须重启最外层启动进程。网页AI使用DeepSeek，外部MCP宿主使用其自身模型。
+> **阅读入口**：新环境安装、日常启动与测试请先看 [本地运行指南](../guides/GETTING_STARTED.md)；页面操作见 [使用指南](../guides/USER_GUIDE.md)。本页保留本机演示、阶段定向命令与历史环境记录，后文 R01–R08 的“尚未实现 / 尚未迁移”是当时状态，最新执行情况见 [STATE](../STATE.md)，阶段入口见 [工程索引](README.md)。
+
+2026-11-13，负责人明确要求在本地开发库启用完整AI功能；已核对已审SQL哈希、备份并在 `127.0.0.1:5433/specbridge` 应用0005–0008。当前开发库为23表/9迁移/10个自定义触发器，旧16表的数据和定义保持，重复迁移验证通过。实际验证及备份位置见 [STATE](../STATE.md)。生产库不在此次授权范围。
+
+本机AI已开启；启动 `pnpm dev:api` 时从根 `.env` 加载配置。终端已有变量优先，若曾导出false，用 `DEEPSEEK_ENABLED=true pnpm dev:api`；修改 `.env` 后须重启最外层启动进程。网页AI使用DeepSeek，外部MCP宿主使用其自身模型。
+
+## 完整本地演示（持久化开发库）
+
+在仓库根目录准备数据库和构建产物；本机此次已执行构建，无代码变动时无需重复构建。已完成0000–0008迁移，日常启动不需要重新迁移。
+
+```bash
+cd /home/lenovo/projects/specbriage
+pnpm db:up
+pnpm build
+```
+
+两个终端分别运行：
+
+```bash
+# 终端 A：API，使用根 .env 的开发配置
+cd /home/lenovo/projects/specbriage
+unset DATABASE_URL NODE_ENV
+DEEPSEEK_ENABLED=true pnpm dev:api
+```
+
+```bash
+# 终端 B：Web
+cd /home/lenovo/projects/specbriage
+pnpm dev:web
+```
+
+访问 **http://localhost:3000**，API为4000、数据库为5433。启动前先在原终端停止占用3000/4000的测试或开发服务；不要同时运行 `scripts/browser-stack.mjs` 或自动浏览器测试。真实AI需要联网及 `.env` 中有效的服务端凭据；本模式不使用Mock，也没有测试启动器的4次模型请求总限制，仍遵循正常用户/项目/实例限流和预算。
+
+账号、项目、工作稿、正式版本和审批记录使用 `specbridge-dev_pgdata` 持久卷。背景文件默认保存于 `~/.local/share/specbridge/documents`，目录0700、文件0600，API正常退出不会清理。备份时需同时保存数据库和该目录；不要删除开发卷或执行 `docker compose down -v`。Copilot聊天仍仅在当前浏览器内存，未保存建议不保证刷新保留；提案24小时有效。
+
+演示数据由用户通过页面建立，建议三个独立浏览器配置分别登录Owner、Developer、Client；Developer先加入工作空间再分配项目，Client绑定为项目唯一客户。推荐顺序：背景资料上传/明确共享 → 客户提需求 → AI澄清并人工发布 → 客户答复 → 人工创建规格Revision并标记就绪 → 评估工时/费用/工期并提交 → Owner批准 → Client批准 → 提交HTTPS成果链接 → Client验收 → 查看版本及活动记录。[综合人工范例](AI_WORKFLOW_E_ACCEPTANCE.md)可沿用。
+
+展示外部Agent时，先完成双方批准；Owner在项目「访问凭据」页使用本地连接入口，复制针对实际项目和目标目录生成的命令，按页面核对后授权。`pnpm build` 已包含MCP构建；连接步骤见 [D人工手册](AI_WORKFLOW_D_MANUAL.md)。本次验证了真实stdio工具及Token撤销，没有修改用户Codex配置，也未代替用户完成目标目录信任或商业审批。
 
 ## R08 Phase F 最终验证
 
@@ -102,7 +139,7 @@ chmod 600 .env .env.test
 
 ```bash
 pnpm run db:up       # 等待 PostgreSQL 健康；保留开发持久卷
-pnpm run db:migrate  # 应用目标已获授权的 0000～0004；本机已完成，重复运行幂等
+pnpm run db:migrate  # 本机0000～0008已获授权并完成；日常启动可跳过，未来SQL须另审
 pnpm run dev:api     # 终端 A；显式加载根 .env，监听 4000
 pnpm run dev:web     # 终端 B；http://localhost:3000
 ```
@@ -152,7 +189,7 @@ pnpm run db:test:down       # 测试 tmpfs 数据随容器移除而消失
 3. 新 SQL 经人工审核后，先 `pnpm run db:migrate:test` 并运行集成测试，再执行 `pnpm run db:migrate`。不要使用 schema push 或修改已应用的历史迁移。
 4. 迁移版本记录在目标数据库的 `drizzle.__drizzle_migrations`；SQL 按 journal 顺序应用。无自动 down/回滚命令，修正应新增迁移；已有数据先备份，不能清库解决冲突。
 
-现有版本依次为 `0000_database_foundation`、`0001_immutable_history`、`0002_session_activity`、`0003_requirement_draft_version`、`0004_project_api_tokens`。以下 R01/R02 章节保留历史实施细节；当时“开发库未迁移”是历史状态，当前验证结果见 `docs/STATE.md` 顶部。
+现有版本依次为 `0000_database_foundation`、`0001_immutable_history`、`0002_session_activity`、`0003_requirement_draft_version`、`0004_project_api_tokens`、`0005_requirement_working_drafts`、`0006_project_documents`、`0007_copilot_proposals`、`0008_agent_connection_grants`。以下 R01/R02 章节保留历史实施细节；当时“开发库未迁移”是历史状态，当前验证结果见 `docs/STATE.md` 顶部。
 
 ## 常见检查
 ```bash

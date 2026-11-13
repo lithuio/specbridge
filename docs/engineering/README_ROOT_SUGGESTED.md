@@ -1,23 +1,9 @@
-# SpecBridge
+# README 草案历史入口
 
-AI-native requirement clarification, scope change approval, and delivery acceptance for small software development teams.
+本文件原为根目录 README 的建议稿。正式介绍与启动说明现已落在 [项目 README](../../README.md)，后续直接维护该文件。
 
-## Status
-Product baseline v0.2 accepted (D-01–D-04). Application implementation ongoing; do not mistake design specifications for shipped features.
+- 安装与环境配置：[运行指南](../guides/GETTING_STARTED.md)
+- 业务操作：[使用指南](../guides/USER_GUIDE.md)
+- 文档结构与维护：[文档规划](DOCUMENTATION.md)
 
-## Stack
-pnpm Monorepo · Next.js · NestJS · PostgreSQL · Drizzle · Docker Compose · DeepSeek (optional)
-
-## Quick Start
-See [Local development](DEVELOPMENT.md) and the actual root `package.json` scripts.
-
-## Documentation
-See [Documentation index](../README.md).
-
-## Development Process
-See [Workflow](WORKFLOW.md), [Test strategy](TEST_STRATEGY.md), and root `AGENTS.md`.
-
-## Safety
-Secrets stay in local `.env`; only `.env.example` belongs in Git. User-facing production claims require actual validation.
-
-> 这是根目录 README.md 的建议材料，需人工合并到现有 README，避免覆盖原有脚手架启动说明。
+保留此路径供旧文档引用，不再维护第二份项目介绍。
