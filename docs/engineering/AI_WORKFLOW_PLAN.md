@@ -18,7 +18,7 @@
 | A 分步需求辅助 | 两任务契约、个人工作稿、批量问题发布、人工Revision、版本冲突与Web | PASS：两任务、授权私有稿、原子发布/回执、Web及真实DeepSeek/受影响回归；0005仅隔离库已应用 |
 | B 项目背景 | 私有文件、解析版本、角色可见性、检索及引用 | PASS：0006已获批隔离应用，文件/共享/检索/Web及真实DeepSeek验证完成 |
 | C Copilot执行预览 | 工作稿衔接、白名单提案、确认与幂等执行 | PASS：0007获批隔离应用，四类本人提案/确认事务、Web与真实DeepSeek验证 |
-| D Codex接入 | 本地安装器、浏览器授权、安全配置与真实Host | NOT STARTED |
+| D Codex接入 | 本地安装器、浏览器授权、安全配置与真实Host | 实现完成：0008获批隔离应用，Owner/CLI/Web/MCP联通与受影响验证；Host结果和人工信任边界见D证据 |
 | E 最终验证 | 真Provider/浏览器/Host、负面测试、完整回归与人工验收 | NOT STARTED |
 
 0005已获明确批准并通过5434/specbridge_test迁移、约束/业务回归。阶段A的新API/Web已接通，旧ai-analysis兼容；开发5433/生产未由本轮迁移。B的[0006审核包](AI_WORKFLOW_B_SQL_REVIEW.md)随后获批并在同一隔离目标应用。C的[0007审核包](AI_WORKFLOW_C_SQL_REVIEW.md)随后获明确批准，现仅在5434应用；C功能及受影响验证完成。整体A–E尚未完成。
@@ -65,11 +65,15 @@ Copilot来源中的真实Requirement可打开准备区，也可从当前项目�
 
 Web保存修改后才能打开确认区；执行仍绑定原业务/提案版本，409保留编辑，不自动重定基线。网络结果未知先查本人记录，保留同一操作编号；关闭重开Drawer不丢当前内存编辑，刷新后恢复已保存提案。任务展开时收起聊天输入，沿用R07 Shell/Drawer。人工验收见[C范例](AI_WORKFLOW_C_MANUAL.md)、[证据](evidence/ai-workflow-c/README.md)。
 
-## 后续接口与数据决策
+## D：已实现契约与行为
 
-C已实现上述四类提案；项目待办继续按现有Dashboard业务状态聚合，不引入后台自主代理。D尚未启动，后续安装授权设计与新SQL必须单独准备审核。
+[D设计](AI_WORKFLOW_D_DESIGN.md)、[人工安装/恢复范例](AI_WORKFLOW_D_MANUAL.md)、[实际证据](evidence/ai-workflow-d/README.md)。0008按明确批准哈希原字节应用5434/specbridge_test，23表/9迁移/10触发器，原22表保持；开发5433/生产未应用0005–0008。
 
-D新增短期连接授权记录；申请与兑换用专用认证/限流边界，不把普通业务API改成Public。Owner网页确认仍Session+CSRF。只接受固定loopback回调路径与临时端口、PKCE S256和state，授权码短期且只能兑换一次；交换时重验Owner并复用Token创建事务。服务器仅存摘要；网络结果未知在网页核对并撤销，不循环发新Token。安装器仅合并自己管理的项目级MCP/Skill，保留其他配置与权限策略，不自动信任工作区。网页撤销是远端撤销，本地卸载不冒充远端撤销。
+Owner网页确认后才创建5分钟连接授权，绑定原Session/项目/PKCE/state/port/Token期限。专用无Cookie/Bearer/Origin/Sec-Fetch兑换，授权与Session锁后重验；复用Token创建事务，与一次性消费及审计原子提交。未知结果查本人回执并取消/撤销，不循环发新Token；回执不可改，过期未兑换记录满24小时后可同项目有界清理。
+
+CLI仅本机Linux/WSL、Node22与本仓库已构建产物。预检后打开loopback浏览器入口，人工确认，原生HTTP限时限长兑换，仓库外0700/0600凭据，真实MCP诊断，再保留原配置合并自有MCP/Skill。重复执行/--status只诊断，--uninstall只移除未改的自有配置与凭据，远端撤销仍在网页。新增smol-toml1.9.1完整解析；原SDK Client转运行依赖；没有新工具或scope。
+
+单文件原子替换/普通失败回滚不保证跨文件崩溃一致性；中断残留需先撤销再人工恢复。项目配置仍受Codex原有信任控制，安装器不改用户信任；隔离Host以生成配置表作为CLI覆盖，真实用户信任后的自动加载单列H-20。D结束不自动进入E。
 
 ## 验证与迁移门槛
 
@@ -79,8 +83,8 @@ D新增短期连接授权记录；申请与兑换用专用认证/限流边界，
 
 B实际PASS：98数据库、155单元（含真实子进程监督）；背景HTTP9、AI33；Auth16/RBAC13/R049/Change8/Delivery7/reads9/Token9/MCP6；新增浏览器2、工作台6/Copilot4/Projects2。API/Web类型/Lint/Build、44路径契约、db:check和diff通过。真实背景DeepSeek1场景：4请求全200，9195输入/1640输出，8192预留；公开生成只引用共享资料，Owner内部Copilot2工具/4来源，Requirement不变。
 
-SQL分阶段审核：0005哈希 `3ef341ab762315d265f03ec32ab40813e32eaeec6b308fb7279297c1f0153e7c`、0006哈希 `6efe3cd862b3167478ce1be8095a791379eae39852801d7f0616c635516272e4` 均只获批5434隔离验证。C的0007哈希 `a5a9788072b5caf6366a83f28197340f7709fb4a5c50fd2c181d21407bc66010` 已获批准，仅5434应用。开发/生产及D未来SQL另行授权。
+SQL分阶段审核：0005哈希 `3ef341ab762315d265f03ec32ab40813e32eaeec6b308fb7279297c1f0153e7c`、0006哈希 `6efe3cd862b3167478ce1be8095a791379eae39852801d7f0616c635516272e4` 均只获批5434隔离验证。C的0007哈希 `a5a9788072b5caf6366a83f28197340f7709fb4a5c50fd2c181d21407bc66010` 已获批准，仅5434应用。D的0008随后按哈希获批，仅5434应用；开发/生产及未来SQL另行授权。
 
 C实际PASS：100数据库、158单元、44 AI HTTP；Auth16/RBAC13/R049/R058/reads9；新增浏览器4、原Copilot4；真实DeepSeek1场景（4模型请求全200，6497输入/1815输出）。类型/Lint/Build、47路径契约及db:check通过。会话撤销与锁等待竞态已复现并修复。
 
-NOT RUN：D安装授权、E最终全量和远程CI/独立人工验收；本轮未重复Inspector/Codex付费Host。依赖审计2项既有shadcn公告须H-17处理，新解析依赖无本次命中，不能将审计写成无漏洞PASS。详见[CHECKPOINT](AI_WORKFLOW_CHECKPOINT.md)与[Commit/PR草案](AI_WORKFLOW_PR_DRAFT.md)。无自动Commit/Push/PR/Merge/部署。
+D验证与当前风险以[D工程证据](evidence/ai-workflow-d/README.md)为准。E最终全量、远程CI、独立人工信任/安全/设备验收未运行。新审计27条公告（8high/13moderate/6low）与开工c0960b0基线完全相同、无新增ID；不能沿用B当时2条结果称当前审计干净，H-17已扩充待处置。详见[CHECKPOINT](AI_WORKFLOW_CHECKPOINT.md)与[Commit/PR草案](AI_WORKFLOW_PR_DRAFT.md)。无自动Commit/Push/PR/Merge/部署。

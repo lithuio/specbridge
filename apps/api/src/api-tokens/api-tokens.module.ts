@@ -130,5 +130,6 @@ export class ApprovedSpecsController {
   ],
   controllers: [ApiTokensController, ApprovedSpecsController],
   providers: [ApiTokensService, ApprovedSpecsService],
+  exports: [ApiTokensService],
 })
 export class ApiTokensModule {}

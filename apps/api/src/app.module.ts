@@ -1,4 +1,5 @@
 import { DocumentsModule } from './documents/documents.module.js';
+import { ConnectionsModule } from './agent-connections/connections.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { AiModule } from './ai/ai.module.js';
 import { ApiTokensModule } from './api-tokens/api-tokens.module.js';
@@ -22,6 +23,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
 
 @Module({
   imports: [
+    ConnectionsModule,
     DocumentsModule,
     ApiTokensModule,
     AiModule,
@@ -47,6 +49,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
       http: {
         capture: false,
         ignore: [
+          /^\/api\/v1\/(?:agent-connections|projects\/[^/]+\/agent-connections)(?:\/|$|\?)/i,
           /^\/api\/v1\/(?:api-tokens(?:\/|$|\?)|projects\/[^/]+\/(?:documents|api-tokens|approved-specs)(?:\/|$|\?))/i,
           /^\/api\/v1\/(?:auth(?:\/|$)|me(?:\/|$|\?)|requirements\/[^/]+\/(?:ai-(?:analysis|assistance)|working-drafts|working-draft-publications|copilot-proposals)(?:\/|$|\?)|projects\/[^/]+\/copilot\/messages(?:\/|$|\?))/i,
         ],
@@ -62,6 +65,10 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
           'authorization',
           'apiKey',
           'token',
+          'code',
+          'verifier',
+          'state',
+          'challenge',
           'prompt',
           'messages',
           'content',

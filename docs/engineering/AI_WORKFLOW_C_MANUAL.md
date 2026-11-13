@@ -37,4 +37,4 @@
 
 在桌面1440×1000和手机390×844检查Drawer滚动、保存/确认区、键盘焦点、关闭后恢复及来源链接。预览时聊天输入收起，折叠任务区可继续对话。自动axe存在`aria-hidden-focus`和`color-contrast`未判定项，已补充Tab焦点留在Drawer与计算颜色检查；仍需独立读屏和真实设备验收。
 
-实际命令、修复的失败、真实模型计数见[工程证据](evidence/ai-workflow-c/README.md)，截图见[视觉证据](../ux/evidence/ai-workflow-c/README.md)。D一键Codex安装和E最终全量尚未交付。
+实际命令、修复的失败、真实模型计数见[工程证据](evidence/ai-workflow-c/README.md)，截图见[视觉证据](../ux/evidence/ai-workflow-c/README.md)。C交付时D/E尚未完成；当前D安装及验证见[D人工手册](AI_WORKFLOW_D_MANUAL.md)，E最终全量仍待后续Session。

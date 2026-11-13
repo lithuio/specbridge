@@ -1,6 +1,8 @@
+> 后续AI工作流D已实现Owner网页确认、本地Codex安装/诊断/卸载；0008获批仅隔离5434应用，当前23表/9迁移。实际Host与人工信任边界见[D证据](evidence/ai-workflow-d/README.md)，[当前检查点](AI_WORKFLOW_CHECKPOINT.md)。本节不改写原R08历史结论。
+
 # R08 — AI & Agent Integration
 
-2026-11-13后续：负责人已批准并要求实施新的项目背景/分步工作稿/Copilot确认执行/Codex接入升级，单独记录在 [AI工作流计划](AI_WORKFLOW_PLAN.md)。A/B/C已实现并通过获批隔离迁移、受影响回归和真实DeepSeek浏览器验证；[0007](AI_WORKFLOW_C_SQL_REVIEW.md)已获批且仅5434应用，D/E尚未完成；不把该新增范围写成本R08已验证能力。R08本地启用修复已由负责人提交6fb81b8。
+2026-11-13后续：负责人已批准并要求实施新的项目背景/分步工作稿/Copilot确认执行/Codex接入升级，单独记录在 [AI工作流计划](AI_WORKFLOW_PLAN.md)。A/B/C已实现并通过获批隔离迁移、受影响回归和真实DeepSeek浏览器验证；D随后完成安装授权与受影响联调，[0008](AI_WORKFLOW_D_SQL_REVIEW.md)获批且仅5434应用，E尚未开始；不把该新增范围写成本R08已验证能力。R08本地启用修复已由负责人提交6fb81b8。
 
 批准基线：负责人确认的修订计划；Issue [#17](https://github.com/lithuio/specbridge/issues/17)。一个 Issue、一个最终 PR；A–F 各自独立 Session，每阶段负责人本地 Commit。禁止自动 Commit/Push/PR/Merge/部署。本文首次落盘随 Phase A 实施授权；D先生成最小Schema/SQL并停在审批点，负责人随后回复“已审批”。0004先在隔离测试库应用；F提交后，负责人追加授权在本机开发库应用，已完成，见下方本地启用记录。D/E/F已由负责人分别提交55ad908/d75d39e/922eef1。F本地联调和完整回归已完成，独立人工验收与远程CI仍待办；本地PASS不等于整个Issue DoD或发布批准。
 

@@ -38,7 +38,8 @@
     "openapi:check": "pnpm run build && node scripts/openapi.mjs --check",
     "test:e2e:tokens": "vitest run --config ./vitest.config.tokens-e2e.ts",
     "test:e2e:mcp": "pnpm --filter specbridge-mcp build && vitest run --config ./vitest.config.mcp-e2e.ts",
-    "test:e2e:documents": "vitest run --config ./vitest.config.documents-e2e.ts"
+    "test:e2e:documents": "vitest run --config ./vitest.config.documents-e2e.ts",
+    "test:e2e:connections": "vitest run --config ./vitest.config.connections-e2e.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

@@ -149,16 +149,19 @@ importers:
 
   apps/mcp:
     dependencies:
+      '@modelcontextprotocol/client':
+        specifier: 2.4.0
+        version: 2.4.0
       '@modelcontextprotocol/server':
         specifier: 2.4.0
         version: 2.4.0
+      smol-toml:
+        specifier: 1.9.1
+        version: 1.9.1
       zod:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
-      '@modelcontextprotocol/client':
-        specifier: 2.4.0
-        version: 2.4.0
       '@types/node':
         specifier: ^24.0.0
         version: 24.19.2
@@ -4955,6 +4958,10 @@ packages:
   smart-buffer@4.2.0:
     resolution: {integrity: sha512-94hK0Hh8rPqQl2xXc3HsaBoOXKV20MToPkcXvwbISWLEs+64sBq5kFgn2kJDHb1Pry9yrP0dxrCI9RRci7RXKg==}
     engines: {node: '>= 6.0.0', npm: '>= 3.0.0'}
+
+  smol-toml@1.9.1:
+    resolution: {integrity: sha512-j7WyPdf0CJoutMzMoPLF/bVXHtKZIT9Rb4eGeEbWw8X2t5oirjPgpL+OpaENZrILYaXqYwnVH+qgUwVbl+pUJQ==}
+    engines: {node: '>= 18'}
 
   socks@2.8.10:
     resolution: {integrity: sha512-e0VyvkVTwVYViNovRkZ9aodhxVlyoMn7eJhVUPxZ+eK9P/7CBkxvvsBOHqFPEH416726W8tLXXXjKwqgTErrCQ==}
@@ -9910,6 +9917,8 @@ snapshots:
       unicode-emoji-modifier-base: 1.0.0
 
   smart-buffer@4.2.0: {}
+
+  smol-toml@1.9.1: {}
 
   socks@2.8.10:
     dependencies:

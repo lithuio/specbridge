@@ -6,7 +6,10 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
-import { DatabaseService } from '../database/database.service.js';
+import {
+  DatabaseService,
+  type DatabaseTransaction,
+} from '../database/database.service.js';
 import { AuthorizationRepository } from '../authorization/authorization.repository.js';
 import { AuditWriter } from '../audit/audit.module.js';
 import { RateLimitService } from '../auth/rate-limit.service.js';
@@ -46,32 +49,44 @@ export class ApiTokensService {
         projectId,
         tx,
       );
-      if (project.status !== 'ACTIVE') throw new UnprocessableEntityException();
-      this.limits.consume(`token-create:${actor}`, 30, 60_000);
-      const token = newProjectToken();
-      const [row] = await tx
-        .insert(apiTokens)
-        .values({
-          projectId,
-          userId: actor,
-          name: input.name,
-          tokenHash: projectTokenHash(token)!,
-          scopes: [TOKEN_SCOPE],
-          expiresAt: sql`now() + ${input.expiresInDays} * interval '24 hours'`,
-        })
-        .returning(fields);
-      await this.audit.write(tx, {
-        workspaceId: project.workspaceId,
-        projectId,
-        actorId: actor,
-        eventType: 'api_token.created',
-        entityType: 'api_token',
-        entityId: row.id,
-        metadata: { scope: TOKEN_SCOPE, expiresInDays: input.expiresInDays },
-      });
-      // Transaction must commit before this one-time result can be sent to the caller.
-      return { ...row, status: 'ACTIVE' as const, token };
+      return this.createInTransaction(tx, actor, project, input);
     });
+  }
+  // Caller retains the existing Workspace/Project locks and current Owner authorization.
+  async createInTransaction(
+    tx: DatabaseTransaction,
+    actor: string,
+    project: Awaited<ReturnType<AuthorizationRepository['projectOwner']>>,
+    body: unknown,
+  ) {
+    const input = parseCreateToken(body);
+    const projectId = project.id;
+    if (project.projectRole !== 'OWNER') throw new ForbiddenException();
+    if (project.status !== 'ACTIVE') throw new UnprocessableEntityException();
+    this.limits.consume(`token-create:${actor}`, 30, 60_000);
+    const token = newProjectToken();
+    const [row] = await tx
+      .insert(apiTokens)
+      .values({
+        projectId,
+        userId: actor,
+        name: input.name,
+        tokenHash: projectTokenHash(token)!,
+        scopes: [TOKEN_SCOPE],
+        expiresAt: sql`now() + ${input.expiresInDays} * interval '24 hours'`,
+      })
+      .returning(fields);
+    await this.audit.write(tx, {
+      workspaceId: project.workspaceId,
+      projectId,
+      actorId: actor,
+      eventType: 'api_token.created',
+      entityType: 'api_token',
+      entityId: row.id,
+      metadata: { scope: TOKEN_SCOPE, expiresInDays: input.expiresInDays },
+    });
+    // Transaction must commit before this one-time result can be sent to the caller.
+    return { ...row, status: 'ACTIVE' as const, token };
   }
   list(actor: string, projectId: string, page: PageDto) {
     return this.database.db.transaction(

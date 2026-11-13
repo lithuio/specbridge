@@ -23,6 +23,7 @@ const codes: Record<number, string> = {
 const domainCodes: Record<number, readonly string[]> = {
   503: ['AI_UNAVAILABLE', 'AI_INVALID_RESPONSE'],
   409: [
+    'CONNECTION_CONFLICT',
     'REGISTRATION_UNAVAILABLE',
     'CLIENT_ASSIGNMENT_LOCKED',
     'PROPOSAL_STALE',
@@ -43,6 +44,7 @@ const domainCodes: Record<number, readonly string[]> = {
     'DRAFT_ALREADY_PUBLISHED',
   ],
   422: [
+    'CONNECTION_LIMIT',
     'PROPOSAL_LIMIT',
     'DOCUMENT_QUOTA',
     'CLIENT_REQUIRED',

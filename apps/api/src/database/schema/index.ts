@@ -979,3 +979,68 @@ export const copilotProposals = pgTable(
     ),
   ],
 );
+
+export const agentConnectionGrants = pgTable(
+  'agent_connection_grants',
+  {
+    // Installer-generated attempt identity also prevents duplicate browser confirmations.
+    id: uuid('id').primaryKey(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'restrict' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => sessions.id, { onDelete: 'restrict' }),
+    codeHash: char('code_hash', { length: 64 }).notNull(),
+    challenge: char('challenge', { length: 43 }).notNull(),
+    stateHash: char('state_hash', { length: 64 }).notNull(),
+    callbackPort: integer('callback_port').notNull(),
+    tokenName: text('token_name').notNull(),
+    tokenExpiresInDays: integer('token_expires_in_days').notNull(),
+    status: text('status')
+      .$type<'AUTHORIZED' | 'EXCHANGED' | 'CANCELLED'>()
+      .default('AUTHORIZED')
+      .notNull(),
+    apiTokenId: uuid('api_token_id').references(() => apiTokens.id, {
+      onDelete: 'restrict',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+  },
+  (t) => [
+    unique('agent_connection_grants_code_unique').on(t.codeHash),
+    unique('agent_connection_grants_token_unique').on(t.apiTokenId),
+    index('agent_connection_grants_owner_project_idx').on(
+      t.userId,
+      t.projectId,
+      t.createdAt,
+    ),
+    index('agent_connection_grants_expiry_idx').on(t.expiresAt),
+    check(
+      'agent_connection_grants_proof_valid',
+      sql`${t.codeHash} ~ '^[0-9a-f]{64}$' AND ${t.stateHash} ~ '^[0-9a-f]{64}$' AND ${t.challenge} ~ '^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$'`,
+    ),
+    check(
+      'agent_connection_grants_port_valid',
+      sql`${t.callbackPort} BETWEEN 1024 AND 65535`,
+    ),
+    check(
+      'agent_connection_grants_token_settings',
+      sql`length(btrim(${t.tokenName})) BETWEEN 1 AND 100 AND ${t.tokenExpiresInDays} BETWEEN 1 AND 90`,
+    ),
+    check(
+      'agent_connection_grants_state_valid',
+      sql`(${t.status}='AUTHORIZED' AND ${t.apiTokenId} IS NULL AND ${t.completedAt} IS NULL) OR (${t.status}='EXCHANGED' AND ${t.apiTokenId} IS NOT NULL AND ${t.completedAt} IS NOT NULL) OR (${t.status}='CANCELLED' AND ${t.apiTokenId} IS NULL AND ${t.completedAt} IS NOT NULL)`,
+    ),
+    check(
+      'agent_connection_grants_time_valid',
+      sql`isfinite(${t.createdAt}) AND isfinite(${t.expiresAt}) AND ${t.expiresAt}>${t.createdAt} AND ${t.expiresAt}<=${t.createdAt}+interval '5 minutes' AND (${t.completedAt} IS NULL OR (isfinite(${t.completedAt}) AND ${t.completedAt}>=${t.createdAt} AND (${t.status}<>'EXCHANGED' OR ${t.completedAt}<${t.expiresAt})))`,
+    ),
+  ],
+);

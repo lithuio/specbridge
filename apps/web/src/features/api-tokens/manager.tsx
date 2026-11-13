@@ -13,12 +13,16 @@ import { ApiError, errorMessage } from "@/lib/api/client";
 import { useCurrentProject } from "@/features/projects/project-detail";
 import { pageSize, useProjectApi } from "@/features/projects/queries";
 import { EmptyState, Pagination, QueryState } from "@/features/projects/shared";
+import { ConnectionsPanel } from "./connections";
 
 export function ApiTokensPage() {
   const project = useCurrentProject();
   // Unmount secrets when a previously authorized account loses its Owner role.
   return project.capabilities.manageApiTokens.allowed ? (
-    <TokenManager key={project.id} />
+    <div key={project.id}>
+      <TokenManager />
+      <ConnectionsPanel />
+    </div>
   ) : (
     <p className="notice">仅项目负责人可管理访问凭据。</p>
   );

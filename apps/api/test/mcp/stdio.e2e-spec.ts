@@ -2,12 +2,13 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import type { Server } from 'node:http';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
 import {
   readFile,
   readdir,
   mkdtemp,
   mkdir,
-  copyFile,
   writeFile,
   rm,
 } from 'node:fs/promises';
@@ -74,7 +75,7 @@ async function createToken(f: Fixture) {
     .send({ name: 'Synthetic MCP client', expiresInDays: 1 })
     .expect(201);
   return z
-    .object({ id: z.uuid(), token: z.string() })
+    .object({ id: z.uuid(), token: z.string(), expiresAt: z.iso.datetime() })
     .parse(response.body.data);
 }
 async function connect(projectId: string, token: string) {
@@ -489,12 +490,83 @@ it.runIf(process.env.R08_MCP_HOST_SMOKE === '1')(
     const before = await business(f.project.id);
     const root = await mkdtemp(resolve(tmpdir(), 'specbridge-host-'));
     try {
-      const skillDir = resolve(root, '.agents/skills/requirement-analyst');
-      await mkdir(skillDir, { recursive: true });
-      await copyFile(
+      const workspace = resolve(root, 'workspace');
+      const vault = resolve(root, 'private');
+      await mkdir(workspace);
+      // Exercise the generated transport and bound Skill without changing real user trust.
+      const storage = (await import(
+        pathToFileURL(resolve('../mcp/dist/connect/credentials.js')).href
+      )) as {
+        writeCredential: (
+          vault: string,
+          value: {
+            format: 1;
+            workspace: string;
+            apiOrigin: string;
+            projectId: string;
+            tokenId: string;
+            token: string;
+            expiresAt: string;
+          },
+        ) => Promise<string>;
+      };
+      const installer = (await import(
+        pathToFileURL(resolve('../mcp/dist/connect/configuration.js')).href
+      )) as {
+        prepareInstall: (
+          workspace: string,
+          vault: string,
+          id: string,
+          launcher: string,
+          skill: string,
+          project: string,
+        ) => Promise<{ manifest: { serverName: string } }>;
+        applyInstall: (plan: unknown, vault: string) => Promise<void>;
+        uninstall: (
+          workspace: string,
+          vault: string,
+          id: string,
+        ) => Promise<void>;
+      };
+      const id = await storage.writeCredential(vault, {
+        format: 1,
+        workspace,
+        apiOrigin: origin,
+        projectId: f.project.id,
+        tokenId: token.id,
+        token: token.token,
+        expiresAt: token.expiresAt,
+      });
+      const installation = await installer.prepareInstall(
+        workspace,
+        vault,
+        id,
+        resolve('../mcp/dist/connect/launch.js'),
         resolve('../../skills/requirement-analyst/SKILL.md'),
-        resolve(skillDir, 'SKILL.md'),
+        f.project.id,
       );
+      await installer.applyInstall(installation, vault);
+      const serverName = installation.manifest.serverName;
+      const requireMcp = createRequire(resolve('../mcp/package.json'));
+      const toml = (await import(
+        pathToFileURL(requireMcp.resolve('smol-toml')).href
+      )) as {
+        parse: (text: string) => {
+          mcp_servers: Record<
+            string,
+            Record<string, string | string[] | number>
+          >;
+        };
+      };
+      const config = toml.parse(
+        await readFile(resolve(workspace, '.codex/config.toml'), 'utf8'),
+      ).mcp_servers[serverName];
+      // --ignore-user-config has no persisted trust. CLI trust overrides do not activate
+      // project layers in 0.167.1. Forward only the generated non-secret server table;
+      // normal interactive trust activation remains an explicit human acceptance check.
+      const transportOverride = Object.entries(config)
+        .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+        .join(',');
       const schema = z.strictObject({
         citations: z.array(z.string().max(500)).min(1).max(5),
         approvedFacts: z.array(z.string().max(500)).min(1).max(5),
@@ -508,6 +580,7 @@ it.runIf(process.env.R08_MCP_HOST_SMOKE === '1')(
       // No user config/hooks/plugins, shell, delegation or web. Authentication remains
       // owned by the installed CLI; this test never opens its credential files.
       const args = [
+        '--no-daemon',
         'exec',
         '--ignore-user-config',
         '--ephemeral',
@@ -515,7 +588,7 @@ it.runIf(process.env.R08_MCP_HOST_SMOKE === '1')(
         'read-only',
         '--skip-git-repo-check',
         '--cd',
-        root,
+        workspace,
         '--json',
         '--output-schema',
         schemaFile,
@@ -524,15 +597,9 @@ it.runIf(process.env.R08_MCP_HOST_SMOKE === '1')(
         '-c',
         'web_search="disabled"',
         '-c',
-        `mcp_servers.specbridge.command=${JSON.stringify(process.execPath)}`,
+        'model_reasoning_effort="low"',
         '-c',
-        `mcp_servers.specbridge.args=${JSON.stringify([resolve('../mcp/dist/main.js')])}`,
-        '-c',
-        'mcp_servers.specbridge.env_vars=["SPECBRIDGE_API_BASE_URL","SPECBRIDGE_PROJECT_ID","SPECBRIDGE_API_TOKEN"]',
-        '-c',
-        'mcp_servers.specbridge.required=true',
-        '-c',
-        'mcp_servers.specbridge.tool_timeout_sec=15',
+        `mcp_servers.${serverName}={${transportOverride},required=true}`,
       ];
       for (const feature of [
         'apps',
@@ -560,13 +627,8 @@ it.runIf(process.env.R08_MCP_HOST_SMOKE === '1')(
       ])
         if (process.env[key]) hostEnv[key] = process.env[key];
       const child = spawn('codex', args, {
-        cwd: root,
-        env: {
-          ...hostEnv,
-          SPECBRIDGE_API_BASE_URL: origin,
-          SPECBRIDGE_PROJECT_ID: f.project.id,
-          SPECBRIDGE_API_TOKEN: token.token,
-        },
+        cwd: workspace,
+        env: hostEnv,
         stdio: ['pipe', 'pipe', 'pipe'],
       });
       let output = '',
@@ -585,8 +647,8 @@ it.runIf(process.env.R08_MCP_HOST_SMOKE === '1')(
       };
       child.stdout.on('data', (chunk: Buffer) => capture(chunk, false));
       child.stderr.on('data', (chunk: Buffer) => capture(chunk, true));
-      const timer = setTimeout(() => child.kill('SIGTERM'), 90000);
-      const force = setTimeout(() => child.kill('SIGKILL'), 95000);
+      const timer = setTimeout(() => child.kill('SIGTERM'), 120000);
+      const force = setTimeout(() => child.kill('SIGKILL'), 125000);
       let status: number | null;
       try {
         const done = new Promise<number | null>((resolveExit, reject) => {
@@ -606,10 +668,31 @@ it.runIf(process.env.R08_MCP_HOST_SMOKE === '1')(
       expect(exceeded).toBe(false);
       expect((output + stderr).includes(token.token)).toBe(false);
       // Never dump host diagnostics or transcripts, even when a run fails.
-      if (status !== 0)
+      if (status !== 0) {
+        const checks = {
+          timedOut: status === null,
+          toolEvent: output.includes('mcp_tool_call'),
+          finalEvent: output.includes('agent_message'),
+          authenticationError:
+            /unauthorized|authentication|401|login required/i.test(stderr),
+          networkError: /connection|timeout|timed out|network|reconnect/i.test(
+            stderr,
+          ),
+          configurationError:
+            /config.*error|error.*config|failed.*mcp|mcp.*failed/i.test(stderr),
+          missingTransport:
+            /missing.*command|missing.*transport|must.*command|must.*url/i.test(
+              stderr,
+            ),
+          untrustedConfig:
+            /untrusted|not trusted|disabled.*project|project.*disabled/i.test(
+              stderr,
+            ),
+        };
         throw new Error(
-          'Codex Host did not complete; raw diagnostics withheld',
+          'Codex Host did not complete; safe flags: ' + JSON.stringify(checks),
         );
+      }
       const events = output
         .trim()
         .split('\n')
@@ -632,6 +715,24 @@ it.runIf(process.env.R08_MCP_HOST_SMOKE === '1')(
             e.type === 'item.completed' && e.item?.type === 'mcp_tool_call',
         )
         .map((e) => e.item!);
+      if (!calls.length)
+        throw new Error(
+          'Codex Host returned no MCP events; safe flags: ' +
+            JSON.stringify({
+              untrustedConfig:
+                /untrusted|not trusted|disabled.*project|project.*disabled/i.test(
+                  stderr,
+                ),
+              noTools:
+                /unavailable|not available|no.*tools|cannot.*access/i.test(
+                  output,
+                ),
+              toolNameMentioned: output.includes('list_project_requirements'),
+              finalMessage: events.some(
+                (e) => e.item?.type === 'agent_message',
+              ),
+            }),
+        );
       expect(calls.some((c) => c.tool === 'list_project_requirements')).toBe(
         true,
       );
@@ -640,7 +741,7 @@ it.runIf(process.env.R08_MCP_HOST_SMOKE === '1')(
       expect(
         calls.every(
           (c) =>
-            c.server === 'specbridge' &&
+            c.server === serverName &&
             ['list_project_requirements', 'get_approved_spec'].includes(
               c.tool!,
             ) &&
@@ -681,6 +782,11 @@ it.runIf(process.env.R08_MCP_HOST_SMOKE === '1')(
           {
             checkedAt: new Date().toISOString(),
             hostSmoke: 'PASS',
+            generatedConfigParsed: true,
+            hostConfigTransport:
+              'generated server table via isolated CLI override',
+            interactiveProjectTrust: 'NOT RUN; actual user trust unchanged',
+            installedBoundSkill: true,
             tools: calls.map((c) => c.tool),
             citedVersion: true,
             citedRevision: true,
@@ -693,12 +799,13 @@ it.runIf(process.env.R08_MCP_HOST_SMOKE === '1')(
           2,
         ) + '\n',
       );
+      await installer.uninstall(workspace, vault, id);
     } finally {
       await module.get(ApiTokensService).revoke(f.owner.id, token.id);
       await rm(root, { recursive: true, force: true });
     }
   },
-  110000,
+  140000,
 );
 
 it.runIf(process.env.R08_MCP_INSPECTOR_SMOKE === '1')(

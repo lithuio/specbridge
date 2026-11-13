@@ -214,3 +214,9 @@ DeliveryReview 沿用数据库不可变触发器；Delivery 本体只有一次�
 `copilot_proposals`通过requirement_id推导租户，user_id绑定本人；固定kind/目标、独立version、base_requirement_version及可选base_change_version。payload受限96KiB（应用80KiB），sources仅真实ID/版本不含完整工具正文。有效期最多24h，DRAFT可本人删除；EXECUTED必须同时有唯一operation_id、64位request_hash、有限结果及执行时间，之后不可修改/删除。新表触发器禁止直接伪造EXECUTED插入，检查change目标父需求与身份/版本不变规则；原21表不改。
 
 运行时权限仍由API负责；事务持有Workspace/Project/Requirement/可选CR/Proposal锁，取得聚合锁后复核Session并持有共享锁。业务、审计和回执一次提交，同操作同摘要安全返回，冲突全回滚。过期不是自动删除；当前保留已执行提案/回执，无自动清理周期。仅5434获批，开发/生产未应用0005–0007。
+
+## AI工作流 D 连接授权与回执（0008）
+
+`agent_connection_grants`存Owner确认后的项目/user/session绑定、code/state SHA-256、S256 challenge、loopback port、固定Token名称/期限及5分钟有效期。唯一code_hash/可空api_token_id；项目用户状态到期/到期清理索引。AUTHORIZED只能一次转EXCHANGED或CANCELLED；EXCHANGED需同项目/用户/名称/scope/期限的真实新Token回执，终态和身份不可改；只允许清理过期满24小时且未EXCHANGED的记录，兑换回执保留。
+
+[0008审核包](../engineering/AI_WORKFLOW_D_SQL_REVIEW.md)已获负责人批准，原字节仅应用5434/specbridge_test，SHA-256 `2fa26bd9bee6c4f420d9cdd3f8adb9b231fa2c2a2ad5ab77f1edfb087364d74b`。当前23表/9迁移/10自定义触发器；原22表和数据升级保持已实测。清理每次授权仅同项目最多100条，不代表全局自动清理任务；EXCHANGED和审计随业务长期保留。开发5433/生产未应用0005–0008。

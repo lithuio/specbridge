@@ -57,6 +57,13 @@
       "when": 1794549171249,
       "tag": "0007_copilot_proposals",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794553583822,
+      "tag": "0008_agent_connection_grants",
+      "breakpoints": true
     }
   ]
 }

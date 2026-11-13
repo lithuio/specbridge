@@ -1,8 +1,20 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-13。AI工作流A/B/C已实现并验证；0005–0007仅在获批5434隔离库应用。D一键Codex安装、E最终全量尚未完成。无自动Commit/Push/PR/Merge/部署。
+> 更新时间：2026-11-13。AI工作流A/B/C/D实现及受影响验证完成；0005–0008仅在获批5434隔离库应用。D真实浏览器与隔离Codex Host通过，实际用户信任后的自动加载另待人工验收；E未开始。当前依赖审计有27条既有公告，不是全绿。无自动Commit/Push/PR/Merge/部署。
 
-## AI工作流升级 — C完成人工确认提案
+## AI工作流升级 — D完成本地Codex安装授权
+
+负责人“批准，继续任务”明确批准[0008完整SQL](engineering/AI_WORKFLOW_D_SQL_REVIEW.md)仅用于127.0.0.1:5434/specbridge_test / specbridge_test。SHA-256 `2fa26bd9bee6c4f420d9cdd3f8adb9b231fa2c2a2ad5ab77f1edfb087364d74b`复核一致、原字节激活；23表/9迁移/10触发器、旧22表和数据保持。分支`feat/17-ai-agent-integration`、HEAD`c0960b0`保持，延续上轮未提交D准备改动；开发5433/生产未应用0005–0008。
+
+- D已实现访问凭据页的连接命令、Owner明确确认、本人记录/取消、PKCE一次性兑换；专用Guard拒绝Cookie/Bearer/Origin/Sec-Fetch，重验原Session/当前Owner/ACTIVE项目。Workspace→Project→Session共享→Grant锁；Token创建、消费、审计同事务，无匿名申请或新MCP写工具。
+- CLI支持Linux/WSL、Node22和本仓库构建产物，私有存储预检、loopback、限时限长兑换、仓库外0700/0600凭据、真实stdio诊断、完整TOML保留合并、Skill安装、重复检查、--status与--uninstall。Token不进入网页/模型/项目配置/日志，卸载不冒充远端撤销，不修改真实用户Codex信任。
+- PASS：102数据库、161单元、授权HTTP10、Auth16/RBAC13/Token9、MCP28；真实MCP HTTP6+独立真实Codex Host1，浏览器新增2+Token回归4。API/Web/MCP类型、Lint、Build、51路径契约、db:check、锁文件及Skill验证通过。[实际证据/失败修复](engineering/evidence/ai-workflow-d/README.md)、[人工安装与恢复范例](engineering/AI_WORKFLOW_D_MANUAL.md)、[截图](ux/evidence/ai-workflow-d/README.md)。
+- Host实际使用生成配置表（隔离CLI覆盖）、安装Skill与私有文件launcher，调用两工具/引用批准版本并忽略注入指令，业务不变，专用Token撤销。隔离模式下临时信任覆盖不能激活项目层，因此没有把该测试说成真实用户信任后的自动发现PASS；该人工步骤见H-20，真实配置未动。
+- 真实浏览器发现Node fetch隐式Sec-Fetch请求头被Guard拒绝，改原生HTTP并增加真实头/中断测试后通过。桌面/390/320px截图已检查，axe0违规，手机导航颜色incomplete有补充计算；不替代独立设备/读屏验收。
+- FAIL（既有依赖审计）：本次27条公告（8high/13moderate/6low），与开工HEAD隔离审计完全相同，无新增ID；新增smol-toml1.9.1未命中，SDK Client仅转运行依赖。H-17已扩充，不沿用历史2条结论冒称干净；没有无关依赖升级。
+- NOT RUN：实际用户Codex信任加载、独立人工安全/设备/读屏、Inspector和DeepSeek本次重跑、E最终全量/远程CI、开发/生产新迁移。同UID/root不受文件权限保护，多文件崩溃需先撤销后恢复；一目录一托管连接/配置冲突拒绝。H-15开发启用仍需明确目标授权。本轮停止D，不进入E或执行Git写操作。
+
+## AI工作流升级 — C完成人工确认提案（历史交接，后续已提交c0960b0）
 
 负责人“批准并继续”明确批准[0007完整SQL](engineering/AI_WORKFLOW_C_SQL_REVIEW.md)仅用于 `127.0.0.1:5434/specbridge_test` / specbridge_test。SHA-256 `a5a9788072b5caf6366a83f28197340f7709fb4a5c50fd2c181d21407bc66010`复核一致，原字节迁移，旧21表定义/数据保持；当前22表/8迁移。分支`feat/17-ai-agent-integration`、HEAD`6fb81b8`未变，保留A/B全部未提交工作。开发5433/生产未应用0005–0007。
 

@@ -24,6 +24,14 @@ export function configureApp(app: INestApplication): void {
     res.setHeader('X-Request-Id', req.requestId);
     // Case/trailing slash variants resolve to the same Express routes: never bypass limits by spelling.
     const path = req.path.toLowerCase().replace(/\/+$/, '');
+    if (
+      /^\/api\/v1\/(?:agent-connections|projects\/[^/]+\/agent-connections)(?:\/|$)/i.test(
+        path,
+      )
+    ) {
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Referrer-Policy', 'no-referrer');
+    }
     if (path.startsWith('/api/v1/auth/') || path === '/api/v1/me') {
       res.setHeader('Cache-Control', 'no-store');
       const start = performance.now();
@@ -75,6 +83,13 @@ export function configureApp(app: INestApplication): void {
     next();
   });
   const adapter = app.getHttpAdapter() as ExpressAdapter;
+  adapter.useBodyParser('json', false, {
+    limit: '4kb',
+    type: (req) =>
+      /^\/api\/v1\/(?:agent-connections|projects\/[^/]+\/agent-connections)(?:\/|$)/i.test(
+        (req.url ?? '').split('?')[0],
+      ) && /^application\/json(?:;|$)/i.test(req.headers['content-type'] ?? ''),
+  });
   adapter.useBodyParser('json', false, {
     limit: '256kb',
     type: (req) =>

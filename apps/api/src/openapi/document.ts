@@ -1,4 +1,9 @@
 import { ProposalsController } from '../proposals/proposals.controller.js';
+import {
+  ConnectionsController,
+  ConnectionExchangeController,
+} from '../agent-connections/connections.module.js';
+import { connectionOperations, exchangeOperations } from './connections.js';
 import { proposalOperations } from './proposals.js';
 import { RateLimitService } from '../auth/rate-limit.service.js';
 import 'reflect-metadata';
@@ -118,6 +123,8 @@ const list = (
 ): Operation => ({ response: arr(ref(name)), paged: true, query });
 const definitions: [Type, Record<string, Operation>][] = [
   [ProposalsController, proposalOperations],
+  [ConnectionsController, connectionOperations],
+  [ConnectionExchangeController, exchangeOperations],
   [DocumentsController, documentOperations],
   [
     ApiTokensController,
@@ -512,7 +519,9 @@ export async function createDocument() {
         500,
         ...(controller === AiController ||
         controller === CopilotController ||
-        controller === DocumentsController
+        controller === DocumentsController ||
+        controller === ConnectionsController ||
+        controller === ConnectionExchangeController
           ? [413, 503]
           : []),
       ])

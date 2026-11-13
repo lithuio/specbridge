@@ -232,7 +232,7 @@ MCP `list_project_requirements` 和 `get_approved_spec` 通过上述授权 API �
 - 上述接口（含错误）`Cache-Control: no-store`。创建限额30次/用户/分钟，Bearer 120次/连接IP/分钟、60次/Token/分钟，429带Retry-After；限额是单进程内存计数，不承诺跨实例或重启持久限额。
 - `api_token.created/revoked/used` 仅Owner可见，分页前过滤。成功Bearer读取（含空列表/HEAD）与使用审计同事务；actor=null、principalType=project_token，保留Token id、项目、时间、操作、精确versionId（详情）/resultCount，不记录正文/名称/凭据/摘要。审计失败拒绝读取；Session读取不新增Token使用事件。
 
-这不是 HTTP OAuth MCP 授权；D未实现MCP Server/Skill。
+这不是 HTTP OAuth MCP 授权。原R08 Phase D只实现Token，后续Phase E已交付本地MCP/Skill；新的AI工作流D安装授权见本文末节。
 
 ## 6. 契约落地要求
 
@@ -437,3 +437,11 @@ kind固定`publish_questions | create_revision | create_change_draft | update_ch
 确认时重新验证当前授权、ACTIVE项目、Session、有效期、全部业务及来源版本；取得业务聚合锁后持有Session共享锁，退出登录先发生则拒绝执行。同operationId同规范请求返回原回执；换参数/第二编号消费同提案409，不自动重放。发布问题/Revision仍受R04状态与Pending规则；商业操作仍仅DRAFT，不自动Mark Ready、Submit、批准或验收。
 
 新增409：`PROPOSAL_STALE`、`PROPOSAL_SOURCE_STALE`、`PROPOSAL_EXPIRED`；另沿用STALE_VERSION/INVALID_TRANSITION/REVIEW_IN_PROGRESS/OPERATION_CONFLICT。本人每需求100份未执行提案（含过期），满额422 `PROPOSAL_LIMIT`；准备30次/用户/小时、60次/项目/小时，模型另受既有AI预算限制。提案24h有效，不自动删除；已执行提案/回执保留不可变。精确Schema以生成OpenAPI为准。
+
+## AI工作流 D 本地连接授权
+
+Owner Session+CSRF：`POST /projects/:id/agent-connections`创建5分钟授权；`GET`列表（20默认/50最大/offset≤10000），`GET /:grantId`查询本人安全元数据，`POST /:grantId/cancel`幂等取消未兑换授权。授权请求严格包含grantId/challenge/challengeMethod=S256/state/callbackPort/name/expiresInDays；响应只含grant/code/callbackUrl，不返回Token。
+
+`POST /agent-connections/exchange`使用独立证明认证：grantId/projectId/code/verifier/state/callbackPort。拒绝Cookie、Bearer、Origin、所有Sec-Fetch-*，只接受JSON POST；返回原Token创建响应（一次性token、固定scope及期限），没有匿名申请写库入口。坏证明/过期/原Session或Owner失效401，已消费/取消409 CONNECTION_CONFLICT，非法参数400、4KiB上限413、限流429、服务不可用503。固定approved_specs:read；普通业务API未放开Public。
+
+当前Owner20次/小时、项目40次/小时、每本人项目最多5个活跃授权（422 CONNECTION_LIMIT），原Token创建30次/分钟仍生效；兑换按TCP peer60次/分钟。状态只投影AUTHORIZED/EXCHANGED/CANCELLED/EXPIRED及Token ID，不返回proof、摘要或Session。结果未知须查询/撤销，不能再取明文。精确51路径契约见OpenAPI，[设计与数据流](../engineering/AI_WORKFLOW_D_DESIGN.md)。

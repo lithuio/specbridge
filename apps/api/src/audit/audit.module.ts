@@ -10,6 +10,9 @@ export class AuditWriter {
       projectId?: string;
       actorId: string | null;
       eventType:
+        | 'agent_connection.authorized'
+        | 'agent_connection.exchanged'
+        | 'agent_connection.cancelled'
         | 'copilot_proposal.prepared'
         | 'copilot_proposal.edited'
         | 'copilot_proposal.deleted'
@@ -44,6 +47,7 @@ export class AuditWriter {
         | 'delivery.submitted'
         | 'delivery.reviewed';
       entityType:
+        | 'agent_connection'
         | 'copilot_proposal'
         | 'project_document'
         | 'api_token'

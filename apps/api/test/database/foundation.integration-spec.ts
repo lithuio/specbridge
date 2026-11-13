@@ -24,13 +24,14 @@ describe('PostgreSQL foundation (structural guarantees, not business APIs)', () 
     await pool?.end();
   });
 
-  it('migrates all 22 tables and preserves data when migrations run again', async () => {
+  it('migrates all 23 tables and preserves data when migrations run again', async () => {
     const tables = await pool.query(
       "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename",
     );
     expect(
       tables.rows.map((row: { tablename: string }) => row.tablename),
     ).toEqual([
+      'agent_connection_grants',
       'api_tokens',
       'approvals',
       'audit_events',
@@ -71,6 +72,7 @@ describe('PostgreSQL foundation (structural guarantees, not business APIs)', () 
       'SELECT tgname FROM pg_trigger WHERE NOT tgisinternal ORDER BY tgname',
     );
     expect(triggers.rows.map((row: { tgname: string }) => row.tgname)).toEqual([
+      'agent_connection_grants_guard',
       'approvals_immutable',
       'change_request_versions_immutable',
       'copilot_proposals_guard',
@@ -93,11 +95,11 @@ describe('PostgreSQL foundation (structural guarantees, not business APIs)', () 
     const primaryKeys = await pool.query(
       "SELECT count(*)::int AS count FROM pg_constraint WHERE contype='p' AND connamespace='public'::regnamespace",
     );
-    expect(primaryKeys.rows[0].count).toBe(22);
+    expect(primaryKeys.rows[0].count).toBe(23);
     const ids = await pool.query(
       "SELECT table_name, udt_name, column_default FROM information_schema.columns WHERE table_schema='public' AND column_name='id'",
     );
-    expect(ids.rows).toHaveLength(22);
+    expect(ids.rows).toHaveLength(23);
     expect(
       ids.rows.every(
         (row: {
@@ -106,7 +108,9 @@ describe('PostgreSQL foundation (structural guarantees, not business APIs)', () 
           column_default: string | null;
         }) =>
           row.udt_name === 'uuid' &&
-          (row.table_name === 'requirement_publish_receipts'
+          (['requirement_publish_receipts', 'agent_connection_grants'].includes(
+            row.table_name,
+          )
             ? row.column_default === null
             : row.column_default?.includes('gen_random_uuid()')),
       ),

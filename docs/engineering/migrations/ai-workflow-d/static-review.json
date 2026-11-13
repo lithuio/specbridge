@@ -1,0 +1,14 @@
+{
+  "status": "PASS_OFFLINE_ONLY",
+  "runtimeTables": 22,
+  "runtimeMigrationEntries": 8,
+  "candidateTables": 23,
+  "candidateMigrationEntries": 9,
+  "oldTablesUnchanged": true,
+  "oldEnumsUnchanged": true,
+  "parentSnapshotMatches": true,
+  "sqlSha256": "2fa26bd9bee6c4f420d9cdd3f8adb9b231fa2c2a2ad5ab77f1edfb087364d74b",
+  "migrationApplied": false,
+  "requestedTarget": "127.0.0.1:5434/specbridge_test",
+  "requestedRole": "specbridge_test"
+}

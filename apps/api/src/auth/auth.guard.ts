@@ -18,6 +18,10 @@ import {
 } from '../api-tokens/token.contract.js';
 import { TokenAccess } from '../api-tokens/token-access.module.js';
 import { RateLimitService } from './rate-limit.service.js';
+import {
+  CONNECTION_EXCHANGE,
+  ConnectionExchangeGuard,
+} from '../agent-connections/connection-access.js';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -28,8 +32,21 @@ export class AuthGuard implements CanActivate {
     @Inject(CsrfGuard) private readonly csrf: CsrfGuard,
     @Inject(TokenAccess) private readonly tokens: TokenAccess,
     @Inject(RateLimitService) private readonly limits: RateLimitService,
+    @Inject(ConnectionExchangeGuard)
+    private readonly connectionExchange: ConnectionExchangeGuard,
   ) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (
+      this.reflector.getAllAndOverride<boolean>(CONNECTION_EXCHANGE, [
+        context.getHandler(),
+        context.getClass(),
+      ])
+    ) {
+      this.connectionExchange.check(
+        context.switchToHttp().getRequest<AuthRequest>(),
+      );
+      return true;
+    }
     if (
       this.reflector.getAllAndOverride<boolean>(PUBLIC_ROUTE, [
         context.getHandler(),
