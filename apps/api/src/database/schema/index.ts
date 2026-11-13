@@ -1,4 +1,8 @@
 import { sql } from 'drizzle-orm';
+import type {
+  WorkingDraftBody,
+  WorkingDraftKind,
+} from '../../requirements/working-draft.contract.js';
 import {
   bigint,
   char,
@@ -166,6 +170,57 @@ export const projectMembers = pgTable(
   ],
 );
 
+// Project-scoped bearer credentials. The raw token is never persisted.
+// Ownership, current project status and request scope are rechecked by the API.
+export const apiTokens = pgTable(
+  'api_tokens',
+  {
+    id: id(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'restrict' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    name: text('name').notNull(),
+    tokenHash: char('token_hash', { length: 64 }).notNull(),
+    scopes: text('scopes').array().notNull(),
+    createdAt: createdAt(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (t) => [
+    unique('api_tokens_token_hash_unique').on(t.tokenHash),
+    index('api_tokens_project_created_idx').on(
+      t.projectId,
+      t.createdAt.desc(),
+      t.id.desc(),
+    ),
+    check(
+      'api_tokens_name_valid',
+      sql`char_length(${t.name}) BETWEEN 1 AND 100 AND ${t.name} ~ '[^[:space:]]'`,
+    ),
+    check(
+      'api_tokens_token_hash_format',
+      sql`${t.tokenHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+    // Equality rejects extra/duplicate scopes, NULL elements and noncanonical dimensions.
+    check(
+      'api_tokens_scopes_read_only',
+      sql`${t.scopes} = ARRAY['approved_specs:read']::text[]`,
+    ),
+    // Compare elapsed duration, independent of local calendar/DST boundaries.
+    check(
+      'api_tokens_expiry_window',
+      sql`isfinite(${t.createdAt}) AND isfinite(${t.expiresAt}) AND ${t.expiresAt} - ${t.createdAt} BETWEEN interval '24 hours' AND interval '2160 hours'`,
+    ),
+    check(
+      'api_tokens_revocation_time_valid',
+      sql`${t.revokedAt} IS NULL OR (isfinite(${t.revokedAt}) AND ${t.revokedAt} >= ${t.createdAt})`,
+    ),
+  ],
+);
+
 // Explicit callback types break TypeScript's inference cycle for cached version pointers.
 export const requirements = pgTable(
   'requirements',
@@ -258,6 +313,127 @@ export const requirementRevisions = pgTable(
     check(
       'requirement_revisions_criteria_array',
       sql`jsonb_typeof(${t.acceptanceCriteria}) = 'array' AND NOT jsonb_path_exists(${t.acceptanceCriteria}, '$[*] ? (@.type() != "string")')`,
+    ),
+  ],
+);
+
+// Pending workflow upgrade: no route uses these tables until the reviewed
+// migration is approved and the persistence/API/UI stage is integrated.
+// Project/workspace are derived through Requirement, never supplied by a draft.
+export const requirementWorkingDrafts = pgTable(
+  'requirement_working_drafts',
+  {
+    id: id(),
+    requirementId: uuid('requirement_id')
+      .notNull()
+      .references(() => requirements.id, { onDelete: 'restrict' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    kind: text('kind').$type<WorkingDraftKind>().notNull(),
+    version: integer('version').default(1).notNull(),
+    baseRequirementVersion: integer('base_requirement_version').notNull(),
+    body: jsonb('body').$type<WorkingDraftBody['body']>().notNull(),
+    // Only the service updates this metadata; clients cannot forge adoption state.
+    publication: jsonb('publication')
+      .$type<{
+        questions?: { itemId: string; clarificationId: string }[];
+        revision?: { revisionId: string; draftVersion: number };
+      }>()
+      .default({})
+      .notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    unique('requirement_working_drafts_author_kind_unique').on(
+      t.requirementId,
+      t.userId,
+      t.kind,
+    ),
+    index('requirement_working_drafts_author_updated_idx').on(
+      t.userId,
+      t.updatedAt.desc(),
+      t.id.desc(),
+    ),
+    check(
+      'requirement_working_drafts_kind_valid',
+      sql`${t.kind} IN ('clarify', 'specification')`,
+    ),
+    check(
+      'requirement_working_drafts_versions_positive',
+      sql`${t.version} > 0 AND ${t.baseRequirementVersion} > 0`,
+    ),
+    check(
+      'requirement_working_drafts_body_object',
+      sql`jsonb_typeof(${t.body}) = 'object' AND octet_length(${t.body}::text) <= 102400`,
+    ),
+    check(
+      'requirement_working_drafts_publication_object',
+      sql`jsonb_typeof(${t.publication}) = 'object' AND octet_length(${t.publication}::text) <= 16384`,
+    ),
+    check(
+      'requirement_working_drafts_times_valid',
+      sql`isfinite(${t.createdAt}) AND isfinite(${t.updatedAt}) AND ${t.updatedAt} >= ${t.createdAt}`,
+    ),
+  ],
+);
+
+// Minimal, body-free receipts survive deleting a personal draft. No draft FK:
+// deleting work in progress must not erase the evidence of a committed publish.
+export const requirementPublishReceipts = pgTable(
+  'requirement_publish_receipts',
+  {
+    id: uuid('id').primaryKey(),
+    requirementId: uuid('requirement_id')
+      .notNull()
+      .references(() => requirements.id, { onDelete: 'restrict' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    draftId: uuid('draft_id').notNull(),
+    draftVersion: integer('draft_version').notNull(),
+    kind: text('kind').$type<WorkingDraftKind>().notNull(),
+    requestHash: char('request_hash', { length: 64 }).notNull(),
+    result: jsonb('result')
+      .$type<{
+        requirementVersion: number;
+        workingDraftVersion: number;
+        clarificationIds?: string[];
+        revisionId?: string;
+      }>()
+      .notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('requirement_publish_receipts_draft_version_unique').on(
+      t.draftId,
+      t.draftVersion,
+    ),
+    index('requirement_publish_receipts_author_requirement_idx').on(
+      t.userId,
+      t.requirementId,
+      t.createdAt.desc(),
+    ),
+    check(
+      'requirement_publish_receipts_kind_valid',
+      sql`${t.kind} IN ('clarify', 'specification')`,
+    ),
+    check(
+      'requirement_publish_receipts_version_positive',
+      sql`${t.draftVersion} > 0`,
+    ),
+    check(
+      'requirement_publish_receipts_hash_format',
+      sql`${t.requestHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check(
+      'requirement_publish_receipts_result_object',
+      sql`jsonb_typeof(${t.result}) = 'object' AND octet_length(${t.result}::text) <= 8192`,
+    ),
+    check(
+      'requirement_publish_receipts_time_finite',
+      sql`isfinite(${t.createdAt})`,
     ),
   ],
 );
@@ -499,6 +675,372 @@ export const auditEvents = pgTable(
     check(
       'audit_events_metadata_object',
       sql`jsonb_typeof(${t.metadata}) = 'object'`,
+    ),
+  ],
+);
+
+export const projectDocuments = pgTable(
+  'project_documents',
+  {
+    id: id(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'restrict' }),
+    title: text('title').notNull(),
+    status: text('status')
+      .$type<'ACTIVE' | 'INACTIVE'>()
+      .default('ACTIVE')
+      .notNull(),
+    version: integer('version').default(1).notNull(),
+    currentVersionId: uuid('current_version_id'),
+    // Sharing is explicit and version-specific. Uploading a replacement never shares it.
+    sharedVersionId: uuid('shared_version_id'),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t): PgTableExtraConfigValue[] => [
+    unique('project_documents_project_id_unique').on(t.projectId, t.id),
+    index('project_documents_project_updated_idx').on(
+      t.projectId,
+      t.status,
+      t.updatedAt.desc(),
+      t.id.desc(),
+    ),
+    check(
+      'project_documents_title_valid',
+      sql`char_length(${t.title}) BETWEEN 1 AND 200 AND ${t.title} ~ '[^[:space:]]'`,
+    ),
+    check(
+      'project_documents_status_valid',
+      sql`${t.status} IN ('ACTIVE', 'INACTIVE')`,
+    ),
+    check('project_documents_version_positive', sql`${t.version} > 0`),
+    check(
+      'project_documents_times_valid',
+      sql`isfinite(${t.createdAt}) AND isfinite(${t.updatedAt}) AND ${t.updatedAt} >= ${t.createdAt}`,
+    ),
+    foreignKey({
+      name: 'project_documents_current_version_fk',
+      columns: [t.projectId, t.id, t.currentVersionId],
+      foreignColumns: [
+        projectDocumentVersions.projectId,
+        projectDocumentVersions.documentId,
+        projectDocumentVersions.id,
+      ],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'project_documents_shared_version_fk',
+      columns: [t.projectId, t.id, t.sharedVersionId],
+      foreignColumns: [
+        projectDocumentVersions.projectId,
+        projectDocumentVersions.documentId,
+        projectDocumentVersions.id,
+      ],
+    }).onDelete('restrict'),
+  ],
+);
+
+export const projectDocumentVersions = pgTable(
+  'project_document_versions',
+  {
+    id: id(),
+    projectId: uuid('project_id').notNull(),
+    documentId: uuid('document_id').notNull(),
+    versionNo: integer('version_no').notNull(),
+    originalName: text('original_name').notNull(),
+    mediaType: text('media_type').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    blobId: uuid('blob_id').notNull(),
+    sha256: char('sha256', { length: 64 }).notNull(),
+    status: text('status')
+      .$type<'PROCESSING' | 'READY' | 'FAILED'>()
+      .default('PROCESSING')
+      .notNull(),
+    parserVersion: text('parser_version'),
+    extractedChars: integer('extracted_chars').default(0).notNull(),
+    errorCode: text('error_code').$type<
+      | 'UNSUPPORTED_FILE'
+      | 'INVALID_FILE'
+      | 'NO_TEXT'
+      | 'PARSE_LIMIT'
+      | 'PARSE_TIMEOUT'
+      | 'PARSE_FAILED'
+      | 'INTERRUPTED'
+    >(),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    createdAt: createdAt(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+  },
+  (t): PgTableExtraConfigValue[] => [
+    unique('project_document_versions_number_unique').on(
+      t.documentId,
+      t.versionNo,
+    ),
+    unique('project_document_versions_parent_id_unique').on(
+      t.projectId,
+      t.documentId,
+      t.id,
+    ),
+    unique('project_document_versions_blob_unique').on(t.blobId),
+    index('project_document_versions_processing_idx').on(
+      t.projectId,
+      t.status,
+      t.createdAt,
+      t.id,
+    ),
+    foreignKey({
+      name: 'project_document_versions_project_document_fk',
+      columns: [t.projectId, t.documentId],
+      foreignColumns: [projectDocuments.projectId, projectDocuments.id],
+    }).onDelete('restrict'),
+    check('project_document_versions_number_positive', sql`${t.versionNo} > 0`),
+    check(
+      'project_document_versions_name_valid',
+      sql`char_length(${t.originalName}) BETWEEN 1 AND 255 AND ${t.originalName} ~ '[^[:space:]]' AND ${t.originalName} !~ '[[:cntrl:]]'`,
+    ),
+    check(
+      'project_document_versions_media_valid',
+      sql`${t.mediaType} IN ('application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/markdown', 'text/plain')`,
+    ),
+    check(
+      'project_document_versions_size_valid',
+      sql`${t.sizeBytes} BETWEEN 1 AND 10485760`,
+    ),
+    check(
+      'project_document_versions_sha256_valid',
+      sql`${t.sha256} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check(
+      'project_document_versions_status_valid',
+      sql`${t.status} IN ('PROCESSING', 'READY', 'FAILED')`,
+    ),
+    check(
+      'project_document_versions_parser_valid',
+      sql`${t.parserVersion} IS NULL OR char_length(${t.parserVersion}) BETWEEN 1 AND 80`,
+    ),
+    check(
+      'project_document_versions_chars_valid',
+      sql`${t.extractedChars} BETWEEN 0 AND 500000`,
+    ),
+    check(
+      'project_document_versions_error_valid',
+      sql`${t.errorCode} IS NULL OR ${t.errorCode} IN ('UNSUPPORTED_FILE', 'INVALID_FILE', 'NO_TEXT', 'PARSE_LIMIT', 'PARSE_TIMEOUT', 'PARSE_FAILED', 'INTERRUPTED')`,
+    ),
+    check(
+      'project_document_versions_result_valid',
+      sql`(${t.status} = 'PROCESSING' AND ${t.completedAt} IS NULL AND ${t.errorCode} IS NULL AND ${t.extractedChars} = 0) OR (${t.status} = 'READY' AND ${t.completedAt} IS NOT NULL AND ${t.parserVersion} IS NOT NULL AND ${t.errorCode} IS NULL AND ${t.extractedChars} > 0) OR (${t.status} = 'FAILED' AND ${t.completedAt} IS NOT NULL AND ${t.errorCode} IS NOT NULL AND ${t.extractedChars} = 0)`,
+    ),
+    check(
+      'project_document_versions_times_valid',
+      sql`isfinite(${t.createdAt}) AND (${t.completedAt} IS NULL OR (isfinite(${t.completedAt}) AND ${t.completedAt} >= ${t.createdAt}))`,
+    ),
+  ],
+);
+
+export const projectDocumentChunks = pgTable(
+  'project_document_chunks',
+  {
+    id: id(),
+    projectId: uuid('project_id').notNull(),
+    documentId: uuid('document_id').notNull(),
+    versionId: uuid('version_id').notNull(),
+    ordinal: integer('ordinal').notNull(),
+    locatorKind: text('locator_kind').$type<'page' | 'paragraph'>().notNull(),
+    locatorStart: integer('locator_start').notNull(),
+    locatorEnd: integer('locator_end').notNull(),
+    content: text('content').notNull(),
+  },
+  (t) => [
+    unique('project_document_chunks_ordinal_unique').on(t.versionId, t.ordinal),
+    index('project_document_chunks_project_version_idx').on(
+      t.projectId,
+      t.versionId,
+      t.ordinal,
+    ),
+    foreignKey({
+      name: 'project_document_chunks_version_fk',
+      columns: [t.projectId, t.documentId, t.versionId],
+      foreignColumns: [
+        projectDocumentVersions.projectId,
+        projectDocumentVersions.documentId,
+        projectDocumentVersions.id,
+      ],
+    }).onDelete('restrict'),
+    check(
+      'project_document_chunks_ordinal_valid',
+      sql`${t.ordinal} BETWEEN 1 AND 1000`,
+    ),
+    check(
+      'project_document_chunks_locator_valid',
+      sql`${t.locatorKind} IN ('page', 'paragraph') AND ${t.locatorStart} >= 1 AND ${t.locatorEnd} >= ${t.locatorStart} AND ${t.locatorEnd} <= CASE WHEN ${t.locatorKind} = 'page' THEN 500 ELSE 500000 END`,
+    ),
+    check(
+      'project_document_chunks_text_valid',
+      sql`char_length(${t.content}) BETWEEN 1 AND 2000 AND ${t.content} ~ '[^[:space:]]'`,
+    ),
+  ],
+);
+
+// Project and Workspace derive from Requirement; no client-supplied tenant column.
+export const copilotProposals = pgTable(
+  'copilot_proposals',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    requirementId: uuid('requirement_id')
+      .notNull()
+      .references(() => requirements.id, { onDelete: 'restrict' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    kind: text('kind')
+      .$type<
+        | 'publish_questions'
+        | 'create_revision'
+        | 'create_change_draft'
+        | 'update_change_draft'
+      >()
+      .notNull(),
+    changeRequestId: uuid('change_request_id').references(
+      () => changeRequests.id,
+      { onDelete: 'restrict' },
+    ),
+    version: integer('version').default(1).notNull(),
+    baseRequirementVersion: integer('base_requirement_version').notNull(),
+    baseChangeVersion: integer('base_change_version'),
+    status: text('status')
+      .$type<'DRAFT' | 'EXECUTED'>()
+      .default('DRAFT')
+      .notNull(),
+    payload: jsonb('payload').$type<Record<string, unknown>>().notNull(),
+    sources: jsonb('sources').$type<Record<string, unknown>[]>().notNull(),
+    operationId: uuid('operation_id'),
+    requestHash: char('request_hash', { length: 64 }),
+    result: jsonb('result').$type<Record<string, unknown>>(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    executedAt: timestamp('executed_at', { withTimezone: true }),
+  },
+  (t) => [
+    unique('copilot_proposals_operation_unique').on(t.operationId),
+    index('copilot_proposals_author_requirement_idx').on(
+      t.userId,
+      t.requirementId,
+      t.createdAt.desc(),
+      t.id.desc(),
+    ),
+    index('copilot_proposals_expiry_idx').on(t.status, t.expiresAt),
+    check(
+      'copilot_proposals_kind_valid',
+      sql`${t.kind} IN ('publish_questions','create_revision','create_change_draft','update_change_draft')`,
+    ),
+    check(
+      'copilot_proposals_versions_valid',
+      sql`${t.version}>0 AND ${t.baseRequirementVersion}>0 AND (${t.baseChangeVersion} IS NULL OR ${t.baseChangeVersion}>=0)`,
+    ),
+    check(
+      'copilot_proposals_target_valid',
+      sql`(${t.kind}='update_change_draft' AND ${t.changeRequestId} IS NOT NULL AND ${t.baseChangeVersion} IS NOT NULL) OR (${t.kind}<>'update_change_draft' AND ${t.changeRequestId} IS NULL AND ${t.baseChangeVersion} IS NULL)`,
+    ),
+    check(
+      'copilot_proposals_payload_valid',
+      sql`jsonb_typeof(${t.payload})='object' AND octet_length(${t.payload}::text)<=98304`,
+    ),
+    check(
+      'copilot_proposals_sources_valid',
+      sql`jsonb_typeof(${t.sources})='array' AND octet_length(${t.sources}::text)<=16384`,
+    ),
+    check(
+      'copilot_proposals_hash_valid',
+      sql`${t.requestHash} IS NULL OR ${t.requestHash}~'^[0-9a-f]{64}$'`,
+    ),
+    check(
+      'copilot_proposals_result_valid',
+      sql`${t.result} IS NULL OR (jsonb_typeof(${t.result})='object' AND octet_length(${t.result}::text)<=8192)`,
+    ),
+    check(
+      'copilot_proposals_state_valid',
+      sql`(${t.status}='DRAFT' AND ${t.operationId} IS NULL AND ${t.requestHash} IS NULL AND ${t.result} IS NULL AND ${t.executedAt} IS NULL) OR (${t.status}='EXECUTED' AND ${t.operationId} IS NOT NULL AND ${t.requestHash} IS NOT NULL AND ${t.result} IS NOT NULL AND ${t.executedAt} IS NOT NULL)`,
+    ),
+    check(
+      'copilot_proposals_time_valid',
+      sql`isfinite(${t.createdAt}) AND isfinite(${t.updatedAt}) AND isfinite(${t.expiresAt}) AND ${t.updatedAt}>=${t.createdAt} AND ${t.expiresAt}>${t.createdAt} AND ${t.expiresAt}<=${t.createdAt}+interval '24 hours' AND (${t.executedAt} IS NULL OR (isfinite(${t.executedAt}) AND ${t.executedAt}>=${t.createdAt} AND ${t.executedAt}<=${t.expiresAt} AND ${t.updatedAt}>=${t.executedAt}))`,
+    ),
+  ],
+);
+
+export const agentConnectionGrants = pgTable(
+  'agent_connection_grants',
+  {
+    // Installer-generated attempt identity also prevents duplicate browser confirmations.
+    id: uuid('id').primaryKey(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'restrict' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => sessions.id, { onDelete: 'restrict' }),
+    codeHash: char('code_hash', { length: 64 }).notNull(),
+    challenge: char('challenge', { length: 43 }).notNull(),
+    stateHash: char('state_hash', { length: 64 }).notNull(),
+    callbackPort: integer('callback_port').notNull(),
+    tokenName: text('token_name').notNull(),
+    tokenExpiresInDays: integer('token_expires_in_days').notNull(),
+    status: text('status')
+      .$type<'AUTHORIZED' | 'EXCHANGED' | 'CANCELLED'>()
+      .default('AUTHORIZED')
+      .notNull(),
+    apiTokenId: uuid('api_token_id').references(() => apiTokens.id, {
+      onDelete: 'restrict',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+  },
+  (t) => [
+    unique('agent_connection_grants_code_unique').on(t.codeHash),
+    unique('agent_connection_grants_token_unique').on(t.apiTokenId),
+    index('agent_connection_grants_owner_project_idx').on(
+      t.userId,
+      t.projectId,
+      t.createdAt,
+    ),
+    index('agent_connection_grants_expiry_idx').on(t.expiresAt),
+    check(
+      'agent_connection_grants_proof_valid',
+      sql`${t.codeHash} ~ '^[0-9a-f]{64}$' AND ${t.stateHash} ~ '^[0-9a-f]{64}$' AND ${t.challenge} ~ '^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$'`,
+    ),
+    check(
+      'agent_connection_grants_port_valid',
+      sql`${t.callbackPort} BETWEEN 1024 AND 65535`,
+    ),
+    check(
+      'agent_connection_grants_token_settings',
+      sql`length(btrim(${t.tokenName})) BETWEEN 1 AND 100 AND ${t.tokenExpiresInDays} BETWEEN 1 AND 90`,
+    ),
+    check(
+      'agent_connection_grants_state_valid',
+      sql`(${t.status}='AUTHORIZED' AND ${t.apiTokenId} IS NULL AND ${t.completedAt} IS NULL) OR (${t.status}='EXCHANGED' AND ${t.apiTokenId} IS NOT NULL AND ${t.completedAt} IS NOT NULL) OR (${t.status}='CANCELLED' AND ${t.apiTokenId} IS NULL AND ${t.completedAt} IS NOT NULL)`,
+    ),
+    check(
+      'agent_connection_grants_time_valid',
+      sql`isfinite(${t.createdAt}) AND isfinite(${t.expiresAt}) AND ${t.expiresAt}>${t.createdAt} AND ${t.expiresAt}<=${t.createdAt}+interval '5 minutes' AND (${t.completedAt} IS NULL OR (isfinite(${t.completedAt}) AND ${t.completedAt}>=${t.createdAt} AND (${t.status}<>'EXCHANGED' OR ${t.completedAt}<${t.expiresAt})))`,
     ),
   ],
 );

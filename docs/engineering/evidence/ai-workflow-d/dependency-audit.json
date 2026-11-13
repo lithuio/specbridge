@@ -1,0 +1,237 @@
+{
+  "checkedAt": "2026-11-13",
+  "baseline": "c0960b0",
+  "baselineCounts": {
+    "info": 0,
+    "low": 6,
+    "moderate": 13,
+    "high": 8,
+    "critical": 0
+  },
+  "currentCounts": {
+    "info": 0,
+    "low": 6,
+    "moderate": 13,
+    "high": 8,
+    "critical": 0
+  },
+  "newAdvisoryIds": [],
+  "advisories": [
+    {
+      "package": "undici",
+      "severity": "moderate",
+      "id": "GHSA-c76h-2ccp-4975",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "esbuild",
+      "severity": "moderate",
+      "id": "GHSA-67mh-4wv8-2f99",
+      "paths": [
+        "apps__api>drizzle-kit>@esbuild-kit/esm-loader>@esbuild-kit/core-utils>esbuild"
+      ]
+    },
+    {
+      "package": "tmp",
+      "severity": "low",
+      "id": "GHSA-52f5-9888-hmc6",
+      "paths": [
+        "apps__api>@nestjs/mau>inquirer>external-editor>tmp"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "moderate",
+      "id": "GHSA-g9mf-h72j-4rw9",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "low",
+      "id": "GHSA-cxrh-j4jr-qwg3",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "ajv",
+      "severity": "moderate",
+      "id": "GHSA-2g4f-4pwh-qvx6",
+      "paths": [
+        "apps__api>ajv"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "high",
+      "id": "GHSA-f269-vfmq-vjvj",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "moderate",
+      "id": "GHSA-2mjp-6q6p-2qxm",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "high",
+      "id": "GHSA-vrm6-8vpv-qv8q",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "high",
+      "id": "GHSA-v9p9-hfj2-hcw8",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "moderate",
+      "id": "GHSA-4992-7rv2-5pvq",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "tmp",
+      "severity": "high",
+      "id": "GHSA-ph9p-34f9-6g65",
+      "paths": [
+        "apps__api>@nestjs/mau>inquirer>external-editor>tmp"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "moderate",
+      "id": "GHSA-p88m-4jfj-68fv",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "low",
+      "id": "GHSA-g8m3-5g58-fq7m",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "moderate",
+      "id": "GHSA-8xcm-r25x-g524",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "moderate",
+      "id": "GHSA-m8rv-5g2x-5cg5",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "moderate",
+      "id": "GHSA-v3r7-h72x-cjcm",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "low",
+      "id": "GHSA-35p6-xmwp-9g52",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "low",
+      "id": "GHSA-r53p-7pc4-xj5r",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "high",
+      "id": "GHSA-rfgv-xxqx-mfg5",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "moderate",
+      "id": "GHSA-4qv8-2p9j-2685",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "high",
+      "id": "GHSA-2m5v-pch6-74hx",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "high",
+      "id": "GHSA-qrxm-fqhp-jwvm",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "moderate",
+      "id": "GHSA-9fm3-97px-rjf6",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "deepmerge",
+      "severity": "low",
+      "id": "GHSA-gcqx-w48m-w2h4",
+      "paths": [
+        "apps__web>shadcn>deepmerge"
+      ]
+    },
+    {
+      "package": "undici",
+      "severity": "high",
+      "id": "GHSA-vxpw-j846-p89q",
+      "paths": [
+        "apps__api>@nestjs/mau>undici"
+      ]
+    },
+    {
+      "package": "minimatch",
+      "severity": "moderate",
+      "id": "GHSA-g3hv-75wg-m249",
+      "paths": [
+        "apps__api>@nestjs/cli>minimatch"
+      ]
+    }
+  ]
+}

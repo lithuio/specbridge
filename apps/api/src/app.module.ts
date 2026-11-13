@@ -1,4 +1,8 @@
+import { DocumentsModule } from './documents/documents.module.js';
+import { ConnectionsModule } from './agent-connections/connections.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
+import { AiModule } from './ai/ai.module.js';
+import { ApiTokensModule } from './api-tokens/api-tokens.module.js';
 import { AuditReadModule } from './audit/audit-read.module.js';
 import { DeliveriesModule } from './deliveries/deliveries.module.js';
 import { ChangesModule } from './changes/changes.module.js';
@@ -19,6 +23,10 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
 
 @Module({
   imports: [
+    ConnectionsModule,
+    DocumentsModule,
+    ApiTokensModule,
+    AiModule,
     DashboardModule,
     AuditReadModule,
     DatabaseModule,
@@ -40,12 +48,35 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
       serviceId: 'specbridge-api',
       http: {
         capture: false,
-        ignore: [/^\/api\/v1\/(?:auth(?:\/|$)|me(?:\/|$|\?))/i],
+        ignore: [
+          /^\/api\/v1\/(?:agent-connections|projects\/[^/]+\/agent-connections)(?:\/|$|\?)/i,
+          /^\/api\/v1\/(?:api-tokens(?:\/|$|\?)|projects\/[^/]+\/(?:documents|api-tokens|approved-specs)(?:\/|$|\?))/i,
+          /^\/api\/v1\/(?:auth(?:\/|$)|me(?:\/|$|\?)|requirements\/[^/]+\/(?:ai-(?:analysis|assistance)|working-drafts|working-draft-publications|copilot-proposals)(?:\/|$|\?)|projects\/[^/]+\/copilot\/messages(?:\/|$|\?))/i,
+        ],
       },
       redaction: {
         enabled: true,
-        keys: ['email', 'passwordHash', 'tokenHash', 'cookie', 'set-cookie'],
+        keys: [
+          'email',
+          'passwordHash',
+          'tokenHash',
+          'cookie',
+          'set-cookie',
+          'authorization',
+          'apiKey',
+          'token',
+          'code',
+          'verifier',
+          'state',
+          'challenge',
+          'prompt',
+          'messages',
+          'content',
+          'originalText',
+          'body',
+        ],
         patterns: [
+          /\bsbp_[A-Za-z0-9_-]{43}\b/,
           /\$argon2id\$[^\s,"']+/,
           /\b[A-Za-z0-9_-]{43}\b/,
           /\b[0-9a-f]{64}\b/,

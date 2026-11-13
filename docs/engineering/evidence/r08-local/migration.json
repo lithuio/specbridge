@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "target": "127.0.0.1:5433/specbridge",
+  "migration": "0004_project_api_tokens",
+  "sha256": "7133f1d8fc11ef93f84314dede4257cbba23452dec9ca49a2fdb57ce5cc0bd0a",
+  "migrationsBefore": 4,
+  "migrationsAfter": 5,
+  "hashRecorded": true,
+  "tokenTablePresent": true,
+  "existingRowCountsPreserved": true,
+  "existingColumnsPreserved": true
+}

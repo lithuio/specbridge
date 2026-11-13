@@ -25,6 +25,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useSession } from "@/features/auth/provider";
+import { ProjectCopilot } from "@/features/copilot/copilot";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, store } = useSession();
@@ -164,14 +165,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="breadcrumb-divider">/</span>
             <strong>{section}</strong>
           </div>
-          <Link
-            className="header-account"
-            href="/app#account-session"
-            title="查看当前账号"
-          >
-            <span className="connection-dot" />
-            {user?.displayName}
-          </Link>
+          <div className="header-actions">
+            <ProjectCopilot />
+            <Link
+              className="header-account"
+              href="/app#account-session"
+              title="查看当前账号"
+            >
+              <span className="connection-dot" />
+              {user?.displayName}
+            </Link>
+          </div>
         </header>
         <main id="main-content" className="app-main" tabIndex={-1}>
           {children}

@@ -1,3 +1,11 @@
+import { ProposalsController } from '../proposals/proposals.controller.js';
+import {
+  ConnectionsController,
+  ConnectionExchangeController,
+} from '../agent-connections/connections.module.js';
+import { connectionOperations, exchangeOperations } from './connections.js';
+import { proposalOperations } from './proposals.js';
+import { RateLimitService } from '../auth/rate-limit.service.js';
 import 'reflect-metadata';
 import { Module, type Type } from '@nestjs/common';
 import {
@@ -9,6 +17,7 @@ import {
 import { NestFactory } from '@nestjs/core';
 import {
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -24,6 +33,31 @@ import { ChangesController } from '../changes/changes.controller.js';
 import { DeliveriesController } from '../deliveries/deliveries.controller.js';
 import { AuditReadController } from '../audit/audit-read.module.js';
 import { DashboardController } from '../dashboard/dashboard.module.js';
+import { AiController } from '../ai/ai.controller.js';
+import { WorkingDraftsController } from '../requirements/working-drafts.controller.js';
+import {
+  DocumentsController,
+  DocumentUploadAdmission,
+} from '../documents/documents.controller.js';
+import { documentOperations } from './documents.js';
+import {
+  assistanceOperation,
+  workingDraftOperations,
+  workingDraftKindParam,
+} from './working-drafts.js';
+import { CopilotController } from '../ai/copilot.controller.js';
+import { copilotInput, copilotResponse } from '../ai/copilot.contract.js';
+import { z } from 'zod';
+import {
+  ApiTokensController,
+  ApprovedSpecsController,
+} from '../api-tokens/api-tokens.module.js';
+import {
+  createTokenInput,
+  tokenSummary,
+  tokenCreated,
+  approvedSpec,
+} from '../api-tokens/token.contract.js';
 import {
   schemas,
   envelope,
@@ -72,6 +106,7 @@ const deliveryInput = {
   },
 };
 type Operation = {
+  multipart?: boolean;
   response?: Schema;
   paged?: boolean;
   dashboard?: boolean;
@@ -79,6 +114,7 @@ type Operation = {
   body?: Schema;
   statuses?: number[];
   public?: boolean;
+  projectToken?: boolean;
 };
 const r = (name: keyof typeof schemas): Operation => ({ response: ref(name) });
 const list = (
@@ -86,6 +122,111 @@ const list = (
   query?: Record<string, Schema>,
 ): Operation => ({ response: arr(ref(name)), paged: true, query });
 const definitions: [Type, Record<string, Operation>][] = [
+  [ProposalsController, proposalOperations],
+  [ConnectionsController, connectionOperations],
+  [ConnectionExchangeController, exchangeOperations],
+  [DocumentsController, documentOperations],
+  [
+    ApiTokensController,
+    {
+      create: {
+        body: z.toJSONSchema(createTokenInput, {
+          io: 'input',
+          target: 'openapi-3.0',
+        }) as Schema,
+        response: z.toJSONSchema(tokenCreated, {
+          target: 'openapi-3.0',
+        }) as Schema,
+      },
+      list: {
+        response: arr(
+          z.toJSONSchema(tokenSummary, { target: 'openapi-3.0' }) as Schema,
+        ),
+        paged: true,
+      },
+      revoke: {},
+    },
+  ],
+  [
+    ApprovedSpecsController,
+    {
+      list: {
+        response: arr(
+          z.toJSONSchema(approvedSpec, { target: 'openapi-3.0' }) as Schema,
+        ),
+        paged: true,
+        projectToken: true,
+      },
+      detail: {
+        response: z.toJSONSchema(approvedSpec, {
+          target: 'openapi-3.0',
+        }) as Schema,
+        projectToken: true,
+      },
+    },
+  ],
+  [
+    CopilotController,
+    {
+      message: {
+        body: z.toJSONSchema(copilotInput, {
+          io: 'input',
+          target: 'openapi-3.0',
+        }) as Schema,
+        response: z.toJSONSchema(copilotResponse, {
+          target: 'openapi-3.0',
+        }) as Schema,
+      },
+    },
+  ],
+  [WorkingDraftsController, workingDraftOperations],
+  [
+    AiController,
+    {
+      assist: assistanceOperation,
+      analyze: {
+        body: obj(
+          {
+            expectedVersion: int(1),
+            revisionId: uuid,
+            includeClarifications: { type: 'boolean', default: true },
+            draft: obj({
+              content: text(20000),
+              acceptanceCriteria: { ...arr(text(1000)), maxItems: 100 },
+            }),
+          },
+          ['revisionId', 'includeClarifications', 'draft'],
+        ),
+        response: obj({
+          analysisId: uuid,
+          schemaVersion: { type: 'integer', enum: [1] },
+          source: obj({
+            requirementId: uuid,
+            draftVersion: int(1),
+            revisionId: nullable(uuid),
+            clarificationIds: { ...arr(uuid), maxItems: 500 },
+            includesUnsavedDraft: { type: 'boolean' },
+            readAt: { type: 'string', format: 'date-time' },
+          }),
+          result: {
+            ...obj({
+              summary: text(1000),
+              ...Object.fromEntries(
+                [
+                  'assumptions',
+                  'openQuestions',
+                  'acceptanceCriteria',
+                  'risks',
+                ].map((key) => [key, { ...arr(text(500)), maxItems: 10 }]),
+              ),
+            }),
+            description:
+              'Untrusted AI draft. Combined text length <=6000 UTF-16 code units. Not approval or an automatic business write.',
+          },
+        }),
+      },
+    },
+  ],
   [
     AuthController,
     {
@@ -273,6 +414,7 @@ const definitions: [Type, Record<string, Operation>][] = [
           'requirement_revision',
           'change_request',
           'delivery',
+          'api_token',
         ),
         entityId: uuid,
         eventType: en(...auditEventTypes),
@@ -320,12 +462,24 @@ export async function createDocument() {
       decorate(
         ApiOperation({
           operationId: `${controller.name.replace('Controller', '')}_${key}`,
-          security: spec.public ? [] : [{ session: [] }],
+          security: spec.public
+            ? []
+            : spec.projectToken
+              ? [{ session: [] }, { projectToken: [] }]
+              : [{ session: [] }],
         }),
       );
       const path = `${Reflect.getMetadata(PATH_METADATA, controller)}/${Reflect.getMetadata(PATH_METADATA, descriptor.value)}`;
       for (const match of path.matchAll(/:([a-zA-Z]+)/g))
-        decorate(ApiParam({ name: match[1], schema: uuid }));
+        decorate(
+          ApiParam({
+            name: match[1],
+            schema:
+              controller === WorkingDraftsController && match[1] === 'kind'
+                ? workingDraftKindParam
+                : uuid,
+          }),
+        );
       const query = {
         ...(spec.paged
           ? {
@@ -338,6 +492,7 @@ export async function createDocument() {
       for (const [name, schema] of Object.entries(query))
         decorate(ApiQuery({ name, required: false, schema }));
       if (spec.body) decorate(ApiBody({ schema: spec.body }));
+      if (spec.multipart) decorate(ApiConsumes('multipart/form-data'));
       const status =
         Reflect.getMetadata(HTTP_CODE_METADATA, descriptor.value) ??
         (Reflect.getMetadata(METHOD_METADATA, descriptor.value) === 1
@@ -353,7 +508,23 @@ export async function createDocument() {
               : {}),
           }),
         );
-      for (const code of [400, 401, 403, 404, 409, 422, 429, 500])
+      for (const code of [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        429,
+        500,
+        ...(controller === AiController ||
+        controller === CopilotController ||
+        controller === DocumentsController ||
+        controller === ConnectionsController ||
+        controller === ConnectionExchangeController
+          ? [413, 503]
+          : []),
+      ])
         decorate(
           ApiResponse({
             status: code,
@@ -370,13 +541,21 @@ export async function createDocument() {
   class OfflineModule {}
   Module({
     controllers: definitions.map(([controller]) => controller),
-    providers: [...providers].map((provide) => ({ provide, useValue: {} })),
+    providers: [...providers, DocumentUploadAdmission, RateLimitService].map(
+      (provide) => ({ provide, useValue: {} }),
+    ),
   })(OfflineModule);
   const app = await NestFactory.create(OfflineModule, { logger: false });
   try {
     const config = new DocumentBuilder()
-      .setTitle('SpecBridge R07 HTTP API')
+      .setTitle('SpecBridge HTTP API')
       .setVersion('0.2')
+      .addSecurity('projectToken', {
+        type: 'http',
+        scheme: 'bearer',
+        description:
+          'Project-bound approved_specs:read only. GET/HEAD approved-specs routes only; Cookie plus Bearer is rejected. This is not MCP HTTP OAuth.',
+      })
       .addSecurity('session', {
         type: 'apiKey',
         in: 'cookie',

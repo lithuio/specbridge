@@ -1,0 +1,28 @@
+{
+  "status": "FINDINGS",
+  "newParserDependencyFindings": 0,
+  "findings": [
+    {
+      "module_name": "deepmerge",
+      "severity": "low",
+      "title": "deepmerge mergeObject() allows prototype poisoning of returned objects",
+      "url": "https://github.com/advisories/GHSA-gcqx-w48m-w2h4",
+      "version": "4.3.1",
+      "paths": [
+        "apps__web>shadcn>deepmerge"
+      ],
+      "presentAtInitialHead": true
+    },
+    {
+      "module_name": "minimatch",
+      "severity": "moderate",
+      "title": "minimatch has potential denial of service via globparts amplification",
+      "url": "https://github.com/advisories/GHSA-g3hv-75wg-m249",
+      "version": "10.2.6",
+      "paths": [
+        "apps__web>shadcn>ts-morph>@ts-morph/common>minimatch"
+      ],
+      "presentAtInitialHead": true
+    }
+  ]
+}

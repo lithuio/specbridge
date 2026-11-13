@@ -1,0 +1,455 @@
+{
+  "checkedAt": "2026-11-13",
+  "automatedStates": 48,
+  "violations": 0,
+  "statesWithIncomplete": 26,
+  "incompleteIsNotAPass": true,
+  "independentDeviceAndScreenReader": "NOT RUN",
+  "checks": [
+    {
+      "file": "real/ai-workflow-a/accessibility.json",
+      "name": "real-analysis-desktop",
+      "passedRules": 28,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "real/ai-workflow-a/accessibility.json",
+      "name": "real-human-review-mobile",
+      "passedRules": 29,
+      "violations": 0,
+      "incomplete": [
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 5
+    },
+    {
+      "file": "real/ai-workflow-a/accessibility.json",
+      "name": "real-copilot-desktop",
+      "passedRules": 26,
+      "violations": 0,
+      "incomplete": [
+        "aria-hidden-focus",
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 1
+    },
+    {
+      "file": "real/ai-workflow-a/accessibility.json",
+      "name": "real-copilot-mobile",
+      "passedRules": 26,
+      "violations": 0,
+      "incomplete": [
+        "aria-hidden-focus",
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 3
+    },
+    {
+      "file": "real/ai-workflow-a/accessibility.json",
+      "name": "real-copilot-320",
+      "passedRules": 26,
+      "violations": 0,
+      "incomplete": [
+        "aria-hidden-focus",
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 1
+    },
+    {
+      "file": "mock/r08-d/accessibility.json",
+      "name": "token-desktop",
+      "passedRules": 28,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/r08-d/accessibility.json",
+      "name": "token-mobile",
+      "passedRules": 28,
+      "violations": 0,
+      "incomplete": [
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 5
+    },
+    {
+      "file": "mock/r08-d/accessibility.json",
+      "name": "token-320",
+      "passedRules": 28,
+      "violations": 0,
+      "incomplete": [
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 5
+    },
+    {
+      "file": "mock/ai-workflow-b/accessibility.json",
+      "name": "documents-desktop",
+      "passedRules": 24,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/ai-workflow-b/accessibility.json",
+      "name": "client-shared-mobile",
+      "passedRules": 21,
+      "violations": 0,
+      "incomplete": [
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 4
+    },
+    {
+      "file": "mock/ai-workflow-b/accessibility.json",
+      "name": "documents-mobile",
+      "passedRules": 24,
+      "violations": 0,
+      "incomplete": [
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 5
+    },
+    {
+      "file": "mock/ai-workflow-a/accessibility.json",
+      "name": "clarification-desktop",
+      "passedRules": 27,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/ai-workflow-a/accessibility.json",
+      "name": "specification-mobile",
+      "passedRules": 28,
+      "violations": 0,
+      "incomplete": [
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 5
+    },
+    {
+      "file": "mock/r08-c/accessibility.json",
+      "name": "copilot-desktop",
+      "passedRules": 25,
+      "violations": 0,
+      "incomplete": [
+        "aria-hidden-focus",
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 2
+    },
+    {
+      "file": "mock/r08-c/accessibility.json",
+      "name": "copilot-mobile",
+      "passedRules": 26,
+      "violations": 0,
+      "incomplete": [
+        "aria-hidden-focus",
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 1
+    },
+    {
+      "file": "mock/r08-c/accessibility.json",
+      "name": "copilot-320",
+      "passedRules": 26,
+      "violations": 0,
+      "incomplete": [
+        "aria-hidden-focus",
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 2
+    },
+    {
+      "file": "mock/ui-polish/accessibility.json",
+      "name": "login",
+      "passedRules": 25,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/ui-polish/accessibility.json",
+      "name": "project-desktop",
+      "passedRules": 27,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/ui-polish/accessibility.json",
+      "name": "dashboard-desktop",
+      "passedRules": 29,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/ui-polish/accessibility.json",
+      "name": "projects-drawer",
+      "passedRules": 24,
+      "violations": 0,
+      "incomplete": [
+        "aria-hidden-focus"
+      ],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/ui-polish/accessibility.json",
+      "name": "project-320",
+      "passedRules": 23,
+      "violations": 0,
+      "incomplete": [
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 5
+    },
+    {
+      "file": "mock/ui-polish/accessibility.json",
+      "name": "dashboard-320",
+      "passedRules": 28,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/ui-polish/accessibility.json",
+      "name": "project-768",
+      "passedRules": 26,
+      "violations": 0,
+      "incomplete": [
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 2
+    },
+    {
+      "file": "mock/ui-polish/accessibility.json",
+      "name": "dashboard-768",
+      "passedRules": 28,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/ui-polish/accessibility.json",
+      "name": "project-900",
+      "passedRules": 26,
+      "violations": 0,
+      "incomplete": [
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 1
+    },
+    {
+      "file": "mock/ui-polish/accessibility.json",
+      "name": "dashboard-900",
+      "passedRules": 28,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "login-desktop",
+      "passedRules": 25,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "owner-members-desktop",
+      "passedRules": 27,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "client-requirement-form",
+      "passedRules": 24,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "developer-ready-desktop-long-content",
+      "passedRules": 27,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "developer-ready-320",
+      "passedRules": 27,
+      "violations": 0,
+      "incomplete": [
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 4
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "developer-commercial-form",
+      "passedRules": 28,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "client-approval-desktop",
+      "passedRules": 25,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "client-accept-dialog-mobile",
+      "passedRules": 25,
+      "violations": 0,
+      "incomplete": [
+        "aria-hidden-focus",
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 3
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "client-accepted-mobile",
+      "passedRules": 21,
+      "violations": 0,
+      "incomplete": [
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 4
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "client-rejected-history-320",
+      "passedRules": 25,
+      "violations": 0,
+      "incomplete": [
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 4
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "client-audit-320",
+      "passedRules": 26,
+      "violations": 0,
+      "incomplete": [
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 4
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "client-audit-desktop",
+      "passedRules": 26,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "developer-dashboard-desktop",
+      "passedRules": 28,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "dashboard-half-desktop-css-viewport",
+      "passedRules": 28,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "dashboard-tablet",
+      "passedRules": 28,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "dashboard-mobile",
+      "passedRules": 28,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/r07-h/accessibility.json",
+      "name": "navigation-drawer-mobile",
+      "passedRules": 23,
+      "violations": 0,
+      "incomplete": [
+        "aria-hidden-focus"
+      ],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/ai-workflow-c/accessibility.json",
+      "name": "proposal-desktop",
+      "passedRules": 26,
+      "violations": 0,
+      "incomplete": [
+        "aria-hidden-focus",
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 1
+    },
+    {
+      "file": "mock/ai-workflow-c/accessibility.json",
+      "name": "proposal-mobile",
+      "passedRules": 26,
+      "violations": 0,
+      "incomplete": [
+        "aria-hidden-focus",
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 2
+    },
+    {
+      "file": "mock/ai-workflow-d/accessibility.json",
+      "name": "connect-desktop",
+      "passedRules": 23,
+      "violations": 0,
+      "incomplete": [],
+      "supplementalContrastChecks": 0
+    },
+    {
+      "file": "mock/ai-workflow-d/accessibility.json",
+      "name": "connect-mobile",
+      "passedRules": 23,
+      "violations": 0,
+      "incomplete": [
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 5
+    },
+    {
+      "file": "mock/ai-workflow-d/accessibility.json",
+      "name": "connect-manager-320",
+      "passedRules": 27,
+      "violations": 0,
+      "incomplete": [
+        "color-contrast"
+      ],
+      "supplementalContrastChecks": 5
+    }
+  ]
+}

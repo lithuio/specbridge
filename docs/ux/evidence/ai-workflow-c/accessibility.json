@@ -1,0 +1,115 @@
+[
+  {
+    "name": "proposal-desktop",
+    "violations": [],
+    "passedRules": 26,
+    "supplementalComputedContrast": [
+      {
+        "target": [
+          ".proposal-notes > ul > li:nth-child(1)"
+        ],
+        "ratio": 16.03,
+        "threshold": 4.5
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "aria-hidden-focus",
+        "nodes": [
+          {
+            "target": [
+              "div[data-base-ui-inert=\"\"][aria-hidden=\"true\"]:nth-child(9)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(3)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(5)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          }
+        ]
+      },
+      {
+        "id": "color-contrast",
+        "nodes": [
+          {
+            "target": [
+              ".proposal-notes > ul > li:nth-child(1)"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "proposal-mobile",
+    "violations": [],
+    "passedRules": 26,
+    "supplementalComputedContrast": [
+      {
+        "target": [
+          ".copilot-context > span"
+        ],
+        "ratio": 5.94,
+        "threshold": 4.5
+      },
+      {
+        "target": [
+          "#_r_c_-\\%E9\\%97\\%AE\\%E9\\%A2\\%98\\%202"
+        ],
+        "ratio": 16.03,
+        "threshold": 4.5
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "aria-hidden-focus",
+        "nodes": [
+          {
+            "target": [
+              "div[data-base-ui-inert=\"\"][aria-hidden=\"true\"]:nth-child(9)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(3)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(5)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          }
+        ]
+      },
+      {
+        "id": "color-contrast",
+        "nodes": [
+          {
+            "target": [
+              ".copilot-context > span"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          },
+          {
+            "target": [
+              "#_r_c_-\\%E9\\%97\\%AE\\%E9\\%A2\\%98\\%202"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,221 @@
+{
+  "checkedAt": "2026-11-13",
+  "branch": "feat/17-ai-agent-integration",
+  "head": "e9e5efd",
+  "environment": {
+    "node": "v22.23.4",
+    "pnpm": "10.34.9",
+    "codex": "codex-cli 0.167.1"
+  },
+  "checks": [
+    {
+      "command": "pnpm build",
+      "status": "PASS",
+      "scope": "API/Web/MCP"
+    },
+    {
+      "command": "pnpm lint",
+      "status": "PASS",
+      "scope": "API/Web/MCP"
+    },
+    {
+      "command": "pnpm test",
+      "status": "PASS",
+      "api": 161,
+      "mcp": 28
+    },
+    {
+      "command": "pnpm --filter {specbridge-api,web,specbridge-mcp} typecheck (each separately)",
+      "status": "PASS"
+    },
+    {
+      "command": "pnpm test:integration",
+      "status": "PASS",
+      "passed": 102,
+      "files": 13,
+      "target": "127.0.0.1:5434/specbridge_test"
+    },
+    {
+      "command": "pnpm test:e2e:db",
+      "status": "PASS",
+      "passed": 141,
+      "skipped": 2,
+      "suites": {
+        "auth": 16,
+        "rbac": 13,
+        "requirements": 9,
+        "changes": 8,
+        "deliveries": 7,
+        "reads": 9,
+        "tokens": 9,
+        "mcp": 6,
+        "documents": 9,
+        "connections": 11,
+        "ai": 44
+      },
+      "skipReason": "External Host and Inspector are opt-in"
+    },
+    {
+      "command": "pnpm test:e2e",
+      "status": "PASS",
+      "passed": 5
+    },
+    {
+      "command": "pnpm test:smoke-guards",
+      "status": "PASS",
+      "passed": 4,
+      "recheckedAfterSmokeDiagnostics": true
+    },
+    {
+      "command": "pnpm --filter specbridge-api openapi:check",
+      "status": "PASS",
+      "paths": 51,
+      "initialFailure": "Concurrent Nest builds removed dist files; passed when rerun sequentially"
+    },
+    {
+      "command": "pnpm db:check",
+      "status": "PASS"
+    },
+    {
+      "command": "R07_EVIDENCE_ROOT=../../docs/ux/evidence/ai-workflow-e/mock pnpm run test:browser:phases",
+      "status": "PASS",
+      "passed": 44,
+      "suites": 14
+    },
+    {
+      "command": "Opt-in external MCP command in README",
+      "status": "PASS",
+      "passed": 8,
+      "defaultMcpCases": 6,
+      "codexHost": 1,
+      "inspector": 1,
+      "interactiveTrust": "NOT RUN"
+    },
+    {
+      "command": "Real DeepSeek browser commands in README",
+      "status": "PASS_WITH_OBSERVED_FAILURE",
+      "eventuallyPassedScenes": 3,
+      "selectionFailureFixed": true,
+      "providerValidationFailureCount": 1,
+      "providerValidationFailureRootCause": "Unresolved: original attempt retained no envelope metadata; a single diagnostic replay passed without changing production validation or prompts"
+    },
+    {
+      "command": "skill-creator/scripts/quick_validate.py skills/requirement-analyst",
+      "status": "PASS"
+    },
+    {
+      "command": "pnpm audit --json",
+      "status": "FAIL",
+      "counts": {
+        "high": 8,
+        "moderate": 13,
+        "low": 6
+      },
+      "newAdvisoryIds": []
+    },
+    {
+      "command": "pnpm audit --prod --json",
+      "status": "FAIL",
+      "counts": {
+        "moderate": 1,
+        "low": 1
+      }
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS"
+    },
+    {
+      "command": "Changed Markdown relative links, JSON and CI YAML parsing",
+      "status": "PASS"
+    },
+    {
+      "command": "Changed text artifacts and task logs credential-pattern scan",
+      "status": "PASS"
+    },
+    {
+      "command": "Tracked API build cache restored byte-for-byte",
+      "status": "PASS"
+    }
+  ],
+  "realProvider": {
+    "model": "deepseek-flash",
+    "actualUpstreamCalls": 14,
+    "http200": 14,
+    "reservedOutputTokens": 26624,
+    "knownValidatedPromptTokens": 26083,
+    "knownValidatedCompletionTokens": 6219,
+    "unrecordedUsageCalls": 1,
+    "unrecordedUsageExplanation": "Provider rejected the second upstream-200 response in the first isolated C attempt; do not report partial counters as a complete bill",
+    "runs": [
+      {
+        "scene": "B background + local budget rejection",
+        "evidence": "initial-mixed-run/real-provider.json",
+        "status": "CALL_FAILED",
+        "modelCalls": 4,
+        "reservedOutputTokens": 8192,
+        "promptTokens": 9456,
+        "completionTokens": 1915,
+        "upstreamStatuses": [
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      {
+        "scene": "A requirement",
+        "evidence": "real-a/real-provider.json",
+        "status": "CALLS_COMPLETED",
+        "modelCalls": 4,
+        "reservedOutputTokens": 8192,
+        "promptTokens": 7820,
+        "completionTokens": 2225,
+        "upstreamStatuses": [
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      {
+        "scene": "C provider validation failure",
+        "evidence": "real-c/real-provider.json",
+        "status": "CALL_FAILED",
+        "modelCalls": 2,
+        "reservedOutputTokens": 2048,
+        "promptTokens": 2309,
+        "completionTokens": 57,
+        "upstreamStatuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "scene": "C diagnostic replay",
+        "evidence": "real-c-diagnostic/real-provider.json",
+        "status": "CALLS_COMPLETED",
+        "modelCalls": 4,
+        "reservedOutputTokens": 8192,
+        "promptTokens": 6498,
+        "completionTokens": 2022,
+        "upstreamStatuses": [
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    ]
+  },
+  "notRun": [
+    "Actual user interactive Codex trust and automatic project configuration discovery",
+    "Independent security, device, screen reader and visual sign-off",
+    "Remote CI",
+    "Development 5433 and production migration 0005-0008"
+  ],
+  "approvalBlocked": [
+    "Development activation remains pending explicit target authorization H-15"
+  ],
+  "gitActionsPerformed": []
+}

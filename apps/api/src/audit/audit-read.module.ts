@@ -37,7 +37,7 @@ export class AuditReadService {
         const rows = await this.repository.list(
           tx,
           project.id,
-          project.projectRole === 'CLIENT',
+          project.projectRole,
           input,
         );
         const result = [];

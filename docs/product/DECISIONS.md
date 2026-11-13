@@ -14,6 +14,7 @@
 - D-06：DeepSeek / MCP 属于 P1，不阻断核心 P0 发布。
 - D-07：v1 不接支付；访谈真实用户以验证商业价值。
 - D-08：生产用 Linux VPS + Compose + HTTPS 或经审批的托管替代。
+- D-09（2026-11-13 Accepted）：批准R08之后的AI工作流升级并授权实施。两类独立个人工作稿、常见文档背景（内部/共享分离）、预览确认后的有限业务操作、Linux/WSL Codex安装授权向导；外部MCP仍只读批准规格，无完整聊天持久化。具体边界及阶段见 [执行计划](../engineering/AI_WORKFLOW_PLAN.md)。新SQL仍须审核；不授权自动Commit/Push/PR/Merge/部署。
 
 ## 设计派生约束（需要代码测试）
 - 项目初始可无 Client，但一旦开始正式审批，Client 绑定按 v0.2 规则锁定。

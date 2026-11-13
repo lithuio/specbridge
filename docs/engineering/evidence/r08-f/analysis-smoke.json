@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "model": "deepseek-flash",
+  "schemaValid": true,
+  "usage": {
+    "prompt_tokens": 225,
+    "completion_tokens": 295
+  },
+  "durationMs": 2405
+}

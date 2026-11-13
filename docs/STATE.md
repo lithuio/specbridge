@@ -1,6 +1,208 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-12。Web review 的表单保留/重置修复与完整浏览器回归完成，待负责人审阅/提交；远程 CI 与独立人工评审 NOT RUN。下方保留历史检查点。
+> 更新时间：2026-11-13。AI工作流及视觉统一已提交至c6f9efb。本轮修复Review指出的中断替换上传CAS死循环；文档HTTP/数据库回归12项、API类型/Lint及格式检查通过。改动未提交，无Schema/依赖变更；未执行Commit/Push/PR/Merge/部署。
+
+## Review修复 — 中断替换上传的版本校验
+
+负责人要求解决Review的P2问题。开工HEAD `c6f9efb`，工作区干净；复核Issue #17、AC-31/34及背景资料契约。本轮仅修改DocumentsService、现有文档E2E和API/STATE文档。
+
+- 替换上传在项目锁内按恢复前版本校验CAS与ACTIVE状态，再处理超时PROCESSING记录。恢复及新版本预留仍处于同一事务，保留旧READY内容和共享指针。有效重试不再因恢复自身递增版本而永久409，过期请求在文件清理前拒绝。
+- 新增3项真实HTTP/PG/文件回归：超时替换并发重试仅一个成功、真实过期版本拒绝且文件/数据/审计无副作用、未超时上传继续阻塞；同时验证失败/新版本编号、审计、旧共享可读及新内容对Client不可见。
+- 红测：`node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:documents -t 'replacement.*retr'` 在修复前2失败/1通过/9跳过，复现双409和过期请求删除文件。首次沙箱连接5434报EPERM；授权后在隔离库实际执行，未将环境失败计作验证。
+- PASS：`node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:documents`（12/12）；`pnpm --filter specbridge-api typecheck`；`pnpm --filter specbridge-api lint`（修正新增测试排序比较器后无警告）；`pnpm --filter specbridge-api exec prettier --check src/documents/documents.service.ts test/documents/documents.e2e-spec.ts`；`git diff --check`。
+- 本轮未运行Web/MCP、全量API回归或远程CI；无新增SQL、开发/生产数据操作。合并前仍需人工Review与CI。建议Commit：`fix(documents): preserve replacement CAS during upload recovery`。
+
+## AI组件视觉与交互统一 — 本地完成（历史交接，后续已提交c6f9efb）
+
+负责人要求沿用R07风格，优化新增背景资料、访问凭据、Copilot及工作台的视觉与操作反馈。开工分支`feat/17-ai-agent-integration`、HEAD`184112e`，初始仅`apps/api/tsconfig.build.tsbuildinfo`有已有改动；该文件与开工备份逐字节一致，未覆盖。复核Issue #17与AC-28–34，仅实施此次获授权的Web优化。
+
+- 统一图标刷新、组件间距、状态标签、原生选择控件与确认弹窗。背景资料支持中文文件选择、已选大小、替换时定位/聚焦、明确共享确认与成功反馈；Client读取范围、409和未知结果不变。
+- 凭据创建/列表桌面分栏、手机堆叠，明文/撤销弹窗统一；本地连接增加步骤说明和实际复制反馈，改变路径会清除旧命令显示。Token清理、过期/撤销与本地安全安装流程不变。
+- Copilot新增仅填入输入框的提问建议、消息层次、阻塞提示、编号下一步与真实来源卡；统一个人提案选择/编辑和需求工作台。没有新增图表数据、自动发送、自动Ready/审批/验收或业务写入路径。
+- PASS：Web `typecheck`、`lint`（0警告）、`build`；九套件31项回归（资料2/Copilot4/Token4/连接2/提案4/工作台6/表单保留6/项目2/原界面1）。真实Chromium/Nest/5434隔离库，模型使用既有Mock；连接套件包含真实CLI→网页确认→私有凭据→stdio MCP链路与剪贴板验证。详细命令见[证据](ux/evidence/ai-workflow-polish/README.md)。
+- 代表性桌面/320/390px图像已打开复查；28个axe状态0自动违规，18状态有incomplete并保留补充对比度。新增共享弹窗焦点/Escape/返回焦点、替换文件定位、建议不发请求和复制反馈断言。初版文件标签匹配失败已通过显式ARIA关联修复并复验。
+- NOT RUN：本次真实付费DeepSeek/真实Codex模型Host、全量API/数据库回归与远程CI；本轮无相关逻辑变更。独立人工视觉、真实设备与读屏仍需负责人复核。既有模型可靠性、H-17依赖公告与H-20/H-21人工事项没有被此次视觉检查关闭。
+
+用户停止开发服务后完成浏览器验证；测试子进程已退出，3000/4000空闲，可按原命令重新启动开发服务。仅隔离测试栈沿用已审迁移，没有生成SQL、改动.env或访问开发数据库。更新R07设计补充与文档索引，停止在本次视觉范围。建议本地Commit：`style(web): unify AI workflow surfaces and copilot interactions`；PR摘要与人工核对入口见[视觉交接](ux/evidence/ai-workflow-polish/README.md)。
+
+## AI工作流升级 — E完成最终本地集成验证（历史交接，后续已提交184112e）
+
+负责人“继续阶段E”，开工分支`feat/17-ai-agent-integration`、HEAD`e9e5efd`、工作区干净。读取AGENTS、Issue #17、AC-28–34与A–D交接后，仅补测试/编排/证据与文档，无业务功能/Schema/依赖变更。[全部命令与结果](engineering/evidence/ai-workflow-e/README.md)、[综合人工范例](engineering/AI_WORKFLOW_E_ACCEPTANCE.md)、[截图](ux/evidence/ai-workflow-e/README.md)。
+
+- 新增Owner授权兑换Token→真实stdio→指定批准版本/Revision→跨项目拒绝→撤销拒绝的第11项连接HTTP测试。聚合HTTP脚本纳入AI44项；连接套件显式构建MCP；CI自动包含新增测试，仍不依赖真实Key。真实AI脚本改精确文件正则，统计和截图使用本轮独立目录；增加仅Smoke可用的有界白名单响应元数据。
+- PASS：API161/MCP28单元、13文件102数据库、141 HTTP（Auth16/RBAC13/R049/R058/R067/reads9/Token9/MCP6/资料9/连接11/AI44）、公共路由5、CI保护4、14套件44真实浏览器。API/Web/MCP类型、Lint、Build，51路径OpenAPI与Web类型、迁移元数据、Skill格式通过。普通MCP跳过Host/Inspector两项；显式独立真实运行8项全部通过，含这两项，不重复累加原6项。
+- 真实DeepSeek三场景最终通过：人工Revision、共享背景检索与来源、Copilot提案确认只发布1问题。共14次上游HTTP200、26624预留输出；已知输入26083/输出6219，另1被拒绝响应usage未记录，不能当完整账单。首次提案响应校验失败；有界诊断复验成功，未改生产验证/提示词，原失败根因未确定。初次文件选择误选3场景触发本地预算拒绝已修，保留失败证据；另一次并发build造成契约检查失败，串行复验51路径通过。
+- 安全自查和负面测试涵盖Client/Developer/作者/租户隔离、shared-only公开生成、Prompt Injection、未注册工具/伪造参数、Session撤销及锁等待、审计回滚、CAS/幂等、不可变历史和凭据生命周期。本轮无新增业务安全缺陷发现，不代替独立人工Review。真实Host使用生成MCP表的隔离CLI覆盖，实际用户信任自动发现仍NOT RUN，真实Codex配置未修改。
+- 代表性桌面/320/390px截图已打开抽查；48个axe状态0违规、26状态有incomplete，保留对比度补充与键盘检查。模型答案长且有技术字段，私有预览持久化与正式写入措辞需要人工核对；真实设备/读屏/视觉签字NOT RUN。
+- FAIL：依赖全量27公告（8high/13moderate/6low）、production口径2条（deepmerge low/minimatch moderate），与已提交D无新增ID；H-17待处理。H-21记录最终验收和实测模型可靠性风险。0005–0008哈希不变、数据库仍23表/9迁移/10触发器，开发5433/生产未应用；H-15目标授权未扩大。远程CI、独立安全验收与H-20实际信任加载NOT RUN。
+
+停在E，无自动Git或部署操作。API构建缓存已恢复开工字节，临时浏览器/宿主/凭据由测试清理，专用外部Token撤销；未停止开发服务或清空数据库。建议本地Commit：`test(ai): verify integrated AI workflows and agent connections`；[最终PR草案](engineering/AI_WORKFLOW_PR_DRAFT.md)已按A–E现状重写。
+
+## AI工作流升级 — D完成本地Codex安装授权（历史交接，后续已提交e9e5efd）
+
+负责人“批准，继续任务”明确批准[0008完整SQL](engineering/AI_WORKFLOW_D_SQL_REVIEW.md)仅用于127.0.0.1:5434/specbridge_test / specbridge_test。SHA-256 `2fa26bd9bee6c4f420d9cdd3f8adb9b231fa2c2a2ad5ab77f1edfb087364d74b`复核一致、原字节激活；23表/9迁移/10触发器、旧22表和数据保持。分支`feat/17-ai-agent-integration`、HEAD`c0960b0`保持，延续上轮未提交D准备改动；开发5433/生产未应用0005–0008。
+
+- D已实现访问凭据页的连接命令、Owner明确确认、本人记录/取消、PKCE一次性兑换；专用Guard拒绝Cookie/Bearer/Origin/Sec-Fetch，重验原Session/当前Owner/ACTIVE项目。Workspace→Project→Session共享→Grant锁；Token创建、消费、审计同事务，无匿名申请或新MCP写工具。
+- CLI支持Linux/WSL、Node22和本仓库构建产物，私有存储预检、loopback、限时限长兑换、仓库外0700/0600凭据、真实stdio诊断、完整TOML保留合并、Skill安装、重复检查、--status与--uninstall。Token不进入网页/模型/项目配置/日志，卸载不冒充远端撤销，不修改真实用户Codex信任。
+- PASS：102数据库、161单元、授权HTTP10、Auth16/RBAC13/Token9、MCP28；真实MCP HTTP6+独立真实Codex Host1，浏览器新增2+Token回归4。API/Web/MCP类型、Lint、Build、51路径契约、db:check、锁文件及Skill验证通过。[实际证据/失败修复](engineering/evidence/ai-workflow-d/README.md)、[人工安装与恢复范例](engineering/AI_WORKFLOW_D_MANUAL.md)、[截图](ux/evidence/ai-workflow-d/README.md)。
+- Host实际使用生成配置表（隔离CLI覆盖）、安装Skill与私有文件launcher，调用两工具/引用批准版本并忽略注入指令，业务不变，专用Token撤销。隔离模式下临时信任覆盖不能激活项目层，因此没有把该测试说成真实用户信任后的自动发现PASS；该人工步骤见H-20，真实配置未动。
+- 真实浏览器发现Node fetch隐式Sec-Fetch请求头被Guard拒绝，改原生HTTP并增加真实头/中断测试后通过。桌面/390/320px截图已检查，axe0违规，手机导航颜色incomplete有补充计算；不替代独立设备/读屏验收。
+- FAIL（既有依赖审计）：本次27条公告（8high/13moderate/6low），与开工HEAD隔离审计完全相同，无新增ID；新增smol-toml1.9.1未命中，SDK Client仅转运行依赖。H-17已扩充，不沿用历史2条结论冒称干净；没有无关依赖升级。
+- NOT RUN：实际用户Codex信任加载、独立人工安全/设备/读屏、Inspector和DeepSeek本次重跑、E最终全量/远程CI、开发/生产新迁移。同UID/root不受文件权限保护，多文件崩溃需先撤销后恢复；一目录一托管连接/配置冲突拒绝。H-15开发启用仍需明确目标授权。本轮停止D，不进入E或执行Git写操作。
+
+## AI工作流升级 — C完成人工确认提案（历史交接，后续已提交c0960b0）
+
+负责人“批准并继续”明确批准[0007完整SQL](engineering/AI_WORKFLOW_C_SQL_REVIEW.md)仅用于 `127.0.0.1:5434/specbridge_test` / specbridge_test。SHA-256 `a5a9788072b5caf6366a83f28197340f7709fb4a5c50fd2c181d21407bc66010`复核一致，原字节迁移，旧21表定义/数据保持；当前22表/8迁移。分支`feat/17-ai-agent-integration`、HEAD`6fb81b8`未变，保留A/B全部未提交工作。开发5433/生产未应用0005–0007。
+
+- C已接通Copilot中的真实需求来源入口、个人提案准备/读取/编辑/删除/明确确认和回执。四种白名单仅发布所选问题、创建Revision、创建/更新商业DRAFT；模型工具继续只读，无自动Ready/Submit/审批/验收。
+- 生成问题/规格重新走共享背景上下文，不转用内部聊天/工具正文；可复制本人工作稿并绑定来源版本。商业范围/标准来自真实最新就绪规格或当前草稿，估算与金额需人工核对。100份未执行上限、24h有效期、分页、准备限流；没有完整聊天持久化或自动删除周期。
+- R04/R05事务命令复用，业务/审计/执行回执原子提交；独立提案CAS与原业务版本、来源/共享权限重验，operationId防重复。新增负面测试复现锁等待中退出登录仍执行的问题，已修复为聚合锁后Session复核并持有共享锁，现401且业务不变。
+- PASS：100数据库、158单元、44 AI HTTP（含11提案）；Auth16/RBAC13/R049/R058/reads9；新增浏览器4、原Copilot4、真实DeepSeek1。API/Web类型/Lint/Build、47路径契约、db:check通过。真实模型4请求全200，6497输入/1815输出Tokens，确认前业务不变、人工确认后只新增1问题。详见[工程证据](engineering/evidence/ai-workflow-c/README.md)、[人工范例](engineering/AI_WORKFLOW_C_MANUAL.md)、[截图](ux/evidence/ai-workflow-c/README.md)。
+- Drawer关闭重开保留编辑/未知操作编号，409不重放，网络未知先查本人回执；手机任务展开时收起聊天输入。桌面/手机axe各26规则/0违规，但有焦点/颜色未判定项及补充检查；不替代独立设备、读屏与安全验收。真实模型回答仍偏长且有技术字段文案，待H-18体验核对。
+- NOT RUN：D安装授权、E最终全量、远程CI、新迁移开发/生产启用、本轮MCP Host/Inspector及独立人工验收。B记录的2项既有依赖公告仍待H-17处置，本轮无新增依赖。未改.env、用户Codex配置或执行Git远程操作。建议Commit：`feat(copilot): add private proposals with human-confirmed execution`。
+
+## AI工作流升级 — B完成 / C候选的历史交接
+
+负责人本轮“批准，继续开发”后，复核0006 SHA-256及0005 parent snapshot，将已审SQL原字节激活并仅应用 `127.0.0.1:5434/specbridge_test`（角色specbridge_test）。分支仍 `feat/17-ai-agent-integration` / HEAD `6fb81b8`，保留A未提交改动。当前运行时21表/7项迁移；开发5433/生产未应用0005/0006。
+
+- B已实现项目可选背景上传、PDF/DOCX/MD/TXT受限解析、私有原件、不可变版本/分段、授权列表与分页文字读取。Owner/显式Developer内部读取上传；只有Owner能明确共享某个READY版本、撤回及停用；替换不自动共享，Client不见内部版本/名字/失败/配额。
+- 复用Session/CSRF与项目锁/审计，multipart仅专用上传路径；20身份/100MiB历史与在途预算，单文件10MiB，50用户/60项目每小时上传、每实例2个在途。失败原件清理不影响旧版本；中断由后续上传恢复。Linux子进程CPU/墙钟/heap/RSS监控/解压与输出限制；非完整OS沙箱，见安全限制。
+- 新工作台自动检索shared-only背景并展示真实版本/段落来源；Copilot增加一个授权背景检索工具，后续推理和最终响应复核来源权限。MCP仍只读批准规格，两工具未扩权。AI、解析、Prompt注入均不产生Ready/Submit/审批/验收。
+- PASS：98数据库、155单元（含真实子进程监督）；背景HTTP9、原AI/工作稿/Copilot33；Auth16/RBAC13/R049/Change8/Delivery7/reads9/Token9/MCP6。新增浏览器2、工作台6/Copilot4/Projects2；真实DeepSeek背景1。API/Web类型、Lint、Build、44路径契约、db:check和diff检查通过。[工程证据](engineering/evidence/ai-workflow-b/README.md)。
+- 真实deepseek-flash：4请求全200，9195输入/1640输出Tokens，8192预留；公开澄清2个共享片段，Owner Copilot2次真实工具读取/4来源；Requirement前后不变。[人工范例](engineering/AI_WORKFLOW_B_MANUAL.md)、[截图](ux/evidence/ai-workflow-b/README.md)。密钥未进Web、解析器、日志或证据。
+- 依赖审计实际有2项既有shadcn传递依赖公告（deepmerge low/minimatch moderate），初始HEAD已存在；新增解析依赖无本次命中。没有擅自做无关升级，发布前需H-17处理。手机axe有导航对比度incomplete及补充计算证据；独立设备/读屏/安全Review仍NOT RUN。
+- C已准备[独立0007审核包](engineering/AI_WORKFLOW_C_SQL_REVIEW.md)：一张本人提案/幂等执行回执表，四类白名单、独立CAS/业务版本、24h过期、终态不可改。SHA-256 `a5a9788072b5caf6366a83f28197340f7709fb4a5c50fd2c181d21407bc66010`。未导入运行时、未加入journal、未执行SQL；只完成静态生成/旧21表对照。需H-16明确批准5434隔离验证后继续C，不能沿用0006批准。
+- NOT RUN：C确认执行、D一键Codex、E最终全量、远程CI/独立人工验收；本轮MCP Inspector/Codex付费Host2项按设计skip。没有更改.env或用户Codex配置，没有自动Git写入/部署。建议B Commit：`feat(context): add private project documents and authorized AI retrieval`。
+
+## AI工作流升级 — A完成 / B候选的历史交接
+
+开工 `feat/17-ai-agent-integration` / HEAD `6fb81b8`，工作区最初干净。负责人批准总方案后批准0005的5434/specbridge_test隔离验证；[总计划](engineering/AI_WORKFLOW_PLAN.md)、[CHECKPOINT](engineering/AI_WORKFLOW_CHECKPOINT.md)。D-09/AC-28–34是R08后的增量，原P0不变量未降低。
+
+- A新增clarify/specification授权生成接口，复用Provider/预算/超时/前后授权；生成不写记录。新个人工作稿限本人，Owner也不能代读，Client只用澄清。Web双任务、预览/编辑/选择/删除/个人保存/跨刷新继续；对客发布明确确认。
+- 工作稿独立CAS及draftId防删除重建ABA；发布在原R04业务事务中批量创建问题或单一Revision，expectedVersion/Pending/历史不可变保持；问题、采用标记、回执、审计原子提交。operationId安全重放/查询，未知结果不另建操作；409、AI失败和会话复核保留输入/恢复按钮。无AI Ready/Submit/审批/验收。
+- 0005已按审定SHA-256 `3ef341ab762315d265f03ec32ab40813e32eaeec6b308fb7279297c1f0153e7c` 应用隔离库；原16表不变，当前运行时18表/6迁移。开发5433/生产未由本轮迁移；如未应用0005，新工作台会提示无法加载，原手动主流程保持。
+- PASS：149单元、95数据库、33 AI/工作稿/Copilot HTTP；Auth16/RBAC13/Requirement9/reads9；工作台浏览器6、R04/表单/Copilot浏览器12、真实DeepSeek浏览器1；类型/Lint/Build、41路径OpenAPI、db:check。过程中的环境/构建竞争/测试定位/账号限额失败已修复并重跑。[命令与结果](engineering/evidence/ai-workflow-a/README.md)。
+- 真实deepseek-flash：4模型调用全部200，7146输入/2216输出Tokens，预留8192。人工发布Revision与Copilot真实工具来源通过；只由隔离API子进程加载.env，计数证据无密钥或Prompt，截图仅合成资料。[截图](ux/evidence/ai-workflow-a/README.md)、[人工测试范例](engineering/AI_WORKFLOW_A_MANUAL.md)。
+- 审阅真实回答发现正文中“未保存草案”措辞可能在发布后过时；已收紧规格/Copilot提示，存储状态以真实对象和版本为准。Mock回归通过，措辞改进未再次付费验证，模型准确性仍须人工核对。
+- B已准备[候选审核包](engineering/AI_WORKFLOW_B_SQL_REVIEW.md)：3表与不可变解析版本/分段/安全指针触发器；共享绑定具体版本，替换不自动共享。SQL SHA-256 `6efe3cd862b3167478ce1be8095a791379eae39852801d7f0616c635516272e4`。候选不注册到生产Schema/生效journal；仅静态typecheck/lint/Drizzle/snapshot对照PASS，未执行迁移或实现上传/解析/检索。
+- NOT RUN：B数据库/文件功能、C确认执行、D一键Codex、E最终全量、远程CI与独立人工验收。下一门槛仅申请0006用于5434/specbridge_test，开发/生产及其他SQL不在批准范围。H-14/H-15列出需负责人处理事项；不将整体任务标记完成。
+
+---
+
+## R08 本地启用修复 — 历史交接（后续已提交6fb81b8）
+
+开工分支 `feat/17-ai-agent-integration` / HEAD `922eef1`，工作区干净。负责人报告503且Copilot modelCalls=0，并明确要求应用0004、整体可用及人工测试范例。
+
+- 确认根.env中AI未开启，Key存在且开启后配置校验通过；仅持久设置 `DEEPSEEK_ENABLED=true`，其余字节保留。日志所示4ms/0模型调用符合配置在Provider前拒绝；Observe禁用与此无关。API已重新启动载入真实配置。
+- 依本轮新增授权，只在127.0.0.1:5433/specbridge开发库应用已审0004。已有0000–0003 hash匹配，迁移4→5；审核SHA-256仍为 `7133f1d8fc11ef93f84314dede4257cbba23452dec9ca49a2fdb57ce5cc0bd0a`。原15表列定义/行数保持。无新SQL、生产迁移或业务规则变更。
+- 实际标准开发进程（无Mock）PASS：浏览器需求分析200/结构完整，247输入/283输出tokens、2505ms；Copilot200、3模型请求/2工具读取、真实来源、9973ms；需求快照不变。Token创建/列表/UI、MCP tools/list/call、未批准项目空目录及撤销拒绝均通过，浏览器0错误。
+- 验证仅新建一个独立合成账号/工作空间/项目/Draft需求，未修改已有用户业务；临时Token和会话已撤销，审计与合成对象保留。未自动Revision/Ready/Submit/审批/验收；本轮开发环境无人工批准数据测试，已批准详情和角色/过期完整测试沿用F证据。
+- [本轮结果/截图/迁移证据](engineering/evidence/r08-local/README.md)。[完整人工测试手册](engineering/R08_MANUAL_TEST.md)含可复制需求、人工采用、409、Copilot多轮/隔离、双重批准→MCP、Token生命周期、Skill提议与失败降级。
+- 当前Web http://localhost:3000、API4000保持运行；以后用 `DEEPSEEK_ENABLED=true pnpm dev:api` 和 `pnpm dev:web` 重启。外部宿主仍由使用者按手册选择项目并安全配置Token；本轮未改Codex配置。MCP不调用DeepSeek，宿主模型独立。
+- 无未解决FAIL；本轮未重复不受影响全量回归。H-11人工安全/视觉验收和远程CI仍待办。未Commit/Push/PR/Merge/部署，建议 `docs(ai): document verified local setup and manual acceptance scenarios`。
+
+---
+
+## R08 Phase F — 历史交接（后续已提交922eef1）
+
+开工 `feat/17-ai-agent-integration` / HEAD `d75d39e`；初始仅 `apps/api/tsconfig.build.tsbuildinfo` 有改动，已保留开工内容。已核对AGENTS/Issue #17/R08计划和A–E交接。本轮验证完整AI/Agent，不新增业务功能或改变批准基线。
+
+- 新受控真实浏览器入口：真实DeepSeek分析→人工编辑采用→原R04 expectedVersion保存→Copilot只读工具和真实Revision来源。只有独立API子进程加载.env；Next/Playwright无Key，最多4请求/8192预留输出tokens、CI禁止运行。原文保留，AI不自动Ready/Submit/审批/验收，Copilot前后业务/审计/Revision快照不变。
+- PASS：本轮独立Provider Smoke 225输入/295输出tokens、2405ms；真实浏览器16.4s，4次模型请求均200，6505输入/1791输出tokens，1次工具读取/2条实际来源。没有故意制造付费服务故障或自动重试；异常走Mock验证。
+- PASS：API128/MCP16单元、数据库92、基础HTTP5、Auth16/RBAC13/Requirement9/Change8/Delivery7/reads9/Token9/MCP6、AI/Copilot HTTP19；最终全部36个浏览器场景；根Lint/build、三包typecheck、36路径OpenAPI漂移、db:check。精确命令/已解决FAIL见 [F工程证据](engineering/evidence/r08-f/README.md)。
+- PASS：Inspector2.15.0真实tools/list与两个tools/call；Codex0.167.1+Skill真实list→detail，43.03s，批准事实/背景/提议分离，嵌入泄露/审批指令忽略，业务快照不变；Skill格式通过。客户端用隔离项目/临时Token，结束撤销和清理，未改用户配置；[本轮合成答案](engineering/evidence/r08-f/host-smoke.json)。
+- CI补4项真实Smoke拒绝验证，保留AI/Agent Mock、MCP实际stdio/API/DB及浏览器回归；无真实Key依赖。修复旧基础测试15表/PK/id断言；修复Copilot对比度检查采样到启用动画中间帧的竞态（opacity0.5→1，阈值不变）。无生产源码、Schema/SQL或依赖变更。
+- [六张真实浏览器截图与键盘/响应式结果](ux/evidence/r08-f/README.md) 已逐张查看；1440/390/320视口无阻断布局问题，真实AI五状态axe自动违规0。未判定的叠层颜色/焦点守卫保留；模型长回答和内部状态码作为文案验收项，不扩大范围改UI。
+- API/Token安全自查无未解决越权/自动审批/历史可变/凭据泄露发现；隔离、撤权重验、事务审计、只读scope、注入/限额/失败恢复均有负面证据。仍有单实例内存预算、共享代理IP限额、Host自有权限和已返回资料无法撤回等边界；不等于独立人工安全签字。
+- 最终无未解决FAIL/本地实施BLOCKED。NOT RUN：远程CI、独立人工安全/视觉验收、多浏览器/OS/真实手机/读屏/真实200%缩放、Observe真实外部接收、开发/生产迁移和部署、备份恢复演练。H-11待负责人处理；不能以本地PASS关闭整个Issue验收门槛。
+- 所有数据库验证仅5434/specbridge_test；0004仍为已审SHA-256 `7133f1d8fc11ef93f84314dede4257cbba23452dec9ca49a2fdb57ce5cc0bd0a`，无新迁移。测试HTTP/stdio进程已退出，既有隔离DB保持运行。未读取/修改真实用户数据或打印密钥。
+- 后续：负责人审阅diff、答案、截图和 [最终Commit/PR草案](engineering/R08_PR_DRAFT.md)，自行本地Commit；远程CI/PR/合并/部署另行授权。本Session在F停止。
+
+---
+
+## R08 Phase E — 历史交接（后续已提交d75d39e）
+
+开工分支 `feat/17-ai-agent-integration` / HEAD `55ad908`，初始工作区干净；已核对Issue #17/AC-20、D Token与批准读取实现、当前官方MCP协议/SDK/Skill/Codex规范。只实施E，未Commit/Push/PR/Merge/部署，不进入F。
+
+- 新 `apps/mcp` 本地stdio，SDK Server/Client精确2.4.0，直接Node运行；仅list_project_requirements/get_approved_spec两工具，经Bearer调用Nest已有授权GET。固定可信origin/project，严格参数/输出Schema，MCP无DB/业务写能力。目录是批准版本条目、显式分页及预览裁剪；详情区分批准范围与引用不可变Revision，附实际对象/版本/读取来源。
+- HTTPS/loopback、拒绝重定向、无Cookie/缓存/自动重试；10秒/2MiB、输入64KiB、并发2/60次每分钟、取消/EOF释放。Token仅本地环境→私有认证头，不放argv/URL/配置/日志；API逐次重验scope/过期/撤销/当前项目授权。Skill不是沙箱，也不构成完整HTTP OAuth MCP授权。
+- 新 `skills/requirement-analyst/SKILL.md` 指导上下文→批准规格→事实/背景/推测→模糊点/实施及验收建议；实际版本引用、不扩大范围、不跟随正文注入、不执行Ready/Submit/审批/验收。安装、Codex配置和可复现命令见 [MCP README](../apps/mcp/README.md)。未改现有Codex配置/.agents/.codex或真实.env。
+- PASS：MCP16项；真实SDK stdio→Nest→隔离PG6项（Host默认SKIP）；Token/Auth授权/事务9项；API单元128项；API/MCP typecheck/lint与MCP构建；Skill格式检查、锁文件离线冻结安装。精确命令、结果与已解决FAIL见 [R08_PLAN E](engineering/R08_PLAN.md) 及 [E测试证据](engineering/evidence/r08-e/README.md)。
+- PASS：真实Codex CLI0.167.1 + Skill合成场景，最终35.36s；实际list→detail，精确版本/Revision引用、背景导出能力未扩大范围、嵌入泄露/审批指令被忽略、无写操作、业务快照不变。合成答案已阅读核对；临时Token结束撤销，临时目录清理，原始日志不落盘。[安全合成证据](engineering/evidence/r08-e/host-smoke.json)。不把单场景成功视为通用模型安全保证。
+- CI纳入MCP unit/protocol/typecheck和实际API/DB客户端测试，无真实Key；Host模型测试必须显式opt-in并拒绝CI。无API生产/Web/Schema/SQL/OpenAPI变更，D已审0004仅复用于5434隔离库且字节未变；tracked API构建缓存保持。测试HTTP/stdio进程已退出，隔离DB保持运行。
+- 已解决沙箱子进程/网络限制导致的初次测试与安装失败，获准重跑PASS；最终无未解决FAIL。NOT RUN：Inspector、多Host/OS、远程CI、独立人工安全评审、DeepSeek/Web真实联调及R01–R08全量回归；均留F或人工验收。
+- 人工：审阅diff/文档/合成答案后自行本地Commit。实际连接须Owner发放项目Token并在可信终端配置；注意宿主独立权限、单进程配额及已返回资料无法追溯撤回。建议摘要：`feat(mcp): add project-scoped read-only stdio tools and requirement analyst skill (#17)`。本Session到E停止。
+
+---
+
+## R08 Phase D — 历史交接（后续已提交55ad908）
+
+分支 `feat/17-ai-agent-integration` / HEAD `9ba8f34`。首次生成候选Schema/SQL后遵守暂停要求；本轮负责人回复“已审批”，获准只在隔离PostgreSQL应用并继续D。未Commit/Push/PR/Merge/部署。
+
+- `0004_project_api_tokens.sql` SHA-256：`7133f1d8fc11ef93f84314dede4257cbba23452dec9ca49a2fdb57ce5cc0bd0a`，应用前后未变。`pnpm db:migrate:test` 在5434/specbridge_test库及账号成功；H-10已完成。[完整审核记录](engineering/R08_D_SQL_REVIEW.md)。原15表和0000–0003 SQL/snapshots/旧journal保持，新增表不含明文列；未迁移开发/生产库。
+- Owner创建/分页列表/幂等撤销，256-bit随机凭据、SHA-256摘要、固定approved_specs:read、默认30天/整数1–90天。每次请求重验期限/撤销/scope/ACTIVE项目及创建者当前Owner资格。创建与撤销审计同事务，无恢复或续期接口。
+- 独立Token principal仅用于两条批准规格GET/HEAD；拒绝混合Cookie/Bearer、重复头、跨Project/Workspace及普通业务读写。只投影精确同版双方批准的技术范围及关联不可变Revision，二者分开；不泄露当前草稿/原文/商业详情/审批评论/人员邮箱。无AI自动业务写入。
+- 使用审计actor=null/principalType=project_token，Owner-only在SQL分页前过滤。读取锁与撤销串行，等待撤销提交后重新检查并拒绝；已提交读取响应无法追溯撤回。审计失败拒绝读取，创建/撤销失败事务回滚。单进程创建/Token/IP限流，无新依赖或环境变量。
+- 沿用R07项目导航与组件，Owner“访问凭据”UI一次性明文、期限、列表和撤销确认。明文仅组件内存，关闭/隐藏/切页/权限/身份变化销毁，迟到结果不恢复；未知创建结果先核对撤销。无Query/Mutation缓存或浏览器持久化凭据；日志/错误/URL不含Token。
+- PASS：API单元128；最终Token HTTP/DB9；迁移+Auth/RBAC数据库19（补充迁移2项亦PASS）；Auth HTTP/代理16、RBAC HTTP/代理13、R07读取/审计9；Token浏览器4场景7.7秒。API/Web typecheck/lint及生产build、36路径OpenAPI生成/漂移、db:check、SQL/旧Schema对照与diff检查通过。精确命令及已解决FAIL见 [R08_PLAN D](engineering/R08_PLAN.md)。
+- [桌面/手机证据](ux/evidence/r08-d/README.md)：2张已逐张查看，无明文；键盘及320/390/1440重排，三状态axe自动违规0，导航裁剪导致的颜色未判定项保留并补充对比度。截图/trace不采集凭据。
+- 已解决：沙箱网络/构建端口限制、OpenAPI正整数边界兼容、测试类型/断言及pg查询警告、Dialog动画与导航等待竞态、回归端口冲突（改串行）。最终无未解决FAIL。自建HTTP进程退出，隔离DB保持运行，tracked API构建缓存恢复；未读取/修改.env或访问开发业务数据。
+- NOT RUN：开发/生产迁移、真实DeepSeek（D无模型调用）、MCP/Skill/HTTP OAuth、远程CI、真实Observe外部接收、独立人工安全/视觉Review、多浏览器/真实设备/读屏、完整R01–R08回归。E/F尚未开始；本地PASS不替代最终F。
+- 人工：审阅diff与截图后自行本地Commit；部署及开发/生产迁移另行审批。关注单进程/共享代理IP限额、不可追溯收回在途响应及审计保留容量。建议提交摘要：`feat(auth): add owner-managed project API tokens for approved specs (#17)`。本Session到D结束。
+
+---
+
+## R08 Phase C — 历史交接（后续已提交9ba8f34）
+
+开工分支 `feat/17-ai-agent-integration` / HEAD `642954a`，工作区干净；已核对 Issue #17、R08批准基线、R07 Dashboard/授权读取与当前DeepSeek Tool Calling契约。负责人仅授权C，未进入D，未Commit/Push/PR/Merge/部署。
+
+- App Shell全局入口、项目/页面上下文、右侧Drawer、多轮自然语言；无当前项目时先从授权列表选项目。展示状态解读、可能阻塞点、人工下一步及真实对象/版本/读取时间来源。沿用R07风格，不重做Shell，不自动Ready/Submit/审批/验收。
+- 新增授权 `POST /api/v1/projects/{id}/copilot/messages`，七个固定只读工具；复用现有业务服务读取及Dashboard聚合。严格校验参数/页面父链/真实项目归属，Client商业草稿不进入模型。模型不能更换projectId、注册工具或执行SQL/Shell/写操作。输入/历史/工具正文一律不可信，最终JSON和引用再次校验。
+- 每轮最多10轮历史、4次工具调用、2次选择+1次无工具总结、累计256 KiB输入/8192输出tokens、60秒；工具串行、本轮去重、有标记裁剪。与分析共享用户/项目/实例内存配额；按API轮次预留，非持久账单硬上限。每次模型/工具/最终返回重验会话、项目及角色，撤权/降级丢弃结果。日志仅计数/标识符，Observe不采集Copilot HTTP trace。
+- 聊天仅浏览器内存、按epoch/user/project隔离；刷新/换项目/换号清空。同项目页面切换保留已完成对话；关闭取消请求，重开核验权限，迟到结果不恢复。临时故障保留输入且不阻断手动业务；明确撤权清除。答案为待核实建议，来源不等于模型判断正确。
+- PASS：API单元125、AI/Copilot HTTP+DB19、R07读取9、Auth HTTP/代理16、R04 HTTP/代理9；API/Web typecheck/lint、生产build、OpenAPI32路径生成/漂移。最终Copilot浏览器4项12.2秒；Auth浏览器6项6.2秒、Phase B浏览器6项50.8秒、三角色纯UI全流程与Dashboard聚合1项20.6秒。精确命令与已解决FAIL见 [R08_PLAN C交接](engineering/R08_PLAN.md)。
+- PASS：真实DeepSeek端到端Smoke，`deepseek-flash`，授权HTTP200，3次模型请求/2次工具读取，真实需求和Revision两条来源，Schema/业务及审计不变验证通过，预留输出4096tokens，9646ms。只使用隔离测试库合成数据；.env仅由本地子进程加载，未打印/编辑。CI和浏览器套件使用模拟外部transport，不依赖真实Key。
+- [桌面/手机证据](ux/evidence/r08-c/README.md)：2张截图逐张自检，1440×1000/390×844，320/390/1440重排和Drawer键盘焦点；三状态axe自动违规0，未判定项保留并补充实际颜色对比。Copilot浏览器前端超时使用缩短的原生timer，后端60秒使用fake timers，未声称真实等待65秒。
+- 无新增依赖、Schema、Migration、Token、MCP或Skill；业务写API未改变。已有测试迁移仅在5434隔离库复用，未访问开发业务数据。测试HTTP进程已teardown，测试DB保持运行；tracked API构建缓存恢复为开工内容。
+- 已解决：沙箱本地连接/端口限制与Turbopack失败缓存、READY夹具不能新增澄清、新Revision实际CLARIFYING、键盘断言需等待异步焦点。最终无未解决FAIL。
+- NOT RUN：远程CI、独立人工视觉/安全评审、真实DeepSeek浏览器联调、真实Observe外部接收、Firefox/WebKit/真实设备/读屏、完整R01–R08回归。真实HTTP Smoke不替代最终F的浏览器/MCP/Host联调。
+- 人工：审阅diff与截图后自行本地Commit；实际服务仍需安全Key和 `DEEPSEEK_ENABLED=true`。建议摘要：`feat(ai): add scoped read-only project copilot with verified sources (#17)`。本Session在C停止，D的Token/Schema/SQL审核留独立Session。
+
+---
+
+## R08 Phase B — 历史交接（后续已提交642954a）
+
+开工分支 `feat/17-ai-agent-integration` / HEAD `6bfe681`，工作区干净；已核对 Issue #17、AC-18/19、R07设计与当前 Next/Activity 文档。负责人本轮只授权 B，未进入 C，未 Commit/Push/PR/Merge/部署。
+
+- 保存后的 Requirement 详情新增 AI 分析入口和五类结构化审阅；选择/编辑/删除、显式人工采用、来源版本/读取时间/Revision链接。原文保留；假设/风险标为未确认推断，不能自动写为事实。
+- 采用仅预填既有 Revision 或单条问题编辑器，再次保存才调用 R04 API；Client 无 Revision 入口。expectedVersion/409保留输入并人工核对；未知写结果禁重放；不自动 Ready/Submit/审批，旧 Revision 保持不变。
+- 迟到结果不覆盖编辑；35秒等待上限、503/格式异常/413/429/网络失败、手动重试与可选排除问答。AI不可用时手动流程正常。沿用 R07浅色/面板/44px控件，无Shell重设计。
+- 页面内存按既有身份/项目边界隔离，切页取消在途分析、同账号临时读取失败保留、撤权/退出清除；控件ID/radio组隔离，删除后保持组内键盘焦点。刷新/切换动态需求页面可能丢失AI草稿，不承诺持久历史。
+- PASS：API生产build、Web生产build/typecheck/lint、脚本语法/diff检查；AI浏览器6项52.3秒，最后控件隔离与证据定向2项8.7秒；R04浏览器2项16.7秒、表单保留6项12.5秒、Auth浏览器6项6.1秒。精确命令与已解决失败见 [R08_PLAN B交接](engineering/R08_PLAN.md)。
+- [桌面/手机截图与验证记录](ux/evidence/r08-b/README.md)：4张已自检，1440×1000/390×844视口及完整页面；最终取证场景1项5.0秒PASS，修正滚动时机与高表单定位并断言正文/保存按钮进入画面；320/390/768/1440重排；两状态axe自动违规0，手机3个被裁剪导航项的对比度未判定保留，补充计算5.94:1。
+- 无依赖/API契约/业务后端/Schema/Migration变更。新增独立测试启动脚本注入模拟外部DeepSeek HTTP transport，真实Adapter/授权/JSON/Zod/DB仍运行；CI入口不需要真实Key。不读取真实.env，不打印正文/密钥。测试仅5434隔离库，既有已审迁移复用，HTTP进程已退出，DB保持运行；tracked构建缓存已恢复。
+- 已解决：初次capability字段类型错误、沙箱Docker/编译端口限制与失败缓存、删除焦点、补充测试对动态页面返回保留内存的错误假设；最终无未解决FAIL。
+- NOT RUN：本阶段真实DeepSeek浏览器联调、远程CI、独立人工视觉/安全评审、完整R01–R08回归；最终联调留F。A历史真实Smoke不替代B模型端到端验证。
+- 人工：审阅diff和截图后自行本地Commit；实际使用需服务端 `DEEPSEEK_ENABLED=true` 与安全Key。建议摘要：`feat(web): add human-reviewed AI requirement assistance (#17)`。本Session到B结束。
+
+---
+
+## R08 Phase A — 历史交接（后续已提交 6bfe681），真实 Smoke PASS
+
+`feat/17-ai-agent-integration` / 开工 HEAD `9d43f8f`，开工工作区干净。负责人授权仅A；原 `R08_PLAN.md` 不存在，已按获批修订方案创建 [总计划与精确验证记录](engineering/R08_PLAN.md)。未Commit/Push/PR/Merge/部署，未进入B。
+
+- 新增Nest AI Module、DeepSeek Adapter、只读上下文Repository与授权POST分析接口。复用OpenAI SDK/Zod、官方origin与deepseek-flash，显式non-thinking/JSON mode，strict服务端输入/输出校验及来源版本。
+- 三角色依原Project Policy，Session/CSRF不变；调用前后重验，跨项目/跨需求Revision拒绝，stale不调用模型。分析不自动创建Revision/Ready/审批或审计；业务写入口未改。
+- 30秒/8192 output tokens、128 KiB输入、响应大小、用户/项目/实例调用与并发限额；429/402/503、超时、空白/非法JSON安全失败，SDK不重试，API Key为不可JSON序列化私有字段，不日志输出Prompt/正文/供应商错误。
+- 补齐503安全码、AI专用请求体限额/no-store、Observe保护、31路径OpenAPI与Web生成类型；新增Mock CI入口及独立合成Smoke脚本。无新依赖/Schema/Migration，仅.env.example变更；真实.env仅由获授权的Smoke进程加载，未打印/修改。
+- PASS：API单元113项；最终AI/异常定向22项；AI真实HTTP+DB 9项；Auth/R04 DB 23项；Auth HTTP/Next代理16项；R04 HTTP/Next代理9项；基础HTTP5项。API/Web类型、API Lint、API生产build/OpenAPI drift、格式与diff检查通过。完整命令见R08_PLAN。
+- 已解决：非直接express运行时导入（改既有Adapter）、沙箱5434 EPERM（获准重跑）、Lint warning；服务重启后的未知检查结果已核对重跑。无未解决测试FAIL。测试仅5434隔离DB，既有服务teardown退出，DB保持运行；tracked构建缓存恢复。
+- PASS：负责人确认Key已更换并授权后，执行 `node scripts/with-env.mjs .env node apps/api/scripts/ai-smoke.mjs --run`。仅一次合成需求真实请求，deepseek-flash，JSON/Zod通过；输入225、输出306 tokens，3129ms，exit 0。上限2048输出tokens/30秒，无自动重试，无Prompt/响应正文/密钥输出，不访问DB。此前NOT RUN记录由此次实际证据补齐。
+- NOT RUN：远程CI、独立人工安全评审、浏览器及R01–R08全量回归，最终全量留F；真实Observe外部接收仍未验证。CI保护脚本已验证会跳过真实模型调用。
+- 人工：本地开启API另设 `DEEPSEEK_ENABLED=true`（默认关闭，不影响P0，Smoke仅对子进程临时开启）。审阅后自行Commit。内存限额重启清零，不是持久费用硬上限；单次真实Provider验证不替代内容质量评审与后续浏览器验收。
+- 建议摘要：`feat(ai): add authorized DeepSeek requirement analysis with bounded usage (#17)`。
+
+---
 
 ## Web review — 表单状态保留与创建页复用修复完成，未提交
 

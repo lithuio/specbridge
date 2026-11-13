@@ -1,0 +1,178 @@
+[
+  {
+    "name": "copilot-desktop",
+    "violations": [],
+    "passedRules": 26,
+    "supplementalComputedContrast": [
+      {
+        "target": [
+          "li > .field-hint"
+        ],
+        "ratio": 6.31,
+        "threshold": 4.5
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "aria-hidden-focus",
+        "nodes": [
+          {
+            "target": [
+              "div[data-base-ui-inert=\"\"]:nth-child(9)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(3)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(5)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          }
+        ]
+      },
+      {
+        "id": "color-contrast",
+        "nodes": [
+          {
+            "target": [
+              "li > .field-hint"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined due to a pseudo element"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "copilot-mobile",
+    "violations": [],
+    "passedRules": 26,
+    "supplementalComputedContrast": [
+      {
+        "target": [
+          "article:nth-child(4) > .copilot-answer > .copilot-steps > li > .field-hint"
+        ],
+        "ratio": 6.31,
+        "threshold": 4.5
+      },
+      {
+        "target": [
+          ".copilot-actions > .field-hint"
+        ],
+        "ratio": 6.31,
+        "threshold": 4.5
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "aria-hidden-focus",
+        "nodes": [
+          {
+            "target": [
+              "div[data-base-ui-inert=\"\"]:nth-child(9)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(3)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(5)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          }
+        ]
+      },
+      {
+        "id": "color-contrast",
+        "nodes": [
+          {
+            "target": [
+              "article:nth-child(4) > .copilot-answer > .copilot-steps > li > .field-hint"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined due to a pseudo element"
+          },
+          {
+            "target": [
+              ".copilot-actions > .field-hint"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "copilot-320",
+    "violations": [],
+    "passedRules": 26,
+    "supplementalComputedContrast": [
+      {
+        "target": [
+          "article:nth-child(4) > .copilot-answer > .copilot-steps > li > .field-hint"
+        ],
+        "ratio": 6.31,
+        "threshold": 4.5
+      },
+      {
+        "target": [
+          ".copilot-actions > .field-hint"
+        ],
+        "ratio": 6.31,
+        "threshold": 4.5
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "aria-hidden-focus",
+        "nodes": [
+          {
+            "target": [
+              "div[data-base-ui-inert=\"\"]:nth-child(9)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(3)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(5)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          }
+        ]
+      },
+      {
+        "id": "color-contrast",
+        "nodes": [
+          {
+            "target": [
+              "article:nth-child(4) > .copilot-answer > .copilot-steps > li > .field-hint"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined due to a pseudo element"
+          },
+          {
+            "target": [
+              ".copilot-actions > .field-hint"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          }
+        ]
+      }
+    ]
+  }
+]

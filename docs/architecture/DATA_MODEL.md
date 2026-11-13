@@ -103,9 +103,19 @@ COMMIT;
 
 ## 6. P1 增量实体
 
+2026-11-13工作流A已新增 `requirement_working_drafts`（每作者/需求/类型唯一，独立version/base_requirement_version、受限JSON正文与服务端publication）和 `requirement_publish_receipts`（operationId主键、作者/需求/草稿版本绑定、请求hash与无正文结果，草稿版本唯一消费）。租户从Requirement推导，个人草稿仅本人可读；保存不创建正式Revision。回执不设draft FK，删除个人工作稿不删除已发布历史。**0005已获批并仅应用5434/specbridge_test；A完成时Schema共18表，95项数据库回归PASS。开发/生产未由本轮迁移。** 具体约束及审批范围见 [SQL审核包](../engineering/AI_WORKFLOW_A_SQL_REVIEW.md)。背景资料3表及不可变来源触发器的[0006审核包](../engineering/AI_WORKFLOW_B_SQL_REVIEW.md)随后获批，仅5434隔离应用；当前21表/7迁移、98数据库测试PASS，正式Schema/journal已包含0006。Copilot提案[0007](../engineering/AI_WORKFLOW_C_SQL_REVIEW.md)随后获批并仅在5434应用，当前22表/8迁移、100数据库测试PASS；本地授权表留D另审。
+
 - `ai_analysis_runs`：`id`, `requirement_id`, `requested_by`, `status`, `model`, `input_revision_id`, `output_json`, `error_code`, `created_at`，不存明文密钥；可以在 P1 实施时增加。
 - `api_tokens`：`id`, `user_id`, `project_id`, `token_hash`, `scopes`, `expires_at`, `revoked_at`；仅 MCP 只读 Token，支持撤销与审计。
 - `external_links`：已批准版本与 GitHub Issue URL 对应，**不自动抓取 URL**。
+
+### R08 Phase D 增量（2026-11-12，隔离库及获授权的本机开发库已应用）
+
+当前仓库包含 `apiTokens` Drizzle声明及 `0004_project_api_tokens.sql`；D阶段获批后先在5434隔离specbridge_test库应用，2026-11-12负责人追加本机完整启用授权后，同一哈希SQL已应用到5433/specbridge开发库，未迁移生产库。完整SQL Diff、批准的SHA-256见 [D SQL审核包](../engineering/R08_D_SQL_REVIEW.md)，[开发迁移证据](../engineering/evidence/r08-local/migration.json)。原15张表、0000–0003迁移均未修改。
+
+`api_tokens`：UUID id PK、project_id→projects.id / user_id→users.id两个RESTRICT外键（user_id为创建者）、非空name≤100、unique char(64) token_hash、固定 `['approved_specs:read']` text[] scopes、created_at默认now()、expires_at必填、revoked_at可空。时间均timestamptz；有限创建/过期时间，期限为创建后24–2160小时；撤销时间有限且不早于创建。索引 `(project_id,created_at DESC,id DESC)`。不存明文、可恢复密文、冗余active状态或聊天资料；复用既有audit_events，不新增审计表。
+
+API每次读取检查Owner资格、ACTIVE项目、过期/撤销和固定scope；外键/CHECK不等于授权。应用默认30天、整数1–90天，使用同一数据库时间计算创建及过期，不提供续期/恢复接口。高熵随机明文只在创建响应返回；摘要为完整sbp_凭据的SHA-256。创建、撤销及成功Bearer使用均与安全审计同事务；撤销幂等，不删除历史行。批准记录不扩展为其他SQL或开发/生产迁移授权。
 
 ## 7. 未定与简化方案
 
@@ -198,3 +208,15 @@ COMMIT;
 同 tx 检查 ACCEPTED/SUBMITTED、计算 MAX(delivery_no)+1 并 INSERT；失败不消耗编号。Review 仅 INSERT，Delivery UPDATE 限 id/已验证 Version/status=SUBMITTED，必须命中一行；Review/状态/Audit 同事务，异常完整回滚。CR 与 Requirement 版本不变。
 
 DeliveryReview 沿用数据库不可变触发器；Delivery 本体只有一次终审状态 UPDATE，Repository 不提供正文修改/删除入口，无公开 PATCH/DELETE。任意直接 SQL 修改 Delivery 不在领域保证内；不宣称增加了数据库级 Delivery 内容触发器。历史读取在只读 REPEATABLE READ 中授权并按 CR 的全部 Version 返回分页 Delivery+Review。
+
+## AI工作流C：个人提案和执行回执（0007）
+
+`copilot_proposals`通过requirement_id推导租户，user_id绑定本人；固定kind/目标、独立version、base_requirement_version及可选base_change_version。payload受限96KiB（应用80KiB），sources仅真实ID/版本不含完整工具正文。有效期最多24h，DRAFT可本人删除；EXECUTED必须同时有唯一operation_id、64位request_hash、有限结果及执行时间，之后不可修改/删除。新表触发器禁止直接伪造EXECUTED插入，检查change目标父需求与身份/版本不变规则；原21表不改。
+
+运行时权限仍由API负责；事务持有Workspace/Project/Requirement/可选CR/Proposal锁，取得聚合锁后复核Session并持有共享锁。业务、审计和回执一次提交，同操作同摘要安全返回，冲突全回滚。过期不是自动删除；当前保留已执行提案/回执，无自动清理周期。仅5434获批，开发/生产未应用0005–0007。
+
+## AI工作流 D 连接授权与回执（0008）
+
+`agent_connection_grants`存Owner确认后的项目/user/session绑定、code/state SHA-256、S256 challenge、loopback port、固定Token名称/期限及5分钟有效期。唯一code_hash/可空api_token_id；项目用户状态到期/到期清理索引。AUTHORIZED只能一次转EXCHANGED或CANCELLED；EXCHANGED需同项目/用户/名称/scope/期限的真实新Token回执，终态和身份不可改；只允许清理过期满24小时且未EXCHANGED的记录，兑换回执保留。
+
+[0008审核包](../engineering/AI_WORKFLOW_D_SQL_REVIEW.md)已获负责人批准，原字节仅应用5434/specbridge_test，SHA-256 `2fa26bd9bee6c4f420d9cdd3f8adb9b231fa2c2a2ad5ab77f1edfb087364d74b`。当前23表/9迁移/10自定义触发器；原22表和数据升级保持已实测。清理每次授权仅同项目最多100条，不代表全局自动清理任务；EXCHANGED和审计随业务长期保留。开发5433/生产未应用0005–0008。

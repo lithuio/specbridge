@@ -1,0 +1,15 @@
+{
+  "status": "FAIL",
+  "cause": "Unanchored Playwright filename regular expression selected all three real AI files in one budgeted API process",
+  "filesSelected": [
+    "documents-real-ai.spec.ts",
+    "proposals-real-ai.spec.ts",
+    "real-ai.spec.ts"
+  ],
+  "backgroundScene": "PASS",
+  "proposalScene": "FAIL: smoke budget rejected the first call locally; no upstream request",
+  "requirementScene": "NOT RUN: maxFailures=1 stopped suite",
+  "actualUpstreamCalls": 4,
+  "upstream200": 4,
+  "action": "Anchor the existing real-ai script to its full filename; run only the two unfinished scenes in independent bounded processes; do not rerun the successful background scene"
+}

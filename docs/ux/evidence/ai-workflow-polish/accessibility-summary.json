@@ -1,0 +1,274 @@
+{
+  "date": "2026-11-13",
+  "states": 28,
+  "violations": 0,
+  "statesWithIncomplete": 18,
+  "checks": [
+    {
+      "file": "ai-workflow-a/accessibility.json",
+      "name": "clarification-desktop",
+      "violations": 0,
+      "incompleteRules": [],
+      "passedRules": 27,
+      "supplementalChecks": 0
+    },
+    {
+      "file": "ai-workflow-a/accessibility.json",
+      "name": "specification-mobile",
+      "violations": 0,
+      "incompleteRules": [
+        "color-contrast"
+      ],
+      "passedRules": 28,
+      "supplementalChecks": 5
+    },
+    {
+      "file": "ai-workflow-b/accessibility.json",
+      "name": "share-confirm-desktop",
+      "violations": 0,
+      "incompleteRules": [
+        "aria-hidden-focus",
+        "color-contrast"
+      ],
+      "passedRules": 20,
+      "supplementalChecks": 1
+    },
+    {
+      "file": "ai-workflow-b/accessibility.json",
+      "name": "share-confirm-320",
+      "violations": 0,
+      "incompleteRules": [
+        "aria-hidden-focus",
+        "color-contrast"
+      ],
+      "passedRules": 20,
+      "supplementalChecks": 1
+    },
+    {
+      "file": "ai-workflow-b/accessibility.json",
+      "name": "documents-desktop",
+      "violations": 0,
+      "incompleteRules": [],
+      "passedRules": 25,
+      "supplementalChecks": 0
+    },
+    {
+      "file": "ai-workflow-b/accessibility.json",
+      "name": "client-shared-mobile",
+      "violations": 0,
+      "incompleteRules": [
+        "color-contrast"
+      ],
+      "passedRules": 21,
+      "supplementalChecks": 4
+    },
+    {
+      "file": "ai-workflow-b/accessibility.json",
+      "name": "documents-mobile",
+      "violations": 0,
+      "incompleteRules": [
+        "color-contrast"
+      ],
+      "passedRules": 25,
+      "supplementalChecks": 5
+    },
+    {
+      "file": "ai-workflow-c/accessibility.json",
+      "name": "proposal-desktop",
+      "violations": 0,
+      "incompleteRules": [
+        "aria-hidden-focus"
+      ],
+      "passedRules": 26,
+      "supplementalChecks": 0
+    },
+    {
+      "file": "ai-workflow-c/accessibility.json",
+      "name": "proposal-mobile",
+      "violations": 0,
+      "incompleteRules": [
+        "aria-hidden-focus",
+        "color-contrast"
+      ],
+      "passedRules": 26,
+      "supplementalChecks": 1
+    },
+    {
+      "file": "ai-workflow-d/accessibility.json",
+      "name": "connect-desktop",
+      "violations": 0,
+      "incompleteRules": [],
+      "passedRules": 23,
+      "supplementalChecks": 0
+    },
+    {
+      "file": "ai-workflow-d/accessibility.json",
+      "name": "connect-mobile",
+      "violations": 0,
+      "incompleteRules": [
+        "color-contrast"
+      ],
+      "passedRules": 23,
+      "supplementalChecks": 5
+    },
+    {
+      "file": "ai-workflow-d/accessibility.json",
+      "name": "connect-manager-320",
+      "violations": 0,
+      "incompleteRules": [
+        "color-contrast"
+      ],
+      "passedRules": 27,
+      "supplementalChecks": 5
+    },
+    {
+      "file": "r08-c/accessibility.json",
+      "name": "copilot-desktop",
+      "violations": 0,
+      "incompleteRules": [
+        "aria-hidden-focus",
+        "color-contrast"
+      ],
+      "passedRules": 26,
+      "supplementalChecks": 1
+    },
+    {
+      "file": "r08-c/accessibility.json",
+      "name": "copilot-mobile",
+      "violations": 0,
+      "incompleteRules": [
+        "aria-hidden-focus",
+        "color-contrast"
+      ],
+      "passedRules": 26,
+      "supplementalChecks": 2
+    },
+    {
+      "file": "r08-c/accessibility.json",
+      "name": "copilot-320",
+      "violations": 0,
+      "incompleteRules": [
+        "aria-hidden-focus",
+        "color-contrast"
+      ],
+      "passedRules": 26,
+      "supplementalChecks": 2
+    },
+    {
+      "file": "r08-d/accessibility.json",
+      "name": "token-desktop",
+      "violations": 0,
+      "incompleteRules": [],
+      "passedRules": 28,
+      "supplementalChecks": 0
+    },
+    {
+      "file": "r08-d/accessibility.json",
+      "name": "token-mobile",
+      "violations": 0,
+      "incompleteRules": [
+        "color-contrast"
+      ],
+      "passedRules": 28,
+      "supplementalChecks": 5
+    },
+    {
+      "file": "r08-d/accessibility.json",
+      "name": "token-320",
+      "violations": 0,
+      "incompleteRules": [
+        "color-contrast"
+      ],
+      "passedRules": 28,
+      "supplementalChecks": 5
+    },
+    {
+      "file": "ui-polish/accessibility.json",
+      "name": "login",
+      "violations": 0,
+      "incompleteRules": [],
+      "passedRules": 25,
+      "supplementalChecks": 0
+    },
+    {
+      "file": "ui-polish/accessibility.json",
+      "name": "project-desktop",
+      "violations": 0,
+      "incompleteRules": [],
+      "passedRules": 27,
+      "supplementalChecks": 0
+    },
+    {
+      "file": "ui-polish/accessibility.json",
+      "name": "dashboard-desktop",
+      "violations": 0,
+      "incompleteRules": [],
+      "passedRules": 29,
+      "supplementalChecks": 0
+    },
+    {
+      "file": "ui-polish/accessibility.json",
+      "name": "projects-drawer",
+      "violations": 0,
+      "incompleteRules": [
+        "aria-hidden-focus"
+      ],
+      "passedRules": 24,
+      "supplementalChecks": 0
+    },
+    {
+      "file": "ui-polish/accessibility.json",
+      "name": "project-320",
+      "violations": 0,
+      "incompleteRules": [
+        "color-contrast"
+      ],
+      "passedRules": 23,
+      "supplementalChecks": 5
+    },
+    {
+      "file": "ui-polish/accessibility.json",
+      "name": "dashboard-320",
+      "violations": 0,
+      "incompleteRules": [],
+      "passedRules": 28,
+      "supplementalChecks": 0
+    },
+    {
+      "file": "ui-polish/accessibility.json",
+      "name": "project-768",
+      "violations": 0,
+      "incompleteRules": [
+        "color-contrast"
+      ],
+      "passedRules": 26,
+      "supplementalChecks": 2
+    },
+    {
+      "file": "ui-polish/accessibility.json",
+      "name": "dashboard-768",
+      "violations": 0,
+      "incompleteRules": [],
+      "passedRules": 28,
+      "supplementalChecks": 0
+    },
+    {
+      "file": "ui-polish/accessibility.json",
+      "name": "project-900",
+      "violations": 0,
+      "incompleteRules": [
+        "color-contrast"
+      ],
+      "passedRules": 26,
+      "supplementalChecks": 1
+    },
+    {
+      "file": "ui-polish/accessibility.json",
+      "name": "dashboard-900",
+      "violations": 0,
+      "incompleteRules": [],
+      "passedRules": 28,
+      "supplementalChecks": 0
+    }
+  ]
+}

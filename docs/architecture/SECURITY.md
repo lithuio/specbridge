@@ -61,11 +61,35 @@
 
 ## 7. AI / MCP 威胁控制（P1）
 
+2026-11-13批准的后续 [AI工作流升级](../engineering/AI_WORKFLOW_PLAN.md) 将新增私有工作稿、受控背景上传及独立的人类确认执行接口。模型工具继续不拥有业务写权限；新增执行接口必须复用Session/CSRF、事务授权和expectedVersion。背景默认内部，对客生成只读取共享材料；个人工作稿不能被同项目其他人读取。文件上传仅放宽特定路由的内容类型，不能放开全站CSRF。安装器的本地凭据保存在仓库外，外部Token仍只读批准规格。阶段A现已接通两任务生成、个人工作稿和明确确认发布；ID+CAS、回执重放、R04事务/Pending与前后权限复核经真实HTTP/DB测试。工作稿正文仅服务端私有表和组件内存，不入公开活动/日志/Observe/浏览器持久存储。AI生成仍无写权限，发布是独立Session+CSRF人工命令。B已接通受控背景上传/解析和共享版本隔离，0006仅获批隔离库应用；C已接通本人提案及人工确认事务，0007仅获批隔离应用；D已接通Owner确认/PKCE兑换及本地安装，0008仅获批隔离应用；下方R08外部MCP只读边界仍保持。
+
 - DeepSeek Key 仅服务器环境变量，绝不出现在 `NEXT_PUBLIC_*`、前端 bundle、API 响应或日志。
 - AI 输出当作不可信外部数据；先 Schema 校验、人审再落正式 Revision，不允许执行 AI 生成的指令、URL、代码或商业审批动作。
 - 对 Prompt Injection：客户需求文本可能含“忽略系统限制”等字样；当普通文本处理，不授予提升权限。
+- R08 C Copilot 仅允许七个注册只读工具；严格 Schema 禁止模型覆盖 projectId、调用任意 SQL/Shell/文件/业务写方法。读取通过现有授权业务服务且核验真实父项目；Client 商业草稿在业务服务层剔除，不进入模型上下文。页面资源亦先授权核验父链。
+- 用户问题/历史、页面提示、工具正文和来源标题均为不可信资料；工具结果保留 tool role，不提升为 system 指令。每次模型调用/工具读取/最终返回重验 Session、项目和初始角色；失败时不返回已生成私有内容。无权用户不能通过错误区分隐藏资源。
+- 最终来源只接受本轮实际读取的编号，链接/版本/时间由服务端生成；模型文本纯文本展示，不能执行 URL/HTML 或审批。引用可追溯不代表结论正确，UI 始终标注待核实建议。注入测试验证权限/执行边界，不声称消除模型语义幻觉。
+- 聊天仅浏览器内存，按 epoch/user/project 隔离、最近10轮；不进入 QueryCache/localStorage/数据库/审计正文，刷新或切换作用域清除，明确撤权清除，临时故障隐藏并允许重验。Provider 仅收到经授权的必要片段，遵循有界裁剪/循环/Token/超时配额。Copilot HTTP 路由排除 Observe trace，且全局内容捕获关闭。
 - stdio MCP 默认只读工具；调用后端时使用项目限定、可过期、可撤销的 Token；不提供 `approve_change_request` 等高影响工具。
 - MCP 工具说明/注解不替代服务器授权。远程 MCP/OAuth 不是 v1 的安全承诺。
+
+### R08 D 项目凭据边界
+
+- 仅当前Owner可创建、列出、撤销；256-bit CSPRNG、固定sbp_前缀和规范base64url编码，数据库只存完整凭据SHA-256。高熵随机凭据不使用密码KDF；hash不返回Web或写日志。只能读取绑定项目的已批准技术规格，不能读取商业详情或调用业务写API。
+- 每个请求按数据库当前关系重验创建者Owner资格、项目ACTIVE、expires_at > clock_timestamp()、未撤销及精确只读scope。所有普通业务路由拒绝Bearer；仅显式注册的两条批准读取路由接受独立Token principal。拒绝Cookie/Bearer混合及重复Authorization头；HEAD同等鉴权。缺少/错误身份不回退到其他认证方式。
+- 创建/撤销和Token读取遵循Workspace→Project→Token行锁顺序；读取返回前再次验证并写使用审计。撤销先获锁提交则后续读取被拒绝；已先完成授权/读取/审计事务的在途响应可能抵达客户端，不能追溯收回已交付数据。当前授权变更遵循相同Workspace/Project锁协议；以后新增资格变更功能需延续这一协议。
+- api_token审计只对Owner可见，SQL分页前过滤；使用actor为null而非冒充创建者。成功使用保存必要元信息，401/404失败不写高基数审计正文。保留现有受控错误日志，不采集Token路由HTTP trace/正文；全局Observe捕获关闭且脱敏键及模式包含Token。
+- 浏览器通过Session管理，不把Bearer设置为浏览器身份。明文仅组件内存，不入Query/Mutation缓存、URL、localStorage/sessionStorage；关闭、隐藏、切页、换身份或权限丢失销毁，取消在途请求并丢弃迟到结果。复制仅由用户明确触发；操作系统剪贴板由用户保管。未知创建结果先核对列表并撤销，不自动重放。
+- 生命周期1–90天、默认30天；不提供恢复/续期。归档和资格变化为动态不可用，若条件恢复且未过期/撤销可重新有效；需要永久失效必须显式撤销。新Owner可撤销旧Owner创建的凭据。
+- 限流复用单进程内存服务：创建30/用户/分钟，读取120/连接IP/分钟及60/Token/分钟；使用socket peer，不信任可伪造XFF。反向代理可能使多个客户端共享IP配额；多实例/持久配额及使用审计长期保留策略需要后续容量评审。未引入Redis或HTTP OAuth。
+
+### R08 E 本地 MCP / Skill 边界
+
+- `apps/mcp` 仅 stdio，SDK Server 2.4.0；只注册 `list_project_requirements` 和 `get_approved_spec`。进程只向可信固定API origin发送两条批准规格GET，不直接连接数据库，不赋予Agent普通业务会话。Project/Token/origin从本地环境绑定，严格参数Schema禁止模型覆盖，API仍在每次请求中执行D的独立principal/项目/有效期/批准状态检查。
+- HTTPS或精确loopback HTTP；拒绝带认证信息/路径/query/fragment的origin，拒绝HTTP重定向，Bearer不进入URL/argv/配置/日志。只保留配置私有字段中的认证头，运行入口删除环境副本；无持久缓存或自动重试。撤销后再次读取拒绝，不承诺收回宿主已获得的资料或防御同账号内存读取。
+- HTTP10秒、响应2MiB、工具JSON2MiB（双表示约4MiB）、输入缓冲64KiB、并发2/每分钟60次；传递取消并在EOF关闭。API仍有限额；未知正文/字段/外项目响应/无效JSON失败关闭。stdout只输出协议、stderr固定错误，不透传原始异常及上游正文。
+- 批准目录预览标注截断；精确详情把approvedScope与referencedRequirement分开。Skill明确区分批准事实、引用背景、未确认推测/建议，引用真实ID/版本/读取时间；嵌入记录的指令不成为系统授权，不自动扩张范围。Skill不是宿主沙箱，宿主自有Shell/写工具另行限制。
+- 已验证真实SDK Client→stdio→Nest→隔离PostgreSQL以及一次真实Codex Host场景（合成资料、临时Token、禁Shell/插件/委派）。注入用例验证已注册工具和业务权限边界及该场景的模型表现，不承诺通用语义防注入。无远程MCP HTTP/OAuth服务。配置、错误契约和复现入口见 [MCP README](../../apps/mcp/README.md)。
 
 ## 8. 密钥管理、日志与部署
 
@@ -165,3 +189,31 @@ Web 复用 R02 HttpOnly Cookie、Origin/JSON/CSRF 和同源 Rewrite，不建立�
 普通会话复核与身份边界分开：复核暂停私有 API、取消在途请求，并通过 Activity 隐藏页面及弹窗，保留该用户的内存草稿；同一用户验证成功后恢复并失效资源查询以重新核对授权。复核网络失败保持隐藏，不丢弃输入。不同用户、401、显式登录/退出和跨标签页会话变更通知仍更换 epoch 并清除缓存/表单；复核请求自身也受取消和最新请求检查保护。项目临时读取失败仅保留隐藏的编辑状态；403/404 销毁项目表单，并阻止后续网络失败重新展示此前缓存，直到新的授权读取成功。
 
 浏览器证据使用真实 API/隔离 DB，覆盖退出撤销和延迟响应隔离；正式 HTTPS/Secure Cookie 跨浏览器策略与人工安全评审仍不由本地 HTTP 用例替代。
+
+## 项目背景资料安全增量（工作流B）
+
+只有 `POST /projects/:projectId/documents` 可用multipart；Origin、CSRF、Session和项目角色检查保持，先授权再进入10MiB/单文件受限解析器。上传50/用户/小时、60/项目/小时、单实例2在途；Project锁下20身份/100MiB聚合限额及审计原子性。Owner分享必须明确指定READY版本、CAS与二次确认；替换不会共享新内容，Client响应不含内部元信息。撤回/停用/撤权后旧链接重新授权拒绝。
+
+API私有存储默认仓库外，UUID文件名、0700/0600/no-follow，不返回路径或原件下载。解析子进程不继承API密钥、DB URL或用户环境，Node权限仅脚本/依赖读取；CPU、墙钟、heap、采样RSS、解压、页数/文本和stdout限制。Node权限和JavaScript网络屏蔽不等于强OS沙箱，RSS采样不是硬峰值上限；生产需另外审核部署隔离。错误仅固定码，Observe忽略整个documents路径，日志/审计无文件名、正文、hash或blobId。
+
+公开澄清/规格自动上下文始终shared-only；内部Copilot依据当前项目角色获取片段。背景正文是untrusted data，不能成为新系统指令；每次后续推理和返回前重验来源资格，已发出的数据无法追溯撤回。MCP工具与Token作用域不扩张。没有完整聊天持久化。实际负面测试、依赖审计2项既有公告及部署限制见[B证据](../engineering/evidence/ai-workflow-b/README.md)。
+
+## Copilot人工提案安全增量（工作流C）
+
+独立Session/CSRF提案API，模型注册工具仍全只读，Bearer不能调用。来源/目标/作者/业务版本由服务器绑定；客户端只能按严格Schema编辑白名单正文/人工商业评估，确认只传版本与operationId，不能替换payload/URL/HTTP方法。本人私有提案的准备、编辑、删除审计不进入公开活动白名单；日志和Observe不含正文、完整Prompt或Token。
+
+生成对客材料重新使用A shared-only上下文；内部Copilot对话与工具正文不自动复制。显式复制本人工作稿保留原稿，确认再验证其版本与当前业务；共享撤回/来源更新后旧提案拒绝执行。商业生成只复制真实业务记录，估算空值由人判断。
+
+确认取得聚合锁后复核并共享锁定Session，防止等待项目锁期间退出登录仍执行的已复现竞态。既有R04/R05事务命令、审计及执行回执原子提交；双击、不同operationId、同编号改参数、唯一约束冲突及审计失败均不得重复或部分提交。24h/100份未执行配额、30用户/60项目每小时准备限流、80KiB请求载荷上限与既有AI预算同时生效。
+
+提案过期不自动删除；本人可删除未执行项，已执行正文与回执保留不可变，不代表已实现清理周期。客户端仅内存编辑/操作编号，刷新只能恢复已保存版本；没有完整聊天持久化。[C验证证据](../engineering/evidence/ai-workflow-c/README.md)。
+
+## AI工作流 D 本地安装授权
+
+Owner在真实项目页面Session+CSRF确认后才写5分钟grant；32-byte独立state/verifier、S256、code/state摘要、项目/原Session/port绑定。兑换专用Guard拒绝混合认证及浏览器标记，重验当前Owner/ACTIVE项目与原Session，Workspace→Project→Session共享→Grant锁；Token创建、消费、两个审计同事务。已兑换/取消终态不可变；旧Owner、注销、过期、跨租户、并发兑换和取消均有真实HTTP/PG测试。
+
+code/state/verifier/Token不进入Observe/日志/项目配置，Token不进入网页/URL/模型。只有短期授权码通过固定127.0.0.1回调，Host/地址/参数严格核对；CLI native HTTP无重定向、10秒/8KiB、无自动重试，避免Node fetch隐式Sec-Fetch元数据。未知结果查询本人回执并撤销，不循环发新Token。
+
+凭据在仓库外0700/0600私有文件，拒绝symlink/hardlink/错误UID/宽权限；预检存储后才申请授权，launcher仅向MCP注入3个必要环境。配置用完整TOML解析后追加受管块，保留既有字节与语义，Skill冲突拒绝，单文件原子替换和普通失败回滚。异常退出不是跨文件事务，回执缺失需先撤销再人工恢复；同UID/root/恶意宿主不在保密保证内。卸载不等于远端撤销，不自动信任项目，不提供完整HTTP OAuth MCP授权。
+
+本地验证与限制见[D证据](../engineering/evidence/ai-workflow-d/README.md)。独立人工安全验收/远程CI仍待办，不能把Agent自查当安全签字。

@@ -192,7 +192,9 @@ function ProjectForm({ initialWorkspace }: { initialWorkspace: string }) {
       <div className="page-heading">
         <p className="eyebrow">PROJECT / 明确协作范围</p>
         <h1>创建项目</h1>
-        <p>先记录初始范围，再添加开发成员与唯一客户账号。</p>
+        <p>
+          第一步记录初始范围。创建成功后可选上传背景文件，也可继续添加成员与需求。
+        </p>
       </div>
       <form
         className="surface-panel"

@@ -10,11 +10,14 @@ import { SessionService } from './session.service.js';
 import { RateLimitService } from './rate-limit.service.js';
 import { AuthGuard } from './auth.guard.js';
 import { CsrfGuard } from './csrf.guard.js';
+import { TokenAccessModule } from '../api-tokens/token-access.module.js';
+import { ConnectionExchangeGuard } from '../agent-connections/connection-access.js';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, TokenAccessModule],
   controllers: [AuthController],
   providers: [
+    ConnectionExchangeGuard,
     AuthConfig,
     AuthService,
     AuthRepository,

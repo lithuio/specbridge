@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-11-12T15:03:49.593Z",
+  "status": "PASS",
+  "client": "Inspector CLI 2.15.0",
+  "tools": [
+    "list_project_requirements",
+    "get_approved_spec"
+  ],
+  "toolsList": true,
+  "toolsCall": true,
+  "strictToolSchemaValidation": true,
+  "responseSchemaValidated": true,
+  "citedVersion": "a53bb691-6f68-45e0-bf36-052f34a34d00",
+  "noBusinessWrites": true,
+  "tokenLeaked": false,
+  "tokenPersisted": false
+}

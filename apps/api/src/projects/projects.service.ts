@@ -52,6 +52,7 @@ export class ProjectsService {
             bindClient: capability(
               ownerReason ?? (locked ? 'CLIENT_ASSIGNMENT_LOCKED' : undefined),
             ),
+            manageApiTokens: capability(ownerReason),
           },
           owner: people.find((p) => p.role === 'OWNER'),
           members: people.filter((p) => p.role !== 'OWNER'),

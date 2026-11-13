@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "realProvider": true,
+  "projectId": "03b64952-99a5-473e-90aa-821a47db5ddb",
+  "requirementId": "77ebea4c-0ed9-484d-8682-a90e0e32d1af",
+  "revisionId": "6134af05-2008-4b97-b63c-b41fd771fc5c",
+  "toolCalls": 1,
+  "sources": [
+    {
+      "type": "requirement",
+      "id": "77ebea4c-0ed9-484d-8682-a90e0e32d1af",
+      "projectId": "03b64952-99a5-473e-90aa-821a47db5ddb",
+      "title": "按状态筛选项目待办",
+      "version": "编辑版本 2",
+      "href": "/app/projects/03b64952-99a5-473e-90aa-821a47db5ddb/requirements/77ebea4c-0ed9-484d-8682-a90e0e32d1af",
+      "readAt": "2026-11-13T04:41:20.806Z",
+      "key": "S1"
+    },
+    {
+      "type": "revision",
+      "id": "6134af05-2008-4b97-b63c-b41fd771fc5c",
+      "projectId": "03b64952-99a5-473e-90aa-821a47db5ddb",
+      "title": "按状态筛选项目待办",
+      "version": "Revision 1",
+      "href": "/app/projects/03b64952-99a5-473e-90aa-821a47db5ddb/requirements/77ebea4c-0ed9-484d-8682-a90e0e32d1af/revisions/6134af05-2008-4b97-b63c-b41fd771fc5c",
+      "readAt": "2026-11-13T04:41:20.806Z",
+      "key": "S2"
+    }
+  ],
+  "originalPreserved": true,
+  "explicitHumanSave": true,
+  "expectedVersionUsed": true,
+  "noAutomaticReadyApprovalOrAcceptance": true,
+  "copilotDomainAndAuditUnchanged": true
+}

@@ -12,6 +12,16 @@ import { SessionService } from './session.service.js';
 import { CsrfGuard } from './csrf.guard.js';
 import { PUBLIC_ROUTE } from './public.decorator.js';
 import type { AuthRequest } from './auth.types.js';
+import {
+  PROJECT_TOKEN_READ,
+  TOKEN_SCOPE,
+} from '../api-tokens/token.contract.js';
+import { TokenAccess } from '../api-tokens/token-access.module.js';
+import { RateLimitService } from './rate-limit.service.js';
+import {
+  CONNECTION_EXCHANGE,
+  ConnectionExchangeGuard,
+} from '../agent-connections/connection-access.js';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -20,8 +30,23 @@ export class AuthGuard implements CanActivate {
     @Inject(SessionService) private readonly sessions: SessionService,
     @Inject(AuthConfig) private readonly config: AuthConfig,
     @Inject(CsrfGuard) private readonly csrf: CsrfGuard,
+    @Inject(TokenAccess) private readonly tokens: TokenAccess,
+    @Inject(RateLimitService) private readonly limits: RateLimitService,
+    @Inject(ConnectionExchangeGuard)
+    private readonly connectionExchange: ConnectionExchangeGuard,
   ) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (
+      this.reflector.getAllAndOverride<boolean>(CONNECTION_EXCHANGE, [
+        context.getHandler(),
+        context.getClass(),
+      ])
+    ) {
+      this.connectionExchange.check(
+        context.switchToHttp().getRequest<AuthRequest>(),
+      );
+      return true;
+    }
     if (
       this.reflector.getAllAndOverride<boolean>(PUBLIC_ROUTE, [
         context.getHandler(),
@@ -31,6 +56,35 @@ export class AuthGuard implements CanActivate {
       return true;
     const request = context.switchToHttp().getRequest<AuthRequest>();
     const response = context.switchToHttp().getResponse<Response>();
+    if (request.headers.authorization !== undefined) {
+      const headerCount = request.rawHeaders.filter(
+        (v, i) => i % 2 === 0 && v.toLowerCase() === 'authorization',
+      ).length;
+      const scope = this.reflector.getAllAndOverride<string>(
+        PROJECT_TOKEN_READ,
+        [context.getHandler(), context.getClass()],
+      );
+      if (
+        headerCount !== 1 ||
+        request.headers.cookie !== undefined ||
+        scope !== TOKEN_SCOPE ||
+        !['GET', 'HEAD'].includes(request.method)
+      )
+        throw new UnauthorizedException();
+      const match = /^Bearer (sbp_[A-Za-z0-9_-]{43})$/i.exec(
+        request.headers.authorization,
+      );
+      if (!match) throw new UnauthorizedException();
+      this.limits.consume(
+        `project-token-ip:${request.socket.remoteAddress ?? 'unknown'}`,
+        120,
+        60_000,
+      );
+      const principal = await this.tokens.authenticate(match[1]);
+      this.limits.consume(`project-token:${principal.id}`, 60, 60_000);
+      request.projectToken = principal;
+      return true;
+    }
     // Reject forged writes before touching session activity. Public writes are checked by CsrfGuard.
     this.csrf.check(request);
     const cookie: unknown = request.cookies?.[this.config.cookieName];

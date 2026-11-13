@@ -1,0 +1,75 @@
+{
+  "status": "CALLS_COMPLETED",
+  "model": "deepseek-flash",
+  "modelCalls": 4,
+  "reservedOutputTokens": 8192,
+  "promptTokens": 6498,
+  "completionTokens": 2022,
+  "usageMissing": 0,
+  "upstreamStatuses": [
+    200,
+    200,
+    200,
+    200
+  ],
+  "upstreamMetadata": [
+    {
+      "status": 200,
+      "bytes": 658,
+      "requestedOutputTokens": 1024,
+      "toolsEnabled": true,
+      "finishReason": "tool_calls",
+      "toolCalls": 1,
+      "promptTokens": 2303,
+      "completionTokens": 55
+    },
+    {
+      "status": 200,
+      "bytes": 3991,
+      "requestedOutputTokens": 1024,
+      "toolsEnabled": true,
+      "finishReason": "stop",
+      "toolCalls": 0,
+      "promptTokens": 2701,
+      "completionTokens": 791
+    },
+    {
+      "status": 200,
+      "bytes": 3871,
+      "requestedOutputTokens": 2048,
+      "toolsEnabled": false,
+      "finishReason": "stop",
+      "toolCalls": 0,
+      "promptTokens": 1147,
+      "completionTokens": 770
+    },
+    {
+      "status": 200,
+      "bytes": 2493,
+      "requestedOutputTokens": 4096,
+      "toolsEnabled": false,
+      "finishReason": "stop",
+      "toolCalls": 0,
+      "promptTokens": 347,
+      "completionTokens": 406
+    }
+  ],
+  "results": [
+    {
+      "status": "PASS",
+      "durationMs": 931
+    },
+    {
+      "status": "PASS",
+      "durationMs": 5482
+    },
+    {
+      "status": "PASS",
+      "durationMs": 5267
+    },
+    {
+      "status": "PASS",
+      "durationMs": 3592
+    }
+  ]
+}

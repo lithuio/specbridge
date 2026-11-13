@@ -1,5 +1,82 @@
 # SpecBridge — Local Development
 
+R08本机配置修复与完整人工测试见 [R08_MANUAL_TEST](R08_MANUAL_TEST.md)。2026-11-12已持久开启本机AI，并按追加授权将0004应用到5433开发库；启动 `pnpm dev:api` 时从.env加载。终端已有变量优先，若曾导出false，用 `DEEPSEEK_ENABLED=true pnpm dev:api`；修改.env后须重启最外层启动进程。网页AI使用DeepSeek，外部MCP宿主使用其自身模型。
+
+## R08 Phase F 最终验证
+
+本地回归顺序：`pnpm lint`、`pnpm test`、`pnpm build`，三个包分别 `typecheck`；`pnpm --filter specbridge-api openapi:check`、`pnpm db:check`、`pnpm test:smoke-guards`。隔离数据库组必须串行：`pnpm test:integration && pnpm test:e2e && pnpm test:e2e:db && pnpm test:e2e:ai && pnpm test:browser:run`。需现有5434测试实例、已审迁移和Playwright Chromium；不要与本地3000/4000开发进程同时运行。
+
+只有明确授权的本地付费模型验证使用 `pnpm test:browser:real-ai`。该入口只在独立API子进程加载根.env，强制隔离测试DB；Next/Playwright不接收Key，最多4次请求/8192预留输出tokens，禁止CI或Mock模式混用。当前实际浏览器输出 `test-results/r08-f/browser-real/` 与仅含计数的 `test-results/r08-f/real-provider.json`；原始Prompt/Key不落盘。普通CI不执行这个入口。
+
+MCP SDK、Inspector和真实Host的安全复现见 [MCP README](../../apps/mcp/README.md)。最终结果、负面安全矩阵、已解决失败和NOT RUN项见 [F验证记录](evidence/r08-f/README.md)。真实调用只用合成项目，人工验收不能由自动测试替代。
+
+## R08 Phase C 本地 Copilot
+
+App Shell 顶部「Copilot」打开项目抽屉。项目页面自动选择当前项目和页面资源；其他页面先从授权列表选项目。提问不会发送尚未保存的表单内容；答案给出业务来源、版本与读取时间，仅建议人工核对，不执行 Ready/Submit/审批/验收。对话最多保留10轮，仅当前浏览器内存；刷新/切换项目或账号清空。Drawer 关闭保留已完成对话并取消在途请求，再次打开先重新核验项目。
+
+配置沿用下方 A 的服务端变量，不新增依赖或聊天 Schema。单轮上限为60秒、4工具、3模型请求和8192输出tokens（可通过既有配置降低）。所有列表/详情均经过现有权限服务，Client 草稿过滤不变。来源链接只导航，敏感文本不进入日志。
+
+```bash
+pnpm --filter specbridge-api build
+pnpm --filter web build
+pnpm test:e2e:ai
+pnpm test:browser:copilot
+```
+
+HTTP/浏览器套件使用隔离5434数据库与模拟外部模型transport，不需要真实Key；CI的既有AI HTTP入口和全量browser入口已包含C。单独浏览器入口输出 [C截图与验证](../ux/evidence/r08-c/README.md)，回归可设置 `R07_EVIDENCE_ROOT=test-results/evidence`。
+
+可选真实 Copilot smoke（先确认安全Key与已初始化的隔离测试库；不在CI运行）：
+
+```bash
+node scripts/with-env.mjs .env node scripts/with-env.mjs .env.test node apps/api/scripts/copilot-smoke.mjs --run
+```
+
+脚本拒绝非测试数据库身份；仅写入UUID合成账号/项目/需求/Revision夹具，再通过真实授权HTTP→编排→DeepSeek→工具读取→来源Schema完成一轮。最多3次模型请求、4096预留输出tokens、60秒，不自动重试；前后比较业务及审计不变。夹具只留在可丢弃测试库，不生成/应用迁移、不清空历史。只打印状态、模型、计数、预算、耗时与验证布尔值，不打印密钥/聊天/Provider原始错误。`.env`只由子进程加载，不由测试或Web自动读取；CI/无--run/无Key时NOT RUN。真实模型失败记录FAIL，不能用Mock结果代替。
+
+## R08 Phase A 本地 AI
+
+复用根 `.env` 中服务端 `DEEPSEEK_API_KEY`、`DEEPSEEK_BASE_URL=https://api.deepseek.com`、`DEEPSEEK_MODEL=deepseek-flash`。负责人还需设置 `DEEPSEEK_ENABLED=true` 才开启 API 调用；默认关闭，缺少/非法配置不会阻断 P0。不要复制到 NEXT_PUBLIC_*，不要输出 `.env`。可选限额见 `.env.example` 和 R08_PLAN；数值非法仅使 AI 不可用。
+
+```bash
+pnpm --filter specbridge-api test
+pnpm run test:e2e:ai  # 仅 .env.test / 5434 隔离库 / Mock Provider，无真实Key
+pnpm --filter specbridge-api openapi:check
+```
+
+受控真实 Smoke：仅使用已安全更换的服务端 Key、合成资料、一次请求；先 build，再从仓库根执行：
+
+```bash
+pnpm --filter specbridge-api build
+node scripts/with-env.mjs .env node apps/api/scripts/ai-smoke.mjs --run
+```
+
+Smoke 直接验证生产 Provider/Schema，最多2048 output tokens/30秒，不查询数据库或启动Web；只输出状态/模型/用量/耗时，不输出Prompt、响应正文或Key。脚本在CI或未显式--run时跳过，不作为CI步骤；已知泄露或未确认安全的Key不得使用。没有Key或未获安全确认记录NOT RUN，网络/模型失败记录FAIL，不自动重试。API完整授权/版本边界由Mock Provider真实HTTP/DB套件验证。
+
+本地计数为单实例内存、UTC日重置、重启清零；不是持久费用账本。AI失败不修改业务，不自动重试。
+
+## R08 Phase B 需求分析与人工采用
+
+在项目内创建并保存 Requirement 后，从详情页原文下方的「AI 需求分析」进入。三角色均依后端权限读取分析；Client 只能采用问题，创建 Revision 仍限供应方。调用只发送已保存的原文、最新 Revision 与可选澄清，不发送当前打开表单的未保存输入。发送前页面提示材料将提供给 DeepSeek。
+
+建议标为「AI 草稿」，默认不选中。摘要可作为新 Revision 正文，选中的验收标准追加到已有标准（精确重复项去重），单次只采用一个问题；假设与风险可编辑或删除，但不自动转为事实。确认采用仅打开预填表单，继续通过 R04 的保存/提交问题按钮及 expectedVersion 写入。不会覆盖 originalText、修改已有 Revision，或自动 Mark Ready/Submit/审批。
+
+来源版本变化需对照最新资料后明确确认；保存 409 保留输入，沿用原有重新核对按钮。未知写入结果禁重放。AI 35 秒浏览器等待上限、503/格式错误/413/429 提供安全提示与手动重试，429 倒计时遵守 Retry-After；服务端超时统一表现为 AI_UNAVAILABLE，不能在前端推断为某种供应商故障。失败不妨碍手动编辑。
+
+建议只在页面内存保存；同账号短暂会话/项目读取失败保留编辑，切页取消在途分析，撤权/换号/退出卸载旧私有状态。刷新、路由缓存淘汰会丢失建议；没有持久 AI 历史，也没有逐句来源证明。
+
+```bash
+pnpm run db:test:up
+pnpm --filter specbridge-api build
+pnpm --filter web build
+pnpm run test:browser:ai
+# 按受影响范围运行，端口 3000/4000 必须空闲：
+R07_EVIDENCE_ROOT=test-results/evidence pnpm run test:browser:requirements
+R07_EVIDENCE_ROOT=test-results/evidence pnpm run test:browser:forms
+R07_EVIDENCE_ROOT=test-results/evidence pnpm run test:browser:auth
+```
+
+AI 浏览器入口运行真实 Next/Nest/5434 隔离数据库；仅通过独立测试启动脚本 `apps/api/scripts/browser-ai-fixture.mjs` 注入模拟 DeepSeek HTTP transport，保留真实 Adapter/JSON/Zod/授权/限流。脚本只接受 NODE_ENV=test 和受限测试数据库，覆盖为合成凭据；生产 main 不加载该脚本。失败路径额外拦截浏览器响应/网络。CI 和 `test:browser:phases` 已包含该入口，不需要真实 Key，也不会加载 `.env`。单独运行默认输出 [B 截图](../ux/evidence/r08-b/README.md)；全量入口通过 R07_EVIDENCE_ROOT 将证据放入忽略目录，避免覆盖已审历史截图。
+
 ## 本地环境（2026-11-11）
 
 沿用仓库和 CI：Node **22.23.4**（`.nvmrc`）、pnpm **10.34.9**、PostgreSQL **17-alpine**、根目录 `pnpm-lock.yaml`。当前工作目录为 `/home/lenovo/projects/specbriage`；命令均在仓库根目录执行，不使用 `apps/web` 的独立锁文件安装。
@@ -19,13 +96,13 @@ chmod 600 .env .env.test
 
 新机器须将 `.env` 中两处 `replace_me` 改为同一个本地密码；建议使用十六进制随机值，特殊字符需要在 DATABASE_URL 中做 URL 编码。开发库用户/库名均为 `specbridge`。已有卷不会因修改 POSTGRES_PASSWORD 自动更新数据库密码，认证失败时先排查配置，不删卷重建。
 
-`.env` 只存开发数据库和认证配置；`.env.test` 只存公开的一次性测试 URL 与 `NODE_ENV=test`。无需 DeepSeek 或 Observe 密钥即可开发 P0；不要向 Web 环境变量复制数据库凭据。
+`.env` 保存开发数据库、认证及可选服务端 AI 配置；`.env.test` 只存公开的一次性测试 URL 与 `NODE_ENV=test`。无需 DeepSeek 或 Observe 密钥即可开发 P0；不要向 Web 环境变量复制数据库凭据或模型 Key。
 
 ### 启动开发
 
 ```bash
 pnpm run db:up       # 等待 PostgreSQL 健康；保留开发持久卷
-pnpm run db:migrate  # 应用已审阅的 0000～0003，重复运行不会重复应用
+pnpm run db:migrate  # 应用目标已获授权的 0000～0004；本机已完成，重复运行幂等
 pnpm run dev:api     # 终端 A；显式加载根 .env，监听 4000
 pnpm run dev:web     # 终端 B；http://localhost:3000
 ```
@@ -75,7 +152,7 @@ pnpm run db:test:down       # 测试 tmpfs 数据随容器移除而消失
 3. 新 SQL 经人工审核后，先 `pnpm run db:migrate:test` 并运行集成测试，再执行 `pnpm run db:migrate`。不要使用 schema push 或修改已应用的历史迁移。
 4. 迁移版本记录在目标数据库的 `drizzle.__drizzle_migrations`；SQL 按 journal 顺序应用。无自动 down/回滚命令，修正应新增迁移；已有数据先备份，不能清库解决冲突。
 
-现有版本依次为 `0000_database_foundation`、`0001_immutable_history`、`0002_session_activity`、`0003_requirement_draft_version`。以下 R01/R02 章节保留历史实施细节；当时“开发库未迁移”是历史状态，当前验证结果见 `docs/STATE.md` 顶部。
+现有版本依次为 `0000_database_foundation`、`0001_immutable_history`、`0002_session_activity`、`0003_requirement_draft_version`、`0004_project_api_tokens`。以下 R01/R02 章节保留历史实施细节；当时“开发库未迁移”是历史状态，当前验证结果见 `docs/STATE.md` 顶部。
 
 ## 常见检查
 ```bash
@@ -234,3 +311,29 @@ pnpm --filter web exec tsc --noEmit --incremental false
 浏览器环境首次执行 `pnpm --filter web exec playwright install --only-shell chromium`，Linux 缺系统库时在有 sudo 权限的终端运行 `pnpm --filter web exec playwright install-deps chromium`，截图建议安装 Noto CJK。随后 `pnpm run db:test:up` 与 `pnpm run test:browser`；后者构建 API/Web，运行 Next 生产服务器，按 `.env.test` 启动隔离链路。不要与占用 3000/4000 的开发/HTTP 测试并行。
 
 本机 sudo 未完成安装，C 使用临时解包系统库和字体，通过的精确环境前缀见 [C evidence](../ux/evidence/r07-c/README.md)。该目录不保证重启后存在；无需改变应用源码来适配。Web 结构、typed client 与后续 Query 隔离约定见 [apps/web/README](../../apps/web/README.md)。
+
+
+## R08 D 项目 API Token
+
+负责人已批准的0004 SQL及SHA-256见 [D审核包](R08_D_SQL_REVIEW.md)。本轮仅授权5434隔离specbridge_test实例；开发/生产库应用仍需另行授权。现有自动migrate测试入口只应用人工审核SQL，禁止借测试生成新迁移。
+
+```bash
+pnpm db:migrate:test
+pnpm test:e2e:tokens
+# 浏览器前构建最新API/Web，3000/4000需空闲；不要与compiled-proxy测试并行。
+pnpm --filter specbridge-api build
+pnpm --filter web build
+pnpm test:browser:tokens
+```
+
+Owner 从项目导航“访问凭据”创建默认30天、最长90天的固定只读凭据。关窗/隐藏/刷新后不能再读取明文；丢失时撤销并重新创建。未知创建响应先核对列表、撤销可能成功的记录。管理UI使用现有Session，外部客户端通过API origin及Authorization Bearer读取批准规格，不能带Cookie或将Token放入URL。真实使用必须HTTPS；本地隔离验证为loopback HTTP。不要将凭据写入命令历史、日志、截图或浏览器持久存储。
+
+CI纳入SQL集成、Token HTTP与浏览器套件，不需要DeepSeek Key。该阶段不新增依赖/环境变量，不提供MCP或OAuth；不应运行真实DeepSeek Smoke来验证Token功能。
+
+## R08 E 本地 MCP 与 Agent Skill
+
+安装、环境安全传递、Codex配置、Skill安装、两个工具契约及错误处理见 [apps/mcp/README](../../apps/mcp/README.md)。只使用本地stdio，不提供HTTP MCP/OAuth；MCP进程不连接数据库、不需要DeepSeek配置。
+
+`pnpm test:mcp` 包括Mock和真实SDK stdio客户端；`pnpm test:e2e:mcp` 在上述5434隔离库启动真实Nest API，以内存合成Token连接编译后的MCP子进程，复用已批准迁移。普通套件跳过真实Host模型测试。可选Codex Host/Skill Smoke只在显式 `R08_MCP_HOST_SMOKE=1` 且非CI时运行，命令和限制见MCP README；使用合成资料，不读取真实项目或.env。
+
+根递归build/lint/test已自动包含MCP包，CI增加MCP typecheck与数据库集成步骤，不依赖真实API Key。测试证据见 [R08 E](evidence/r08-e/README.md)；本阶段不替代F的完整回归。

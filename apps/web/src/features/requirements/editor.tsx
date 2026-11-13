@@ -23,6 +23,14 @@ export type Selection = {
   kind: "draft" | "question" | "answer" | "revision" | "ready";
   snapshot: Requirement;
   parentId?: string;
+  // Human-reviewed values only seed a new form; never reset an open editor.
+  aiDraft?: {
+    analysisId: string;
+    sourceVersion: number;
+    content?: string;
+    acceptanceCriteria?: string[];
+    question?: string;
+  };
 };
 export type EditorProps = {
   selection: Selection;
@@ -216,7 +224,7 @@ function ClarificationEditor(props: EditorProps) {
   const answer = props.selection.kind === "answer";
   const form = useForm<z.infer<typeof clarificationSchema>>({
     resolver: zodResolver(clarificationSchema),
-    defaultValues: { body: "" },
+    defaultValues: { body: props.selection.aiDraft?.question ?? "" },
   });
   const action = useAction(
     props,
@@ -279,10 +287,10 @@ function RevisionEditor(props: EditorProps) {
   const form = useForm<z.infer<typeof revisionSchema>>({
     resolver: zodResolver(revisionSchema),
     defaultValues: {
-      content: latest?.content ?? props.selection.snapshot.originalText,
-      criteria: latest?.acceptanceCriteria.map((value) => ({ value })) ?? [
-        { value: "" },
-      ],
+      content:
+        props.selection.aiDraft?.content ?? latest?.content ?? props.selection.snapshot.originalText,
+      criteria:
+        (props.selection.aiDraft?.acceptanceCriteria ?? latest?.acceptanceCriteria)?.map((value) => ({ value })) ?? [{ value: "" }],
     },
   });
   const { fields, append, remove } = useFieldArray({
@@ -407,6 +415,12 @@ export function RequirementEditor(props: EditorProps) {
       className="surface-panel requirement-editor"
       aria-label="需求操作表单"
     >
+      {props.selection.aiDraft && (
+        <p className="notice" role="status">
+          已填入你确认采用的 AI 草稿（分析来源编辑版本 {props.selection.aiDraft.sourceVersion}）。
+          尚未保存，请继续核对和编辑；保存不会自动标记就绪或提交审批。
+        </p>
+      )}
       {props.selection.kind === "draft" ? (
         <DraftEditor {...props} />
       ) : props.selection.kind === "revision" ? (

@@ -16,6 +16,18 @@
 | 为什么如此设计 | `adr/` |
 | 如何开发与验收 | `engineering/WORKFLOW.md`, `engineering/DEVELOPMENT.md`, `engineering/TEST_STRATEGY.md` |
 | 当前进度 / 人工责任 | `STATE.md`, `HUMAN_TASKS.md` |
+| R08 AI/Agent 总计划与 A–F 交接 | `engineering/R08_PLAN.md` |
+| R08后续AI工作流、A/B/C人工测试与迁移审核 | `engineering/AI_WORKFLOW_PLAN.md`, `engineering/AI_WORKFLOW_CHECKPOINT.md`, `engineering/AI_WORKFLOW_A_MANUAL.md`, `engineering/AI_WORKFLOW_B_SQL_REVIEW.md`, `engineering/AI_WORKFLOW_B_MANUAL.md`, `engineering/AI_WORKFLOW_C_SQL_REVIEW.md`, `engineering/AI_WORKFLOW_C_MANUAL.md` |
+| AI工作流D本地Codex安装授权、已审0008与联调证据 | `engineering/AI_WORKFLOW_D_DESIGN.md`, `engineering/AI_WORKFLOW_D_MANUAL.md`, `engineering/AI_WORKFLOW_D_SQL_REVIEW.md`, `engineering/evidence/ai-workflow-d/README.md` |
+| AI工作流E最终回归、真实模型/Host、综合人工验收与PR草案 | `engineering/evidence/ai-workflow-e/README.md`, `ux/evidence/ai-workflow-e/README.md`, `engineering/AI_WORKFLOW_E_ACCEPTANCE.md`, `engineering/AI_WORKFLOW_PR_DRAFT.md` |
+| R08 本地真实启用、AI503排查与全功能人工测试范例 | `engineering/R08_MANUAL_TEST.md`, `engineering/evidence/r08-local/README.md` |
+| R08 F 最终回归、安全自查、真实Provider/MCP/Host与PR草案 | `engineering/evidence/r08-f/README.md`, `engineering/R08_PR_DRAFT.md` |
+| R08 F 真实AI浏览器、Token桌面/手机与键盘检查 | `ux/evidence/r08-f/README.md` |
+| R08 D Token SQL、Diff/SHA-256与审批记录（隔离库及获新增授权的本机开发库已应用） | `engineering/R08_D_SQL_REVIEW.md` |
+| R08 E 本地MCP、Codex配置与Skill安装 | `../apps/mcp/README.md`, `../skills/requirement-analyst/SKILL.md` |
+| R08 E 真实SDK Client/数据库与Codex Host/Skill测试证据 | `engineering/evidence/r08-e/README.md` |
+| R08 AI 建议人工审阅、桌面/手机截图与浏览器验证 | `ux/evidence/r08-b/README.md` |
+| R08 全局项目 Copilot、工具来源与浏览器验证 | `ux/evidence/r08-c/README.md` |
 | 发布前检查 | `release/RELEASE_CHECKLIST.md` |
 | 竞品调研 | `research/COMPETITOR_RESEARCH.md` |
 | R07 只读契约、Audit/Dashboard 与生成 OpenAPI（Phase B 本地完成） | `architecture/R07_READ_MODELS.md`, `architecture/openapi.json` |
@@ -27,6 +39,7 @@
 | R07 交付/验收、真实 Dashboard/Audit 与浏览器证据（Phase G 本地完成） | `../apps/web/README.md`, `ux/evidence/r07-g/README.md` |
 | R07 最终三角色集成、集中回归与正式可访问性证据（H 本地完成） | `ux/evidence/r07-h/README.md`, `ux/evidence/r07-h/accessibility.json` |
 | 本地 UI 细化、项目侧栏和完整回归截图 | `ux/evidence/ui-polish/README.md` |
+| AI组件视觉统一、背景资料/访问凭据/Copilot交互与浏览器证据 | `ux/evidence/ai-workflow-polish/README.md` |
 | R07 总规划、当前进度、跨 Session 提示词与精简验证 | `engineering/R07_PLAN.md` |
 
 **权威优先级**：负责人确认的业务决策 → 已接受 PRD/ADR → 状态机、数据、API 契约 → 当前 Issue。

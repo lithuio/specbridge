@@ -1,5 +1,33 @@
 # SpecBridge REST API 契约（设计基线）
 
+## R08 Phase C — 项目 Copilot（2026-11-12）
+
+`POST /api/v1/projects/{id}/copilot/messages`：Session + CSRF，三角色仅在当前授权项目内读取，所有结果 no-store。无聊天表、业务写入或商业审计；认证活动时间更新沿用现有契约。
+
+- 严格请求 `{message, history?:[{user,assistant}], page?}`：message ≤4000 字符；history ≤10轮，每条 user≤4000 / assistant≤6000，全部作为不可信用户数据，不接受角色或 system/tool 消息。禁止未知字段/query、客户端模型配置或工具注册。
+- page：`{kind:'overview'|'dashboard'|'requirements'|'changes'|'deliveries'|'members'|'audit'}`；或 `{kind:'requirement',id,revisionId?}`、`{kind:'change',id,versionId?}`、`{kind:'delivery',id}`。UUID 父链先由已有授权服务验证，再进入模型。项目从路由绑定，工具参数不能覆盖。
+- 200 `{data:{conversationTurnId,projectId,result,sources,context},meta:{requestId}}`。result 包含 answer≤3000、blockers≤8×500、nextSteps≤8×`{text≤500,sourceIds}`、sourceIds；合计文本≤6000字符。所有文本仅为未批准建议。来源编号每组1–12个，必须出自本轮实际工具读取，伪造编号安全失败。
+- sources：`{key,type,id,projectId,title,version,href,readAt}`。type 为 project/requirement/revision/change_request/change_version/delivery；href 和版本由服务端生成，只导航真实业务对象。项目/列表注明实时或分页快照；可变对象注明 draftVersion/lockVersion，不可变对象注明 Revision/versionNo/交付编号。旧版本阶段依据该版本审批记录判断，不能套用变更当前状态。来源可追溯不保证模型的文字判断正确。
+- context：`{historyDropped,truncated,toolCalls}`，明确历史/正文裁剪；分页和片段不能解释为完整项目。历史先裁剪到24 KiB，工具正文字符串默认1500字符、数组20项，较大结果再裁剪为300字符/10项；单工具序列化内容含来源≤48 KiB，否则413。
+- 固定七工具：get_project_overview、list_project_requirements、get_requirement、list_change_requests、get_change_request、list_deliveries、get_delivery。列表 limit 默认20/最大50，offset 0–10000；详情只接受 id 及适用的 revisionId/versionId；概览 bucket=mine/waiting/completed，默认mine。每次读取复用已有项目授权服务，并检验实际 projectId；Client 不含供应方 draft。未注册工具、额外参数、错误类型及重复 call ID 拒绝。
+- 每轮≤2次工具选择+1次无工具JSON总结、≤4次工具调用，串行执行、本轮同参数去重；输出预算为 `min(DEEPSEEK_MAX_TOKENS,8192)`，每次选择预留四分之一，总结使用余额，不因前次少输出扩大总额度。单请求输入≤128 KiB、整轮累计≤256 KiB；单次模型≤30秒、整轮含授权/工具≤60秒。历史字节限制不是精确 input token 计费。
+- 与需求分析共享用户/项目/实例配额；每次 API 对话轮次预留一次计数和并发槽，最多含3次模型请求，输出总预算相同。调用失败不退日计数；无自动重试。调用模型前/工具读取前/返回前重验 Session、项目及角色；权限撤销或角色改变则丢弃在途结果。
+- 400非法请求；401Session失效；403CSRF；404不可见项目/对象/父链或在途角色变更；413上下文过大；429 RATE_LIMITED 带 Retry-After；503 AI_UNAVAILABLE / AI_INVALID_RESPONSE。沿用 Phase A 的供应商超时、402/429/503、空/非法JSON处理。日志不记录聊天、工具正文或完整Prompt。
+
+实际实现、测试和限制见 [R08_PLAN](../engineering/R08_PLAN.md)。Project Token 已在 D 实现（见下文）；E 的本地 MCP 复用批准读取 API，见 [MCP 契约](../../apps/mcp/README.md)。注意 Copilot 内部的同名 `list_project_requirements` 按 Session 读可见需求，而 MCP 工具仅按项目 Token 列出批准版本，两者不是同一权限/响应契约。
+
+## R08 Phase A — 需求分析（2026-11-12）
+
+`POST /api/v1/requirements/{id}/ai-analysis`：Session + CSRF；Owner/分配 Developer/绑定 Client 仅可分析可见需求。200 `{data:{analysisId,schemaVersion:1,source,result},meta:{requestId}}`。不创建作业/业务记录或 Revision，不触发 Ready/审批。所有响应 no-store。
+
+- 请求：`{expectedVersion,revisionId?,includeClarifications?,draft?:{content,acceptanceCriteria}}`；严格禁止未知字段/query。expectedVersion 为正整数 R04 draftVersion。includeClarifications 默认 true；指定 Revision 必须属于同需求，省略读取当前 latestRevisionId。draft 是未保存人类输入，沿用 R04 长度限制。
+- source：requirementId、draftVersion、revisionId|null、clarificationIds、includesUnsavedDraft、readAt；生成期间版本变化不更新 source。客户端未来采用时必须人工核对版本并调用既有写 API。
+- result：summary:string、assumptions/openQuestions/acceptanceCriteria/risks:string[]。全部为不可信 AI 草稿，不表示客户确认。summary 非空≤1000，各数组≤10项，每项非空≤500；合计≤6000 UTF-16 code units。数组可空。
+- 401无效Session；403 CSRF；404无权/不存在/Revision父链错误；400输入/query错误；409 STALE_VERSION；413输入过大。分析最多500条澄清、装配材料128 KiB、输出8192 tokens；不静默截断。
+- 429 RATE_LIMITED（本地用户/项目/实例限额或上游429），带 Retry-After。503 AI_UNAVAILABLE（禁用/配置/上游认证、402、500/503、网络或超时）；503 AI_INVALID_RESPONSE（空白/截断/非法JSON/Schema/输出超限）。供应商401不返回为浏览器401，不透传任何原始供应商错误。
+- 调用前后重验项目权限/Session；模型等待不持有DB事务/锁。AI数据查询仅SELECT，已有Session认证正常活动时间更新保持原契约。
+- OpenAPI 与 Web 类型已纳入生成/漂移检查。模型调用参数、限额和后续B–F计划见 `../engineering/R08_PLAN.md`。Phase A 无Web界面、Copilot、Token或MCP实现。
+
 > R07 Phase A 增量读取契约另见 [R07_READ_MODELS.md](R07_READ_MODELS.md)：七个 GET、capabilities、Audit 白名单和 Dashboard 定义。这些增量已在 Phase B 本地实现并生成 OpenAPI；不改变下文 R02–R06 已有写契约。
 
 > v0.2（P0 需求基线已确认）｜Base Path：`/api/v1`｜API-01～30、API-32 与 Client 绑定已有本地实现；其余业务接口仍为设计基线。后续 NestJS 生成 OpenAPI，必须与本文保持一致。
@@ -184,10 +212,27 @@ API-32 实际完整路径为 `GET /api/v1/health`，无需认证，返回 HTTP 2
 | `POST /requirements/{id}/ai-analysis` | 创建 AI 分析作业/返回建议；结果必须人工确认 |
 | `GET /ai-analysis/{runId}` | 查询结构化建议及错误 |
 | `POST /projects/{projectId}/api-tokens` | Owner 创建项目只读 Token，明文只展示一次 |
+| `GET /projects/{projectId}/api-tokens` | Owner 分页查看安全元信息，不返回明文或摘要 |
 | `DELETE /api-tokens/{tokenId}` | 撤销 Token |
 | `GET /projects/{projectId}/approved-specs` | Owner/Developer/Client/Scoped Token 查已批准快照 |
+| `GET /projects/{projectId}/approved-specs/{versionId}` | 精确已批准版本的技术投影 |
 
 MCP `list_project_requirements` 和 `get_approved_spec` 通过上述授权 API 访问，不提供审批工具。GitHub Issue URL P1 作为普通链接字段，不需要 GitHub OAuth 或 Webhook。
+
+### R08 D 已实现 Token 契约
+
+路由统一前缀 `/api/v1`。管理接口仅接受当前项目 Owner 的 Session；创建/撤销沿用 Origin、CSRF 校验。创建必须项目 ACTIVE；归档后仍可列出及撤销。创建 body 严格为 `{name, expiresInDays?}`：name 去首尾空白后1–100字符，expiresInDays 为整数1–90、默认30，不接受 userId/projectId/scope/hash/时间覆盖。
+
+- POST 201：`{data:{id,projectId,name,scopes,createdAt,expiresAt,revokedAt,status,token},meta:{requestId}}`；`token` 仅此响应一次。不提供重新读取/续期/恢复接口。
+- GET 列表 200：标准 `limit` 1–100（默认20）、offset 分页；按创建时间及id倒序。相同元信息，无 token/tokenHash/userId。status 为 REVOKED、EXPIRED、UNAVAILABLE（项目归档或创建者已非当前Owner）、ACTIVE；顺序即优先级。
+- DELETE 204：幂等，只在首次撤销时写审计；未知/跨项目对象404、同项目非Owner403。拒绝额外请求字段。
+- 批准规格 GET/HEAD：Session 三角色可读，或独立 `Authorization: Bearer sbp_…` 身份。拒绝任何 Cookie 与 Bearer 混用、重复认证头、URL/body 凭据和普通业务路由的 Bearer；无效/撤销/过期/资格丢失401，Token跨项目和不可见版本404。不会将Token提升为Owner Session。
+- 精确投影：`projectId,requirementId,changeRequestId,versionId,versionNo,submittedAt,approvedAt,approvedScope:{summary,acceptanceCriteria},referencedRequirement:{revisionId,revisionNo,content,acceptanceCriteria,createdAt}`。必须同一不可变版本有不同人的 VENDOR→CLIENT 两次 APPROVED。列表按提交时间倒序、id正序分页；不要求它仍是当前 activeVersion，保留历史批准规格。
+- `approvedScope` 是批准交付范围；`referencedRequirement` 是该快照引用的原始规格版本，不能据此扩张批准范围。不返回当前需求标题/原文/最新Revision、报价/工时/工期、审批评论、人员邮箱。
+- 上述接口（含错误）`Cache-Control: no-store`。创建限额30次/用户/分钟，Bearer 120次/连接IP/分钟、60次/Token/分钟，429带Retry-After；限额是单进程内存计数，不承诺跨实例或重启持久限额。
+- `api_token.created/revoked/used` 仅Owner可见，分页前过滤。成功Bearer读取（含空列表/HEAD）与使用审计同事务；actor=null、principalType=project_token，保留Token id、项目、时间、操作、精确versionId（详情）/resultCount，不记录正文/名称/凭据/摘要。审计失败拒绝读取；Session读取不新增Token使用事件。
+
+这不是 HTTP OAuth MCP 授权。原R08 Phase D只实现Token，后续Phase E已交付本地MCP/Skill；新的AI工作流D安装授权见本文末节。
 
 ## 6. 契约落地要求
 
@@ -330,3 +375,75 @@ API-28～30 使用既有 Schema，无新增 Migration。负责人批准方案 A�
 OpenAPI 覆盖 R07 使用的 R02–R06 API 和七 GET，共 30 paths / 38 operations；日期为标准 UTC ISO、工时为十进制字符串、金额为 JSON 安全整数，null/optional 显式定义。为满足已有日期契约，R03 Workspace 列表/成员（含重复添加返回值）和 Project 列表/详情已规范化原生 SQL 日期文本；没有修改权限或状态转换。
 
 离线生成 `pnpm --filter specbridge-api openapi:generate`，漂移验证 `pnpm --filter specbridge-api openapi:check`。不加载 .env、连接数据库或启动 Observe/Swagger UI。真实 HTTP 响应验证与运行证据见 STATE；不替代后续浏览器验收。
+
+
+## AI工作流 A：两任务与个人工作稿
+
+旧 `POST /requirements/{id}/ai-analysis` 保持兼容。以下均位于 `/api/v1`，要求有效Session；写请求要求原CSRF检查，Project API Token不授权这些接口。所有响应no-store，文本不进日志/Observe。
+
+| 路由 | 契约与效果 |
+|---|---|
+| `POST /requirements/{id}/ai-assistance` | `{mode: clarify\|specification, expectedVersion, instruction?, draft?}`。复用DeepSeek限额/JSON/Zod与前后授权；Client不能生成规格。响应含analysisId、mode、source和对应result，完全不写业务或工作稿 |
+| `GET /requirements/{id}/working-drafts` | 仅本人；Owner也不能代读。Client仅clarify；不使用前端持久缓存 |
+| `PUT /requirements/{id}/working-drafts/{kind}` | `{kind,draftId,expectedDraftVersion,baseRequirementVersion,body}`；创建必须draftId=null、expectedDraftVersion=0，更新必须真实ID与正版本。保存仅增加私有工作稿版本；可保存尚未完成或基于旧需求的内容 |
+| `DELETE /requirements/{id}/working-drafts/{kind}` | `{draftId,expectedDraftVersion}`；仅删除本人工作稿，保留发布回执/问题/Revision |
+| `POST /requirements/{id}/working-drafts/{kind}/publish` | `{kind,draftId,operationId,expectedDraftVersion,expectedVersion,questionIds?}`；clarify显式选择1–10条。根据服务端工作稿发布，body/publication等伪造字段400；必须工作稿base与当前需求一致 |
+| `GET /requirements/{id}/working-draft-publications/{operationId}` | 当前作者和项目重新授权后读取最小回执；不存在/非本人404；规格回执对Client403 |
+
+ID+版本同时比较，防止删除重建后的旧请求覆盖新工作稿。`STALE_WORKING_DRAFT`、`STALE_VERSION`、`OPERATION_CONFLICT`均409；已发布条目不可再次发布或改写正文（`QUESTION_ALREADY_PUBLISHED`），移除工作稿条目不删除正式问题。同一规格工作稿版本不重复创建Revision（`DRAFT_ALREADY_PUBLISHED`）。替换客户端操作ID不能消费同一草稿版本两次。
+
+Workspace→Project→Requirement→WorkingDraft锁序；批量问题复用原Clarification事务命令，每条仍增加业务版本及审计，所有条目/采用标记/回执一并提交或回滚。规格复用原Revision命令、Pending限制与不可变历史，创建后为CLARIFYING；不执行Ready/Submit/审批/验收。归档项目禁止新的保存/发布，允许授权查询历史与删除自己的工作稿。
+
+发布网络结果未知时先查询operationId；未查到时可由用户重试**相同**请求，不自动生成新操作。Web个人正文仅在组件内存与私有表；刷新恢复服务端版本，未保存输入需要离开前手动保存。错误/409留在当前页时保留输入，明确核对最新需求或远端工作稿才采用新版本。工作稿保存/删除审计只含作者、对象和版本，无正文，并不进入现有项目公开活动白名单。
+
+Schema及完整返回结构以[OpenAPI](openapi.json)为准；96KiB保存总量、100KiB普通JSON路由限制保持；AI专用256KiB入口仍受Provider组合上下文/输出与用户项目预算约束。
+
+## 项目背景资料（AI工作流B）
+
+所有入口为Session认证；写入需要可信Origin、X-CSRF-Protection:1。只有上传使用multipart，其余写JSON；Project API Token不能调用。成功和错误均no-store，错误遵循统一安全信封。
+
+| 方法/路径（/api/v1） | 输入与响应 |
+|---|---|
+| GET `/projects/{projectId}/documents` | 最多20个身份。内部角色见current/shared指针、CAS版本、最近50条历史及必要指针版本；historyTruncated标注。Client只见ACTIVE且明确共享的版本元信息 |
+| POST `/projects/{projectId}/documents` | multipart：file必填；替换时documentId和expectedVersion字符串必须同时提供。201返回documentId/versionId/status READY或FAILED/errorCode；解析失败保留最小失败记录，不回滚项目 |
+| PUT `/projects/{projectId}/documents/{documentId}` | Owner，expectedVersion与status ACTIVE/INACTIVE或sharedVersionId UUID/null；每次更新CAS，停用自动撤回共享，重新启用不恢复共享 |
+| GET `/projects/{projectId}/documents/{documentId}/versions/{versionId}` | limit默认20、1..50；offset默认0、0..1000。真实version及纯文本chunks（id/ordinal/页段定位/content）、hasMore；每次校验完整父链与当前可见性 |
+
+文档独立CAS不改变Requirement版本。新增安全码409 DOCUMENT_STALE/DOCUMENT_PROCESSING/DOCUMENT_UNAVAILABLE、422 DOCUMENT_QUOTA；格式/字段400、文件超限413、限流429。解析固定码UNSUPPORTED_FILE/INVALID_FILE/NO_TEXT/PARSE_LIMIT/PARSE_TIMEOUT/PARSE_FAILED/INTERRUPTED，通过201结果或版本列表显示，不返回原始异常。
+
+替换上传在项目锁内先按恢复前的文档版本校验expectedVersion，再恢复已达两分钟的PROCESSING记录并预留新版本；恢复与预留的数据库变更及审计在同一事务提交。使用当前版本的重试不会因本次恢复递增版本而被判为过期；真正过期的请求在清理文件前返回DOCUMENT_STALE，未超时上传仍返回DOCUMENT_PROCESSING。恢复不改变已有READY内容或共享版本指针。
+
+新 `ai-assistance` 的source增加background数组：documentId/versionId/chunkId/versionNo/title/locatorKind/locatorStart/locatorEnd/href，不回传额外正文。共享片段进入untrustedMaterial，最多4×1000字符。旧ai-analysis原响应保持兼容。
+
+Copilot白名单增加 `search_project_background({query:string[1..500]})`，不接受projectId；返回授权片段和服务器真实文档来源，source.type可为document。仍受总4工具/2轮及Token预算；最终来源重新授权。MCP保持原两个批准规格工具。
+
+## AI工作流C：Copilot本人提案与人工确认
+
+所有入口使用Session；写请求要求可信Origin与X-CSRF-Protection。Bearer不适用，成功/错误响应均no-store，正文不进入Observe。权限由Requirement父链推导Project/Workspace；Owner不能代读其他人的提案，Client仅`publish_questions`。
+
+| 路径（前缀 `/api/v1`） | 方法 | 请求与行为 |
+|---|---|---|
+| `/requirements/{id}/copilot-proposals` | GET | 本人分页，limit默认20最大50、offset≤10000；DRAFT优先，其后时间/ID倒序；data含items/hasMore |
+| 同上 | POST | kind、expectedVersion、source；生成或复制参考后只保存个人提案，返回201，不写业务 |
+| `/requirements/{id}/copilot-proposals/{proposalId}` | GET | 本人当前提案/执行回执，用于网络未知结果核对 |
+| 同上 | PUT | expectedProposalVersion、content={kind,payload}；独立CAS，只编辑允许的正文/评估字段，不能改目标/来源/基线 |
+| 同上 | DELETE | expectedProposalVersion；只删除本人DRAFT（允许过期），已执行不可删除 |
+| `/requirements/{id}/copilot-proposals/{proposalId}/execute` | POST | operationId、expectedProposalVersion、expectedVersion；更新商业草稿另需expectedChangeVersion；显式确认，业务/审计/回执原子提交 |
+
+kind固定`publish_questions | create_revision | create_change_draft | update_change_draft`。前两种source为`generate`（可选instruction≤2000；重新走共享资料上下文，不收历史聊天/工具正文）或`working_draft`（本人draftId+expectedDraftVersion）；后两种source只允许`current`。更新商业草稿必须给changeRequestId+expectedChangeVersion并验证同需求；所有多余字段拒绝。
+
+问题payload最多10条，包含服务器分配/已有工作稿条目id、body、reason、selected；用户可编辑/删除/取消，确认只发布selected项且至少1项。规格沿用A工作稿content/acceptanceCriteria/openQuestions/assumptions/risks。商业payload固定requirementRevisionId（编辑不可变）及scopeSummary/estimateHours/costDeltaMinor/currency/scheduleDeltaDays/acceptanceCriteria，评估可空，金额为安全整数的最小货币单位；复用R05全部校验。总载荷80KiB，未知字段/非法金额/来源组合400，超长413。
+
+响应固定id/requirementId/userId/kind/payload/sources/version/baseRequirementVersion/可空changeRequestId及baseChangeVersion/status/operationId/result/createdAt/updatedAt/expiresAt/executedAt；不返回requestHash。sources只包含Requirement业务版本、Revision、共享文档版本/段、本人工作稿版本及商业草稿版本的真实服务端标识，不持久化完整Prompt/工具正文。
+
+确认时重新验证当前授权、ACTIVE项目、Session、有效期、全部业务及来源版本；取得业务聚合锁后持有Session共享锁，退出登录先发生则拒绝执行。同operationId同规范请求返回原回执；换参数/第二编号消费同提案409，不自动重放。发布问题/Revision仍受R04状态与Pending规则；商业操作仍仅DRAFT，不自动Mark Ready、Submit、批准或验收。
+
+新增409：`PROPOSAL_STALE`、`PROPOSAL_SOURCE_STALE`、`PROPOSAL_EXPIRED`；另沿用STALE_VERSION/INVALID_TRANSITION/REVIEW_IN_PROGRESS/OPERATION_CONFLICT。本人每需求100份未执行提案（含过期），满额422 `PROPOSAL_LIMIT`；准备30次/用户/小时、60次/项目/小时，模型另受既有AI预算限制。提案24h有效，不自动删除；已执行提案/回执保留不可变。精确Schema以生成OpenAPI为准。
+
+## AI工作流 D 本地连接授权
+
+Owner Session+CSRF：`POST /projects/:id/agent-connections`创建5分钟授权；`GET`列表（20默认/50最大/offset≤10000），`GET /:grantId`查询本人安全元数据，`POST /:grantId/cancel`幂等取消未兑换授权。授权请求严格包含grantId/challenge/challengeMethod=S256/state/callbackPort/name/expiresInDays；响应只含grant/code/callbackUrl，不返回Token。
+
+`POST /agent-connections/exchange`使用独立证明认证：grantId/projectId/code/verifier/state/callbackPort。拒绝Cookie、Bearer、Origin、所有Sec-Fetch-*，只接受JSON POST；返回原Token创建响应（一次性token、固定scope及期限），没有匿名申请写库入口。坏证明/过期/原Session或Owner失效401，已消费/取消409 CONNECTION_CONFLICT，非法参数400、4KiB上限413、限流429、服务不可用503。固定approved_specs:read；普通业务API未放开Public。
+
+当前Owner20次/小时、项目40次/小时、每本人项目最多5个活跃授权（422 CONNECTION_LIMIT），原Token创建30次/分钟仍生效；兑换按TCP peer60次/分钟。状态只投影AUTHORIZED/EXCHANGED/CANCELLED/EXPIRED及Token ID，不返回proof、摘要或Session。结果未知须查询/撤销，不能再取明文。精确51路径契约见OpenAPI，[设计与数据流](../engineering/AI_WORKFLOW_D_DESIGN.md)。

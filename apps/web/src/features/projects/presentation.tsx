@@ -1,6 +1,7 @@
 import {
   Activity,
   FileText,
+  Files,
   FolderOpen,
   GitPullRequestArrow,
   PackageCheck,
@@ -16,6 +17,7 @@ export function projectTone(id: string) {
 
 export const projectSections = [
   { path: "", label: "项目概览", icon: FolderOpen, tone: "indigo" },
+  { path: "/documents", label: "背景资料", icon: Files, tone: "teal" },
   { path: "/members", label: "项目成员", icon: Users, tone: "violet" },
   { path: "/requirements", label: "项目需求", icon: FileText, tone: "blue" },
   {

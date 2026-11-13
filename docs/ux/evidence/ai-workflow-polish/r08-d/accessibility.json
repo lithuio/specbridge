@@ -1,0 +1,167 @@
+[
+  {
+    "name": "token-desktop",
+    "violations": [],
+    "passedRules": 28,
+    "supplementalComputedContrast": [],
+    "incomplete": []
+  },
+  {
+    "name": "token-mobile",
+    "violations": [],
+    "passedRules": 28,
+    "supplementalComputedContrast": [
+      {
+        "target": [
+          ".project-nav > a:nth-child(4)"
+        ],
+        "ratio": 5.94,
+        "threshold": 4.5
+      },
+      {
+        "target": [
+          ".project-nav > a:nth-child(5)"
+        ],
+        "ratio": 5.94,
+        "threshold": 4.5
+      },
+      {
+        "target": [
+          ".project-nav > a:nth-child(6)"
+        ],
+        "ratio": 5.94,
+        "threshold": 4.5
+      },
+      {
+        "target": [
+          ".project-nav > a:nth-child(7)"
+        ],
+        "ratio": 5.94,
+        "threshold": 4.5
+      },
+      {
+        "target": [
+          ".project-nav > a[aria-current=\"page\"]"
+        ],
+        "ratio": 7.44,
+        "threshold": 4.5
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": [
+          {
+            "target": [
+              ".project-nav > a:nth-child(4)"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "target": [
+              ".project-nav > a:nth-child(5)"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "target": [
+              ".project-nav > a:nth-child(6)"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "target": [
+              ".project-nav > a:nth-child(7)"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "target": [
+              ".project-nav > a[aria-current=\"page\"]"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "token-320",
+    "violations": [],
+    "passedRules": 28,
+    "supplementalComputedContrast": [
+      {
+        "target": [
+          ".project-nav > a:nth-child(4)"
+        ],
+        "ratio": 5.94,
+        "threshold": 4.5
+      },
+      {
+        "target": [
+          ".project-nav > a:nth-child(5)"
+        ],
+        "ratio": 5.94,
+        "threshold": 4.5
+      },
+      {
+        "target": [
+          ".project-nav > a:nth-child(6)"
+        ],
+        "ratio": 5.94,
+        "threshold": 4.5
+      },
+      {
+        "target": [
+          ".project-nav > a:nth-child(7)"
+        ],
+        "ratio": 5.94,
+        "threshold": 4.5
+      },
+      {
+        "target": [
+          ".project-nav > a[aria-current=\"page\"]"
+        ],
+        "ratio": 7.44,
+        "threshold": 4.5
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "nodes": [
+          {
+            "target": [
+              ".project-nav > a:nth-child(4)"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "target": [
+              ".project-nav > a:nth-child(5)"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "target": [
+              ".project-nav > a:nth-child(6)"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "target": [
+              ".project-nav > a:nth-child(7)"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "target": [
+              ".project-nav > a[aria-current=\"page\"]"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          }
+        ]
+      }
+    ]
+  }
+]

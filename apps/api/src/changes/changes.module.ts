@@ -10,6 +10,6 @@ import { ChangesRepository } from './changes.repository.js';
   imports: [DatabaseModule, AuthorizationModule, AuditModule],
   controllers: [ChangesController],
   providers: [ChangesService, ChangesRepository, DeliveriesRepository],
-  exports: [ChangesRepository],
+  exports: [ChangesRepository, ChangesService],
 })
 export class ChangesModule {}

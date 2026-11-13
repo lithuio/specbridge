@@ -24,23 +24,31 @@ describe('PostgreSQL foundation (structural guarantees, not business APIs)', () 
     await pool?.end();
   });
 
-  it('migrates all 15 tables and preserves data when migrations run again', async () => {
+  it('migrates all 23 tables and preserves data when migrations run again', async () => {
     const tables = await pool.query(
       "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename",
     );
     expect(
       tables.rows.map((row: { tablename: string }) => row.tablename),
     ).toEqual([
+      'agent_connection_grants',
+      'api_tokens',
       'approvals',
       'audit_events',
       'change_request_versions',
       'change_requests',
       'clarifications',
+      'copilot_proposals',
       'deliveries',
       'delivery_reviews',
+      'project_document_chunks',
+      'project_document_versions',
+      'project_documents',
       'project_members',
       'projects',
+      'requirement_publish_receipts',
       'requirement_revisions',
+      'requirement_working_drafts',
       'requirements',
       'sessions',
       'users',
@@ -64,9 +72,14 @@ describe('PostgreSQL foundation (structural guarantees, not business APIs)', () 
       'SELECT tgname FROM pg_trigger WHERE NOT tgisinternal ORDER BY tgname',
     );
     expect(triggers.rows.map((row: { tgname: string }) => row.tgname)).toEqual([
+      'agent_connection_grants_guard',
       'approvals_immutable',
       'change_request_versions_immutable',
+      'copilot_proposals_guard',
       'delivery_reviews_immutable',
+      'project_document_chunks_guard',
+      'project_document_versions_guard',
+      'project_documents_pointer_guard',
       'projects_baseline_scope_immutable',
       'requirement_revisions_immutable',
     ]);
@@ -82,16 +95,24 @@ describe('PostgreSQL foundation (structural guarantees, not business APIs)', () 
     const primaryKeys = await pool.query(
       "SELECT count(*)::int AS count FROM pg_constraint WHERE contype='p' AND connamespace='public'::regnamespace",
     );
-    expect(primaryKeys.rows[0].count).toBe(15);
+    expect(primaryKeys.rows[0].count).toBe(23);
     const ids = await pool.query(
-      "SELECT udt_name, column_default FROM information_schema.columns WHERE table_schema='public' AND column_name='id'",
+      "SELECT table_name, udt_name, column_default FROM information_schema.columns WHERE table_schema='public' AND column_name='id'",
     );
-    expect(ids.rows).toHaveLength(15);
+    expect(ids.rows).toHaveLength(23);
     expect(
       ids.rows.every(
-        (row: { udt_name: string; column_default: string }) =>
+        (row: {
+          table_name: string;
+          udt_name: string;
+          column_default: string | null;
+        }) =>
           row.udt_name === 'uuid' &&
-          row.column_default.includes('gen_random_uuid()'),
+          (['requirement_publish_receipts', 'agent_connection_grants'].includes(
+            row.table_name,
+          )
+            ? row.column_default === null
+            : row.column_default?.includes('gen_random_uuid()')),
       ),
     ).toBe(true);
   });

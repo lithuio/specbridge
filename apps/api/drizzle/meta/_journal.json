@@ -29,6 +29,41 @@
       "when": 1794165184709,
       "tag": "0003_requirement_draft_version",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794448454445,
+      "tag": "0004_project_api_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794509509005,
+      "tag": "0005_requirement_working_drafts",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794545184103,
+      "tag": "0006_project_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794549171249,
+      "tag": "0007_copilot_proposals",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794553583822,
+      "tag": "0008_agent_connection_grants",
+      "breakpoints": true
     }
   ]
 }
