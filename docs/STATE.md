@@ -1,8 +1,18 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-13。AI工作流A–E已由负责人提交至184112e，并反馈本地验证成立。本轮完成新增AI组件的视觉与交互统一：31项受影响回归、Web类型/Lint/Build通过，28界面状态0自动无障碍违规（18状态有未判定项）。改动未提交；未改变业务API、Schema、依赖或App Shell。详细截图与限制见[视觉验证](ux/evidence/ai-workflow-polish/README.md)。无自动Commit/Push/PR/Merge/部署。
+> 更新时间：2026-11-13。AI工作流及视觉统一已提交至c6f9efb。本轮修复Review指出的中断替换上传CAS死循环；文档HTTP/数据库回归12项、API类型/Lint及格式检查通过。改动未提交，无Schema/依赖变更；未执行Commit/Push/PR/Merge/部署。
 
-## AI组件视觉与交互统一 — 本地完成
+## Review修复 — 中断替换上传的版本校验
+
+负责人要求解决Review的P2问题。开工HEAD `c6f9efb`，工作区干净；复核Issue #17、AC-31/34及背景资料契约。本轮仅修改DocumentsService、现有文档E2E和API/STATE文档。
+
+- 替换上传在项目锁内按恢复前版本校验CAS与ACTIVE状态，再处理超时PROCESSING记录。恢复及新版本预留仍处于同一事务，保留旧READY内容和共享指针。有效重试不再因恢复自身递增版本而永久409，过期请求在文件清理前拒绝。
+- 新增3项真实HTTP/PG/文件回归：超时替换并发重试仅一个成功、真实过期版本拒绝且文件/数据/审计无副作用、未超时上传继续阻塞；同时验证失败/新版本编号、审计、旧共享可读及新内容对Client不可见。
+- 红测：`node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:documents -t 'replacement.*retr'` 在修复前2失败/1通过/9跳过，复现双409和过期请求删除文件。首次沙箱连接5434报EPERM；授权后在隔离库实际执行，未将环境失败计作验证。
+- PASS：`node scripts/with-env.mjs .env.test pnpm --filter specbridge-api test:e2e:documents`（12/12）；`pnpm --filter specbridge-api typecheck`；`pnpm --filter specbridge-api lint`（修正新增测试排序比较器后无警告）；`pnpm --filter specbridge-api exec prettier --check src/documents/documents.service.ts test/documents/documents.e2e-spec.ts`；`git diff --check`。
+- 本轮未运行Web/MCP、全量API回归或远程CI；无新增SQL、开发/生产数据操作。合并前仍需人工Review与CI。建议Commit：`fix(documents): preserve replacement CAS during upload recovery`。
+
+## AI组件视觉与交互统一 — 本地完成（历史交接，后续已提交c6f9efb）
 
 负责人要求沿用R07风格，优化新增背景资料、访问凭据、Copilot及工作台的视觉与操作反馈。开工分支`feat/17-ai-agent-integration`、HEAD`184112e`，初始仅`apps/api/tsconfig.build.tsbuildinfo`有已有改动；该文件与开工备份逐字节一致，未覆盖。复核Issue #17与AC-28–34，仅实施此次获授权的Web优化。
 

@@ -411,6 +411,8 @@ Schema及完整返回结构以[OpenAPI](openapi.json)为准；96KiB保存总量�
 
 文档独立CAS不改变Requirement版本。新增安全码409 DOCUMENT_STALE/DOCUMENT_PROCESSING/DOCUMENT_UNAVAILABLE、422 DOCUMENT_QUOTA；格式/字段400、文件超限413、限流429。解析固定码UNSUPPORTED_FILE/INVALID_FILE/NO_TEXT/PARSE_LIMIT/PARSE_TIMEOUT/PARSE_FAILED/INTERRUPTED，通过201结果或版本列表显示，不返回原始异常。
 
+替换上传在项目锁内先按恢复前的文档版本校验expectedVersion，再恢复已达两分钟的PROCESSING记录并预留新版本；恢复与预留的数据库变更及审计在同一事务提交。使用当前版本的重试不会因本次恢复递增版本而被判为过期；真正过期的请求在清理文件前返回DOCUMENT_STALE，未超时上传仍返回DOCUMENT_PROCESSING。恢复不改变已有READY内容或共享版本指针。
+
 新 `ai-assistance` 的source增加background数组：documentId/versionId/chunkId/versionNo/title/locatorKind/locatorStart/locatorEnd/href，不回传额外正文。共享片段进入untrustedMaterial，最多4×1000字符。旧ai-analysis原响应保持兼容。
 
 Copilot白名单增加 `search_project_background({query:string[1..500]})`，不接受projectId；返回授权片段和服务器真实文档来源，source.type可为document。仍受总4工具/2轮及Token预算；最终来源重新授权。MCP保持原两个批准规格工具。

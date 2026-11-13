@@ -13,6 +13,7 @@ import { WorkspacesService } from '../../src/workspaces/workspaces.service.js';
 import { ProjectsService } from '../../src/projects/projects.service.js';
 import { RequirementsService } from '../../src/requirements/requirements.service.js';
 import { DocumentsService } from '../../src/documents/documents.service.js';
+import { DocumentStorage } from '../../src/documents/document.storage.js';
 import {
   DocumentParser,
   ParseFailure,
@@ -88,6 +89,41 @@ async function share(
     expectedVersion: item.version,
     sharedVersionId: versionId,
   }).expect(200);
+}
+async function processingReplacement(ageSeconds: number) {
+  const f = await setup();
+  const first = (
+    await upload(f.project.id, f.owner, 'SHARED ORIGINAL').expect(201)
+  ).body.data;
+  await share(f, first.documentId, first.versionId);
+  const blobId = randomUUID();
+  await app.get(DocumentStorage).put(blobId, Buffer.from('interrupted'));
+  // Simulate a replacement whose process stopped after reserving and storing its file.
+  const old = (
+    await pool.query(
+      `INSERT INTO project_document_versions(project_id,document_id,version_no,original_name,media_type,size_bytes,blob_id,sha256,created_by,created_at) VALUES($1,$2,2,'interrupted.txt','text/plain',11,$3,$4,$5,now()-make_interval(secs => $6)) RETURNING id`,
+      [
+        f.project.id,
+        first.documentId,
+        blobId,
+        'a'.repeat(64),
+        f.owner.id,
+        ageSeconds,
+      ],
+    )
+  ).rows[0].id;
+  await pool.query(
+    'UPDATE project_documents SET version=version+1 WHERE id=$1',
+    [first.documentId],
+  );
+  const before = (await list(f.project.id, f.owner)).items[0];
+  const audit = (
+    await pool.query(
+      'SELECT event_type,metadata FROM audit_events WHERE entity_id=$1 ORDER BY id',
+      [first.documentId],
+    )
+  ).rows;
+  return { f, first, old, blobId, before, audit };
 }
 beforeAll(async () => {
   pool = await openTestDatabase();
@@ -170,6 +206,125 @@ it('serializes concurrent quota reservations, counts inactive documents, and rec
     ).rows[0],
   ).toEqual({ status: 'FAILED', error_code: 'INTERRUPTED' });
 });
+
+it('recovers an interrupted replacement using the current CAS version and serializes competing retries', async () => {
+  const { f, first, old, blobId, before, audit } =
+    await processingReplacement(180);
+  const fields = {
+    documentId: first.documentId,
+    expectedVersion: before.version,
+  };
+  const responses = await Promise.all([
+    upload(f.project.id, f.owner, 'REPLACEMENT', 'retry.txt', fields),
+    upload(f.project.id, f.developer, 'REPLACEMENT', 'retry.txt', fields),
+  ]);
+  expect(responses.map((r) => r.status).sort((a, b) => a - b)).toEqual([
+    201, 409,
+  ]);
+  expect(responses.find((r) => r.status === 409)!.body.error.code).toBe(
+    'DOCUMENT_STALE',
+  );
+  const response = responses.find((r) => r.status === 201)!;
+  assertContract('/projects/{projectId}/documents', 'post', response);
+  const replacement = response.body.data;
+  expect(replacement).toMatchObject({
+    documentId: first.documentId,
+    status: 'READY',
+    errorCode: null,
+  });
+  const after = (await list(f.project.id, f.owner)).items[0];
+  expect(after).toMatchObject({
+    id: first.documentId,
+    version: before.version + 3,
+    currentVersionId: replacement.versionId,
+    sharedVersionId: first.versionId,
+  });
+  expect(
+    (
+      await pool.query(
+        'SELECT id,version_no,status,error_code FROM project_document_versions WHERE document_id=$1 ORDER BY version_no',
+        [first.documentId],
+      )
+    ).rows,
+  ).toEqual([
+    { id: first.versionId, version_no: 1, status: 'READY', error_code: null },
+    { id: old, version_no: 2, status: 'FAILED', error_code: 'INTERRUPTED' },
+    {
+      id: replacement.versionId,
+      version_no: 3,
+      status: 'READY',
+      error_code: null,
+    },
+  ]);
+  expect(await readdir(storage)).not.toContain(blobId);
+  const events = (
+    await pool.query(
+      'SELECT event_type,metadata FROM audit_events WHERE entity_id=$1 ORDER BY id',
+      [first.documentId],
+    )
+  ).rows;
+  expect(events).toHaveLength(audit.length + 3);
+  expect(events).toEqual(
+    expect.arrayContaining([
+      ...audit,
+      {
+        event_type: 'project_document.failed',
+        metadata: { versionId: old, code: 'INTERRUPTED' },
+      },
+      {
+        event_type: 'project_document.uploaded',
+        metadata: expect.objectContaining({ versionId: replacement.versionId }),
+      },
+      {
+        event_type: 'project_document.parsed',
+        metadata: expect.objectContaining({ versionId: replacement.versionId }),
+      },
+    ]),
+  );
+  const content = await api(
+    'get',
+    `${base(f.project.id)}/${first.documentId}/versions/${first.versionId}`,
+    f.client,
+  ).expect(200);
+  expect(content.body.data.chunks[0].content).toBe('SHARED ORIGINAL');
+  await api(
+    'get',
+    `${base(f.project.id)}/${first.documentId}/versions/${replacement.versionId}`,
+    f.client,
+  ).expect(404);
+});
+
+it.each([
+  { ageSeconds: 180, versionOffset: -1, code: 'DOCUMENT_STALE' },
+  { ageSeconds: 0, versionOffset: 0, code: 'DOCUMENT_PROCESSING' },
+])(
+  'rejects replacement retries with $code without recovery side effects',
+  async ({ ageSeconds, versionOffset, code }) => {
+    const { f, first, blobId, before, audit } =
+      await processingReplacement(ageSeconds);
+    const response = await upload(
+      f.project.id,
+      f.owner,
+      'REPLACEMENT',
+      'retry.txt',
+      {
+        documentId: first.documentId,
+        expectedVersion: before.version + versionOffset,
+      },
+    ).expect(409);
+    expect(response.body.error.code).toBe(code);
+    expect((await list(f.project.id, f.owner)).items).toEqual([before]);
+    expect(await readdir(storage)).toContain(blobId);
+    expect(
+      (
+        await pool.query(
+          'SELECT event_type,metadata FROM audit_events WHERE entity_id=$1 ORDER BY id',
+          [first.documentId],
+        )
+      ).rows,
+    ).toEqual(audit);
+  },
+);
 
 it('reserves the 100 MiB project budget including all READY history and in-flight bytes', async () => {
   const f = await setup();

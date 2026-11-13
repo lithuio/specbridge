@@ -179,6 +179,13 @@ export class DocumentsService {
     const blobId = randomUUID();
     const reserved = await this.database.transaction(async (tx) => {
       const project = await this.lock(actor, projectId, tx);
+      let doc: Document | undefined;
+      if (fields.documentId) {
+        doc = await this.document(tx, projectId, fields.documentId);
+        // Recovery touches the document; validate the client's version before it does.
+        this.checkVersion(doc, fields.expectedVersion!);
+        if (doc.status !== 'ACTIVE') documentFailure('DOCUMENT_UNAVAILABLE');
+      }
       const interrupted = await tx
         .select()
         .from(versions)
@@ -213,11 +220,7 @@ export class DocumentsService {
         used.bytes + file.size > DOCUMENT_LIMITS.projectBytes
       )
         documentFailure('DOCUMENT_QUOTA', 422);
-      let doc: Document;
-      if (fields.documentId) {
-        doc = await this.document(tx, projectId, fields.documentId);
-        this.checkVersion(doc, fields.expectedVersion!);
-        if (doc.status !== 'ACTIVE') documentFailure('DOCUMENT_UNAVAILABLE');
+      if (doc) {
         doc = await this.touch(tx, doc.id);
       } else {
         [doc] = await tx
