@@ -18,12 +18,16 @@ export class CsrfGuard implements CanActivate {
     const hasBody =
       request.headers['transfer-encoding'] !== undefined ||
       Number(request.headers['content-length'] ?? 0) > 0;
+    const documentUpload =
+      request.method === 'POST' &&
+      /^\/api\/v1\/projects\/[\da-f-]{36}\/documents\/*$/i.test(request.path) &&
+      request.is('multipart/form-data');
     if (
       !origin ||
       !this.config.trustedOrigins.has(origin) ||
       request.get('x-csrf-protection') !== '1' ||
       (site !== undefined && site !== 'same-origin') ||
-      (hasBody && !request.is('application/json'))
+      (hasBody && !request.is('application/json') && !documentUpload)
     ) {
       throw new ForbiddenException(
         'Request origin or CSRF protection is invalid',

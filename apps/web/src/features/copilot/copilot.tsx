@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useProposalWorkspace } from "./proposals";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { MessageCircle, X } from "lucide-react";
@@ -201,6 +202,13 @@ function Conversation({
   const request = useRef<AbortController | null>(null);
   const role = useRef<string | null>(null);
   const pageKey = JSON.stringify(page);
+  const tasks = useProposalWorkspace({
+    projectId,
+    project,
+    open: open && verified,
+    page,
+    onNavigate,
+  });
   // These states live outside the portalled drawer, so close/reopen keeps a conversation.
   // Activity, account/project change, close and page navigation abort pending work.
   useEffect(() => {
@@ -264,12 +272,10 @@ function Conversation({
           body: {
             message: question,
             page,
-            history: turns
-              .slice(-10)
-              .map((t) => ({
-                user: t.question,
-                assistant: historyText(t.answer),
-              })),
+            history: turns.slice(-10).map((t) => ({
+              user: t.question,
+              assistant: historyText(t.answer),
+            })),
           },
           signal: AbortSignal.any([controller.signal, timeout]),
         },
@@ -316,7 +322,8 @@ function Conversation({
           AI 建议不是已批准的业务事实。请打开来源核实；审批与验收仍需人工操作。
         </p>
         {!verified && !failure && <p role="status">正在核验项目权限…</p>}
-        {verified && !turns.length && (
+        {verified && tasks.view}
+        {verified && !tasks.expanded && !turns.length && (
           <div className="copilot-empty">
             <h3>从当前项目开始</h3>
             <p>可以问“项目有哪些阻塞点？”或“当前需求下一步应该做什么？”</p>
@@ -328,6 +335,7 @@ function Conversation({
           </div>
         )}
         {verified &&
+          !tasks.expanded &&
           turns.map((t) => (
             <article className="copilot-turn" key={t.answer.conversationTurnId}>
               <div className="copilot-question">
@@ -369,6 +377,14 @@ function Conversation({
                       <Link href={s.href} onClick={onNavigate}>
                         [{s.key}] {s.title} · {s.version}
                       </Link>
+                      {s.type === "requirement" && (
+                        <Button
+                          variant="ghost"
+                          onClick={() => tasks.openTarget(s.id)}
+                        >
+                          为此需求准备操作
+                        </Button>
+                      )}
                       <span>
                         读取于 {new Date(s.readAt).toLocaleString("zh-CN")}
                       </span>
@@ -396,7 +412,7 @@ function Conversation({
           </Button>
         )}
       </div>
-      {verified && (
+      {verified && !tasks.expanded && (
         <form className="copilot-composer" onSubmit={send}>
           <label htmlFor={fieldId}>询问当前项目</label>
           <textarea

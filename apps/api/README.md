@@ -1,4 +1,19 @@
 <p align="center">
+
+## SpecBridge 项目背景解析（AI工作流B）
+
+项目命令与环境以仓库根README和[开发文档](../../docs/engineering/DEVELOPMENT.md)为准，下面Nest模板不是SpecBridge部署操作指南。
+
+文件解析需Linux/WSL、Node22权限模式、`/usr/bin/prlimit`及可读`/proc`。启动产物除`dist`外必须保留`apps/api/scripts/document-parser.mjs`及pnpm解析依赖路径；只有dist的复制部署不支持上传解析。运行环境不满足时上传安全失败，不阻断手动业务。
+
+原件默认保存在API用户的`~/.local/share/specbridge/documents`；可由服务器环境`DOCUMENT_STORAGE_DIR`覆盖，必须在仓库之外，目录0700、原件0600。不配置到Next public目录；没有原件下载端点。Node权限/进程资源限制不是完整OS沙箱，生产部署需另行验证。
+
+- `pnpm test:e2e:documents`：仓库根运行，Mock AI、真实HTTP/隔离PG/解析进程。
+- `pnpm test:browser:documents`：仓库根运行，浏览器和临时原件目录，不依赖真实Key。
+- 真实DeepSeek为单独opt-in，详见[实际证据](../../docs/engineering/evidence/ai-workflow-b/README.md)；不要把真实密钥传给Web或解析子进程。
+
+0006已获批仅在5434隔离库应用；本次没有授权开发/生产新增迁移。[人工测试与边界](../../docs/engineering/AI_WORKFLOW_B_MANUAL.md)。
+
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 

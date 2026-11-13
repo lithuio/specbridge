@@ -235,7 +235,7 @@ test("不可用、限流、无效来源、超时和权限撤回；保留输入�
   await page.unroute(route);
   await page.goto(`/app/projects/${p.id}/requirements/${r.id}`);
   await expect(
-    page.getByRole("button", { name: "分析需求", exact: true }),
+    page.getByRole("button", { name: "生成澄清建议", exact: true }),
   ).toBeEnabled();
   await expect(
     page.getByRole("button", { name: "创建新 Revision", exact: true }),

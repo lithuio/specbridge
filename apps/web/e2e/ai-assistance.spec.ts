@@ -1,613 +1,516 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { APIRequestContext, Page } from "@playwright/test";
-import { test, expect, login, origin, writeHeaders } from "./fixtures";
+import { test, expect, login, writeHeaders, origin } from "./fixtures";
 import { accessibility } from "./accessibility";
 
 const evidence = resolve(
   process.cwd(),
   process.env.R07_EVIDENCE_ROOT ?? "../../docs/ux/evidence",
-  "r08-b",
+  "ai-workflow-a",
 );
-const original =
-  "希望按月份导出项目需求，供团队每周核对范围。请先确认字段与权限。";
-const adoptRevision = "确认采用，填写 Revision 草稿";
-const analysisRoute = "**/api/v1/requirements/*/ai-analysis";
-async function write(
-  api: APIRequestContext,
-  method: "post" | "put" | "patch",
-  path: string,
-  data: object,
-  status = 201,
-) {
-  const response = await api[method](`/api/v1${path}`, {
+const original = "希望按月份导出项目需求，先确认字段与权限。";
+const route = "**/api/v1/requirements/*/ai-assistance";
+async function write(api: APIRequestContext, path: string, data: object) {
+  const response = await api.post(`/api/v1${path}`, {
     headers: writeHeaders,
     data,
   });
-  expect(response.status()).toBe(status);
+  expect(response.status()).toBe(201);
   return (await response.json()).data;
 }
-async function detail(api: APIRequestContext, id: string) {
-  const response = await api.get(`/api/v1/requirements/${id}`);
+async function detail(page: Page, id: string) {
+  const response = await page.request.get(`/api/v1/requirements/${id}`);
   expect(response.status()).toBe(200);
   return (await response.json()).data;
 }
-async function project(page: Page) {
-  const workspace = await write(page.request, "post", "/workspaces", {
-    name: "青禾产品团队",
-  });
-  return write(page.request, "post", "/projects", {
-    workspaceId: workspace.id,
-    name: "青禾 · 需求协作门户",
-    baselineScope: "需求协作与交付确认",
-  });
-}
 async function setup(page: Page) {
-  const p = await project(page);
-  const r = await write(
-    page.request,
-    "post",
-    `/projects/${p.id}/requirements`,
-    { title: "按月导出项目需求", originalText: original },
-  );
-  await page.goto(`/app/projects/${p.id}/requirements/${r.id}`);
-  await expect(
-    page.getByRole("button", { name: "分析需求", exact: true }),
-  ).toBeEnabled();
-  return { p, r };
-}
-async function analyze(page: Page) {
-  const response = page.waitForResponse((r) =>
-    r.url().endsWith("/ai-analysis"),
-  );
-  await page.getByRole("button", { name: "分析需求", exact: true }).click();
-  expect((await response).status()).toBe(200);
-  await expect(
-    page.getByRole("textbox", { name: "需求摘要", exact: true }),
-  ).toBeVisible();
-}
-
-test("真实 Draft 入口 → 结构化审阅 → 人工采用 → R04 保存；桌面/手机证据", async ({
-  page,
-  accounts,
-}) => {
-  await mkdir(evidence, { recursive: true });
-  await login(page, accounts.a);
-  const p = await project(page);
+  const w = await write(page.request, "/workspaces", {
+    name: "青禾 · 工作稿验收",
+  });
+  const p = await write(page.request, "/projects", {
+    workspaceId: w.id,
+    name: "需求导出",
+    baselineScope: "本轮使用合成资料验证个人工作稿。",
+  });
   await page.goto(`/app/projects/${p.id}/requirements/new`);
   await page
     .getByRole("textbox", { name: "需求标题", exact: true })
-    .fill("按月导出项目需求");
+    .fill("按月份导出需求");
   await page
     .getByRole("textbox", { name: "需求原文", exact: true })
     .fill(original);
   await page.getByRole("button", { name: "创建需求", exact: true }).click();
   await expect(page).toHaveURL(/requirements\/[\da-f-]+$/);
   const id = page.url().split("/").at(-1)!;
-  const before = await detail(page.request, id);
-  await analyze(page);
-  expect(await detail(page.request, id)).toEqual(before);
-  const panel = page.getByRole("region", { name: "AI 需求分析", exact: true });
-  for (const label of [
-    "需求摘要",
-    "澄清问题",
-    "验收标准",
-    "待确认假设",
-    "风险提示",
-  ])
-    await expect(
-      panel.getByRole("group", { name: label, exact: true }),
-    ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: adoptRevision }),
-  ).toBeDisabled();
-  await panel
-    .getByRole("textbox", { name: "需求摘要", exact: true })
-    .fill("按月导出当前项目需求，字段与权限由负责人核实。");
-  await panel
-    .getByRole("checkbox", { name: "选择需求摘要", exact: true })
-    .check();
-  await panel
-    .getByRole("checkbox", { name: "选择验收标准 1", exact: true })
-    .check();
-  await panel
-    .getByRole("textbox", { name: "验收标准 1", exact: true })
-    .fill("选择月份后，仅导出当前项目该月的需求。");
-  await panel
-    .getByRole("button", { name: "删除验收标准 2", exact: true })
+    page.getByRole("button", { name: "生成澄清建议", exact: true }),
+  ).toBeEnabled();
+  return { p, id };
+}
+const clarify = (page: Page) => page.locator('[aria-label="澄清工作稿"]');
+const specification = (page: Page) => page.locator('[aria-label="规格工作稿"]');
+async function generate(page: Page, kind: "clarify" | "specification") {
+  const response = page.waitForResponse((r) =>
+    r.url().endsWith("/ai-assistance"),
+  );
+  await page
+    .getByRole("button", {
+      name: kind === "clarify" ? "生成澄清建议" : "生成规格建议",
+      exact: true,
+    })
     .click();
-  await panel
-    .getByRole("textbox", { name: "待确认假设 1", exact: true })
-    .fill("格式待客户确认，不能视为承诺。");
-  await panel
-    .getByRole("button", { name: "删除待确认假设 1", exact: true })
+  expect((await response).status()).toBe(200);
+  await expect(page.getByRole("region", { name: "AI 建议预览" })).toBeVisible();
+}
+async function save(page: Page) {
+  const response = page.waitForResponse(
+    (r) =>
+      r.request().method() === "PUT" && r.url().includes("/working-drafts/"),
+  );
+  await page
+    .getByRole("button", { name: "保存个人工作稿", exact: true })
     .click();
+  expect((await response).status()).toBe(200);
   await expect(
-    panel.locator("legend").filter({ hasText: "待确认假设" }),
+    page.getByText("个人工作稿已保存。项目问答、Revision 和业务状态未改变。"),
+  ).toBeVisible();
+}
+
+test("独立澄清与规格：预览、编辑、跨刷新保存、部分发布；桌面手机键盘", async ({
+  page,
+  accounts,
+}) => {
+  await mkdir(evidence, { recursive: true });
+  await login(page, accounts.a);
+  const { id } = await setup(page),
+    before = await detail(page, id);
+  await generate(page, "clarify");
+  expect(await detail(page, id)).toEqual(before);
+  await expect(
+    clarify(page).getByRole("textbox", { name: "问题 1", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "采用到当前工作稿" }).click();
+  await clarify(page)
+    .getByRole("textbox", { name: "问题 1", exact: true })
+    .fill("请确认导出字段是否为标题、状态和负责人？");
+  await save(page);
+  expect(await detail(page, id)).toEqual(before);
+  await page.reload();
+  await expect(
+    clarify(page).getByRole("textbox", { name: "问题 1", exact: true }),
+  ).toHaveValue("请确认导出字段是否为标题、状态和负责人？");
+  await clarify(page)
+    .getByRole("checkbox", { name: "选择问题 1", exact: true })
+    .check();
+  const preview = page.getByRole("button", { name: "预览发布所选问题" });
+  await preview.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("heading", { name: "请确认正式发布内容" }),
   ).toBeFocused();
-  const checks = [await accessibility(page, "ai-review-desktop")];
   await page.screenshot({
-    path: resolve(evidence, "review-desktop.png"),
+    path: resolve(evidence, "clarification-desktop.png"),
     fullPage: true,
   });
-  await panel.evaluate((el) =>
-    window.scrollTo({
-      top: window.scrollY + el.getBoundingClientRect().top - 88,
-      behavior: "instant",
-    }),
-  );
+  const checks = [await accessibility(page, "clarification-desktop")];
+  await page.getByRole("button", { name: "确认发布问题", exact: true }).click();
   await expect(
-    panel.getByRole("textbox", { name: "需求摘要", exact: true }),
-  ).toBeInViewport();
-  await page.screenshot({
-    path: resolve(evidence, "review-desktop-viewport.png"),
-  });
-  await page.getByRole("button", { name: adoptRevision }).click();
-  const editor = page.getByRole("region", { name: "需求操作表单" });
-  await expect(editor.getByRole("textbox", { name: "规格正文" })).toHaveValue(
-    "按月导出当前项目需求，字段与权限由负责人核实。",
-  );
+    page.getByText("已发布 1 个问题。其余工作稿已保留，可等待回答后继续。"),
+  ).toBeVisible();
+  const questions = await detail(page, id);
+  expect(questions.clarifications).toHaveLength(1);
+  expect(questions.latestRevision).toBeNull();
+  expect(questions.originalText).toBe(original);
   await expect(
-    editor.getByRole("textbox", { name: "验收标准 1", exact: true }),
-  ).toHaveValue("选择月份后，仅导出当前项目该月的需求。");
-  expect(await detail(page.request, id)).toEqual(before);
-  await editor
-    .getByRole("textbox", { name: "规格正文" })
-    .fill("人工确认：导出范围仅限当前项目及所选月份。");
+    clarify(page).getByRole("textbox", { name: "问题 2", exact: true }),
+  ).toHaveValue("是否需要按状态筛选？");
+  await page.getByRole("button", { name: "帮我整理规格", exact: true }).click();
+  await generate(page, "specification");
+  await page.getByRole("button", { name: "采用到当前工作稿" }).click();
+  await specification(page)
+    .getByRole("textbox", { name: "规格工作稿正文", exact: true })
+    .fill("人工整理：按月份导出当前项目可见需求，字段仍待客户确认。");
+  await save(page);
+  expect((await detail(page, id)).latestRevision).toBeNull();
+  await page.reload();
+  await page.getByRole("button", { name: "帮我整理规格", exact: true }).click();
+  await expect(
+    specification(page).getByRole("textbox", { name: "规格工作稿正文" }),
+  ).toHaveValue("人工整理：按月份导出当前项目可见需求，字段仍待客户确认。");
   await page.setViewportSize({ width: 390, height: 844 });
-  await editor.scrollIntoViewIfNeeded();
-  checks.push(await accessibility(page, "ai-human-review-mobile"));
+  await page.getByRole("button", { name: "预览创建 Revision" }).click();
+  await page
+    .getByRole("region", { name: "人工发布确认" })
+    .scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: resolve(evidence, "confirm-mobile.png"),
+    path: resolve(evidence, "specification-mobile.png"),
     fullPage: true,
   });
-  await editor.evaluate((el) =>
-    el.scrollIntoView({ block: "end", behavior: "instant" }),
-  );
-  await expect(
-    editor.getByRole("textbox", { name: "规格正文" }),
-  ).toBeInViewport();
-  await expect(
-    editor.getByRole("button", { name: "保存为新 Revision" }),
-  ).toBeInViewport();
+  checks.push(await accessibility(page, "specification-mobile"));
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
   await page.screenshot({
-    path: resolve(evidence, "confirm-mobile-viewport.png"),
+    path: resolve(evidence, "specification-320.png"),
+    fullPage: true,
   });
-  for (const width of [320, 390, 768, 1440]) {
-    await page.setViewportSize({ width, height: 900 });
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= innerWidth,
-      ),
-    ).toBe(true);
-  }
-  await editor.getByRole("button", { name: "保存为新 Revision" }).click();
-  await expect(editor).toHaveCount(0);
-  const after = await detail(page.request, id);
+  await page
+    .getByRole("button", { name: "确认创建 Revision", exact: true })
+    .click();
+  await expect(
+    page.getByText("已由你确认创建正式 Revision。仍需在原流程中人工标记就绪。"),
+  ).toBeVisible();
+  const after = await detail(page, id);
+  expect(after.latestRevision.revisionNo).toBe(1);
+  expect(after.latestRevision.content).toContain("人工整理");
+  expect(after.status).toBe("CLARIFYING");
   expect(after.originalText).toBe(original);
-  expect(after.latestRevision.content).toBe(
-    "人工确认：导出范围仅限当前项目及所选月份。",
-  );
-  expect(after.latestRevision.acceptanceCriteria).toEqual([
-    "选择月份后，仅导出当前项目该月的需求。",
-  ]);
-  expect(after.status).not.toBe("READY");
   await writeFile(
     resolve(evidence, "accessibility.json"),
     JSON.stringify(checks, null, 2),
   );
 });
 
-test("迟到分析不覆盖手动输入；来源 stale 与保存 409 均须重新人工核对", async ({
+test("AI 故障不阻止手动提问，改写先预览且可保留原稿", async ({
   page,
   accounts,
 }) => {
   await login(page, accounts.a);
-  const { r } = await setup(page);
-  let release!: () => void;
-  const held = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  let captured!: () => void;
-  const ready = new Promise<void>((resolve) => {
-    captured = resolve;
-  });
-  await page.route(analysisRoute, async (route) => {
-    const response = await route.fetch();
-    captured();
-    await held;
-    await route.fulfill({ response });
-  });
-  await page.getByRole("button", { name: "分析需求", exact: true }).click();
-  await ready;
+  const { id } = await setup(page);
+  await clarify(page).getByRole("button", { name: "手动添加问题" }).click();
+  await clarify(page)
+    .getByRole("textbox", { name: "问题 1", exact: true })
+    .fill("手写问题需要保留");
+  await page.route(route, (r) =>
+    r.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { code: "AI_UNAVAILABLE" } }),
+    }),
+  );
+  await page.getByRole("button", { name: "生成澄清建议" }).click();
   await expect(
-    page.getByRole("status").filter({ hasText: "AI 正在分析" }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "创建新 Revision", exact: true })
-    .click();
-  await page
-    .getByRole("textbox", { name: "规格正文" })
-    .fill("分析期间人工补充的正文");
-  await write(
-    page.request,
-    "patch",
-    `/requirements/${r.id}`,
-    { expectedVersion: 1, title: "另一位成员已更新" },
-    200,
-  );
-  release();
+    page.getByRole("region", { name: "需求工作台" }).getByRole("alert"),
+  ).toContainText("暂时不可用");
   await expect(
-    page.getByRole("textbox", { name: "需求摘要", exact: true }),
-  ).toBeVisible();
-  await expect(page.getByRole("textbox", { name: "规格正文" })).toHaveValue(
-    "分析期间人工补充的正文",
-  );
-  await expect(
-    page.getByText(/需求已更新：建议核对版本 1，当前编辑版本 2/),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "关闭表单" }).click();
-  await page
-    .getByRole("checkbox", { name: "选择需求摘要", exact: true })
-    .check();
-  await page
-    .getByRole("checkbox", { name: "选择验收标准 1", exact: true })
-    .check();
-  await expect(
-    page.getByRole("button", { name: adoptRevision }),
-  ).toBeDisabled();
-  await page
-    .getByRole("button", { name: "已核对来源与最新内容，继续使用建议" })
-    .click();
-  await page.getByRole("button", { name: adoptRevision }).click();
-  await page
-    .getByRole("textbox", { name: "规格正文" })
-    .fill("人工审阅的保留输入");
-  await write(
-    page.request,
-    "patch",
-    `/requirements/${r.id}`,
-    { expectedVersion: 2, title: "再次并发更新" },
-    200,
-  );
-  const conflict = page.waitForResponse(
-    (res) =>
-      res.url().endsWith("/revisions") && res.request().method() === "POST",
-  );
-  await page.getByRole("button", { name: "保存为新 Revision" }).click();
-  expect((await conflict).status()).toBe(409);
-  await expect(page.getByText(/输入基于编辑版本 2，当前为 3/)).toBeVisible();
-  await expect(page.getByRole("textbox", { name: "规格正文" })).toHaveValue(
-    "人工审阅的保留输入",
-  );
-  await expect(
-    page.getByRole("button", { name: "保存为新 Revision" }),
-  ).toBeDisabled();
-  await page
-    .getByRole("button", { name: "已核对最新内容，使用当前版本" })
-    .click();
-  await page.getByRole("button", { name: "保存为新 Revision" }).click();
-  await expect(page.getByRole("region", { name: "需求操作表单" })).toHaveCount(
-    0,
-  );
-  expect((await detail(page.request, r.id)).latestRevision.revisionNo).toBe(1);
-});
-
-test("失败/超时/限流/格式错误可重试，保留原文并继续手动流程", async ({
-  page,
-  accounts,
-}) => {
-  test.setTimeout(90_000);
-  await login(page, accounts.a);
-  const { r } = await setup(page);
-  const panel = page.getByRole("region", { name: "AI 需求分析", exact: true });
-  for (const [status, code, message] of [
-    [503, "AI_UNAVAILABLE", "AI 暂时不可用或服务响应超时"],
-    [503, "AI_INVALID_RESPONSE", "AI 返回的分析格式无效"],
-    [413, "PAYLOAD_TOO_LARGE", "分析材料过长"],
-    [429, "RATE_LIMITED", "操作过于频繁"],
-    [409, "STALE_VERSION", "内容已更新"],
+    clarify(page).getByRole("textbox", { name: "问题 1", exact: true }),
+  ).toHaveValue("手写问题需要保留");
+  await save(page);
+  await page.unroute(route);
+  for (const [status, code, expected] of [
+    [429, "RATE_LIMITED", "等待 2 秒"],
+    [503, "AI_INVALID_RESPONSE", "格式无效"],
   ] as const) {
-    await page.route(analysisRoute, (route) =>
-      route.fulfill({
+    await page.route(route, (routed) =>
+      routed.fulfill({
         status,
-        headers: { "retry-after": "2" },
-        json: { error: { code } },
+        headers: { "Retry-After": "2" },
+        contentType: "application/json",
+        body: JSON.stringify({ error: { code } }),
       }),
     );
-    await panel
-      .getByRole("button", { name: /^(分析需求|重试 AI 分析)$/ })
-      .click();
-    await expect(panel.getByRole("alert")).toContainText(message);
-    if (status === 429) {
-      await expect(
-        panel.getByRole("button", { name: /秒后可重试/ }),
-      ).toBeDisabled();
-      await expect(
-        panel.getByRole("button", { name: "重试 AI 分析" }),
-      ).toBeEnabled();
-    }
-    await page.unroute(analysisRoute);
+    await page.getByRole("button", { name: "生成澄清建议" }).click();
+    await expect(clarify(page).getByRole("alert")).toContainText(expected);
+    await page.unroute(route);
   }
-  // The client has a bounded 35s wait even if the proxy never returns.
-  await page.route(analysisRoute, async () => new Promise<void>(() => {}));
-  await panel.getByRole("button", { name: "重试 AI 分析" }).click();
-  await expect(panel.getByRole("alert")).toContainText("AI 分析等待超时", {
-    timeout: 40_000,
+  await page.evaluate(() => {
+    const native = AbortSignal.timeout;
+    AbortSignal.timeout = (ms) =>
+      native.call(AbortSignal, ms === 35_000 ? 50 : ms);
   });
-  await page.unrouteAll({ behavior: "ignoreErrors" });
-  await panel.getByRole("checkbox", { name: "包含已保存的澄清问答" }).uncheck();
-  // A malformed success envelope must not crash the page or offer adoption.
-  await page.route(analysisRoute, (route) =>
-    route.fulfill({ json: { data: { result: { summary: "broken" } } } }),
-  );
-  await panel.getByRole("button", { name: "重试 AI 分析" }).click();
-  await expect(panel.getByRole("alert")).toContainText("AI 返回的分析格式无效");
-  await page.unroute(analysisRoute);
-  await page.getByRole("button", { name: "编辑草稿", exact: true }).click();
-  await page
-    .getByRole("textbox", { name: "需求标题", exact: true })
-    .fill("AI 不可用时仍可手动完成");
-  await page.getByRole("button", { name: "保存草稿", exact: true }).click();
-  await expect(page.getByRole("region", { name: "需求操作表单" })).toHaveCount(
-    0,
-  );
-  expect((await detail(page.request, r.id)).originalText).toBe(original);
-  const retried = page.waitForResponse((r) => r.url().endsWith("/ai-analysis"));
-  await panel.getByRole("button", { name: "重试 AI 分析" }).click();
-  expect((await retried).status()).toBe(200);
-  expect((await retried).request().postDataJSON().includeClarifications).toBe(
-    false,
-  );
+  await page.route(route, async (routed) => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    await routed.abort().catch(() => {});
+  });
+  await page.getByRole("button", { name: "生成澄清建议" }).click();
+  await expect(clarify(page).getByRole("alert")).toContainText("等待超时");
+  await page.unroute(route);
+  // Restore the native duration for successful generation without reloading unsaved input.
+  await page.evaluate(() => {
+    const short = AbortSignal.timeout;
+    AbortSignal.timeout = (ms) =>
+      short.call(AbortSignal, ms === 35_000 ? 35_001 : ms);
+  });
+  await generate(page, "clarify");
+  await page.getByRole("button", { name: "保留原稿，关闭建议" }).click();
   await expect(
-    panel.getByRole("textbox", { name: "需求摘要", exact: true }),
+    clarify(page).getByRole("textbox", { name: "问题 1", exact: true }),
+  ).toHaveValue("手写问题需要保留");
+  await clarify(page)
+    .getByRole("checkbox", { name: "选择问题 1", exact: true })
+    .check();
+  await page.getByRole("button", { name: "预览发布所选问题" }).click();
+  await page.getByRole("button", { name: "确认发布问题", exact: true }).click();
+  await expect(
+    page.getByText("已发布 1 个问题。其余工作稿已保留，可等待回答后继续。"),
   ).toBeVisible();
+  expect((await detail(page, id)).clarifications[0].body).toBe(
+    "手写问题需要保留",
+  );
 });
 
-test("Client 仅采用单条问题；纯文本建议不执行；撤权清除私有审阅", async ({
+test("业务 409 与工作稿 CAS 均保留输入并要求人工核对", async ({
   page,
   accounts,
-  browser,
 }) => {
-  await login(page, accounts.b);
-  const { p, r } = await setup(page);
-  await write(
-    page.request,
-    "put",
-    `/projects/${p.id}/client`,
-    { email: accounts.client.email },
-    200,
+  await login(page, accounts.a);
+  const { id } = await setup(page);
+  await page.getByRole("button", { name: "帮我整理规格" }).click();
+  await specification(page)
+    .getByRole("textbox", { name: "规格工作稿正文" })
+    .fill("冲突前的个人输入");
+  await save(page);
+  await write(page.request, `/requirements/${id}/clarifications`, {
+    kind: "QUESTION",
+    body: "另一位同事的新问题",
+    expectedVersion: 1,
+  });
+  await page.getByRole("button", { name: "预览创建 Revision" }).click();
+  await page.getByRole("button", { name: "确认创建 Revision" }).click();
+  await expect(
+    page.getByRole("region", { name: "需求工作台" }).getByRole("alert"),
+  ).toContainText("内容已更新");
+  await expect(
+    specification(page).getByRole("textbox", { name: "规格工作稿正文" }),
+  ).toHaveValue("冲突前的个人输入");
+  await page.getByRole("button", { name: "已核对最新需求，继续编辑" }).click();
+  await save(page);
+  const current = (
+    await (
+      await page.request.get(`/api/v1/requirements/${id}/working-drafts`)
+    ).json()
+  ).data[0];
+  const remote = await page.request.put(
+    `/api/v1/requirements/${id}/working-drafts/specification`,
+    {
+      headers: writeHeaders,
+      data: {
+        kind: "specification",
+        draftId: current.id,
+        expectedDraftVersion: current.version,
+        baseRequirementVersion: 2,
+        body: { ...current.body, content: "另一个标签页保存的内容" },
+      },
+    },
   );
+  expect(remote.status()).toBe(200);
+  await specification(page)
+    .getByRole("textbox", { name: "规格工作稿正文" })
+    .fill("此标签页尚未保存的输入");
+  await page.getByRole("button", { name: "保存个人工作稿" }).click();
+  await expect(
+    page.getByRole("region", { name: "需求工作台" }).getByRole("alert"),
+  ).toContainText("其他页面更新");
+  await page
+    .getByRole("button", { name: "核对已保存工作稿，保留当前输入" })
+    .click();
+  await expect(
+    page.getByText("另一个标签页保存的内容", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    specification(page).getByRole("textbox", { name: "规格工作稿正文" }),
+  ).toHaveValue("此标签页尚未保存的输入");
+  await page
+    .getByRole("button", { name: "保留我的输入，基于此版本继续" })
+    .click();
+  await save(page);
+  expect((await detail(page, id)).latestRevision).toBeNull();
+});
+
+test("响应丢失后查回执，不重复发布；手机布局不溢出", async ({
+  page,
+  accounts,
+}) => {
+  await login(page, accounts.a);
+  const { id } = await setup(page);
+  await clarify(page).getByRole("button", { name: "手动添加问题" }).click();
+  await clarify(page)
+    .getByRole("textbox", { name: "问题 1", exact: true })
+    .fill("仅发布一次的问题");
+  await save(page);
+  await clarify(page)
+    .getByRole("checkbox", { name: "选择问题 1", exact: true })
+    .check();
+  await page.route("**/working-drafts/clarify/publish", async (route) => {
+    const response = await route.fetch();
+    expect(response.status()).toBe(200);
+    await route.abort("failed");
+  });
+  await page.getByRole("button", { name: "预览发布所选问题" }).click();
+  await page.getByRole("button", { name: "确认发布问题", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "查询发布结果" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "查询发布结果" }).click();
+  await expect(
+    page.getByText("已发布 1 个问题。其余工作稿已保留，可等待回答后继续。"),
+  ).toBeVisible();
+  expect((await detail(page, id)).clarifications).toHaveLength(1);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("客户只见自己的澄清稿，删除个人稿保留已发布记录", async ({
+  page,
+  browser,
+  accounts,
+}) => {
+  await login(page, accounts.a);
+  const { p, id } = await setup(page);
+  await clarify(page).getByRole("button", { name: "手动添加问题" }).click();
+  await clarify(page)
+    .getByRole("textbox", { name: "问题 1", exact: true })
+    .fill("负责人私有的工作内容");
+  await save(page);
+  const bound = await page.request.put(`/api/v1/projects/${p.id}/client`, {
+    headers: writeHeaders,
+    data: { email: accounts.client.email },
+  });
+  expect(bound.status()).toBe(200);
   const context = await browser.newContext({ baseURL: origin });
-  const client = await context.newPage();
   try {
+    const client = await context.newPage();
     await login(client, accounts.client);
-    await client.goto(`/app/projects/${p.id}/requirements/${r.id}`);
-    await analyze(client);
+    await client.goto(`/app/projects/${p.id}/requirements/${id}`);
     await expect(
-      client.getByRole("button", { name: adoptRevision }),
+      client.getByRole("button", { name: "生成澄清建议" }),
+    ).toBeEnabled();
+    await expect(
+      client.getByRole("button", { name: "帮我整理规格" }),
     ).toHaveCount(0);
-    await client
-      .getByRole("radio", { name: "选择澄清问题 1", exact: true })
-      .check();
-    await client
-      .getByRole("radio", { name: "选择澄清问题 2", exact: true })
-      .check();
     await expect(
-      client.getByRole("radio", { name: "选择澄清问题 1", exact: true }),
-    ).not.toBeChecked();
-    const text =
-      '<img src=x onerror="window.__aiExecuted=true"> 需要确认导出字段吗？';
+      client.getByText("负责人私有的工作内容", { exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      clarify(client).getByRole("textbox", { name: "问题 1", exact: true }),
+    ).toHaveCount(0);
+    await clarify(client).getByRole("button", { name: "手动添加问题" }).click();
+    await clarify(client)
+      .getByRole("textbox", { name: "问题 1", exact: true })
+      .fill("客户亲自提出的问题");
+    await save(client);
+    await clarify(client)
+      .getByRole("checkbox", { name: "选择问题 1", exact: true })
+      .check();
+    await client.getByRole("button", { name: "预览发布所选问题" }).click();
     await client
-      .getByRole("textbox", { name: "澄清问题 2", exact: true })
-      .fill(text);
-    await client
-      .getByRole("button", { name: "确认采用，填写问题", exact: true })
+      .getByRole("button", { name: "确认发布问题", exact: true })
       .click();
     await expect(
-      client.getByRole("textbox", { name: "问题内容", exact: true }),
-    ).toHaveValue(text);
-    expect((await detail(client.request, r.id)).clarifications).toEqual([]);
-    await client.getByRole("button", { name: "提交问题", exact: true }).click();
+      client.getByText("已发布 1 个问题。其余工作稿已保留，可等待回答后继续。"),
+    ).toBeVisible();
+    await client
+      .getByRole("button", { name: "删除个人工作稿", exact: true })
+      .click();
+    await client
+      .getByRole("button", { name: "确认删除个人工作稿", exact: true })
+      .click();
     await expect(
-      client.getByRole("region", { name: "需求操作表单" }),
-    ).toHaveCount(0);
-    const current = await detail(client.request, r.id);
-    expect(current.clarifications).toHaveLength(1);
-    expect(current.clarifications[0].body).toBe(text);
-    expect(current.latestRevision).toBeNull();
-    expect(await client.evaluate(() => "__aiExecuted" in window)).toBe(false);
-    await write(
-      page.request,
-      "put",
-      `/projects/${p.id}/client`,
-      { email: accounts.a.email },
-      200,
-    );
-    await client.getByRole("button", { name: "刷新需求", exact: true }).click();
-    await expect(
-      client.getByRole("region", { name: "AI 需求分析", exact: true }),
-    ).toHaveCount(0);
+      client.getByText("个人工作稿已删除，正式记录保持不变。"),
+    ).toBeVisible();
+    expect((await detail(client, id)).clarifications).toHaveLength(1);
     await client.reload();
     await expect(
-      client.getByRole("button", { name: "分析需求", exact: true }),
+      client.getByRole("button", { name: "生成澄清建议" }),
+    ).toBeEnabled();
+    await expect(
+      clarify(client).getByRole("textbox", { name: "问题 1", exact: true }),
     ).toHaveCount(0);
+    await page.reload();
+    await expect(
+      clarify(page).getByRole("textbox", { name: "问题 1", exact: true }),
+    ).toHaveValue("负责人私有的工作内容");
   } finally {
     await context.close();
   }
 });
 
-test("已有 Revision 为只读来源；未知保存结果保留输入且不重放", async ({
+test("会话复核取消在途 AI 并恢复按钮，保存响应未知时先核对服务端", async ({
   page,
   accounts,
 }) => {
   await login(page, accounts.b);
-  const { p, r } = await setup(page);
-  const v1 = await write(
-    page.request,
-    "post",
-    `/requirements/${r.id}/revisions`,
-    {
-      expectedVersion: 1,
-      content: "已保存的第一版规格",
-      acceptanceCriteria: ["原有验收标准必须保留"],
-    },
-  );
-  await page.reload();
-  await analyze(page);
-  await expect(
-    page.getByRole("link", { name: "查看来源 Revision" }),
-  ).toHaveAttribute(
-    "href",
-    `/app/projects/${p.id}/requirements/${r.id}/revisions/${v1.id}`,
-  );
-  await page
-    .getByRole("checkbox", { name: "选择验收标准 1", exact: true })
-    .check();
-  await page.getByRole("button", { name: adoptRevision }).click();
-  const editor = page.getByRole("region", { name: "需求操作表单" });
-  await expect(editor.getByRole("textbox", { name: "规格正文" })).toHaveValue(
-    "已保存的第一版规格",
-  );
-  await expect(
-    editor.getByRole("textbox", { name: "验收标准 1", exact: true }),
-  ).toHaveValue("原有验收标准必须保留");
-  let writes = 0;
-  await page.route(
-    `**/api/v1/requirements/${r.id}/revisions`,
-    async (route) => {
-      if (route.request().method() !== "POST") return route.continue();
-      writes++;
-      const response = await route.fetch();
-      expect(response.status()).toBe(201);
-      await route.fulfill({
-        status: 503,
-        json: { error: { code: "SERVICE_UNAVAILABLE" } },
-      });
-    },
-  );
-  await editor.getByRole("button", { name: "保存为新 Revision" }).click();
-  await expect(editor.getByText(/操作结果未知，输入已保留/)).toBeVisible();
-  await expect(
-    editor.getByRole("button", { name: "保存为新 Revision" }),
-  ).toBeDisabled();
-  await expect(
-    editor.getByRole("textbox", { name: "验收标准 2", exact: true }),
-  ).toHaveValue("选择月份后仅导出该月需求。");
-  expect(writes).toBe(1);
-  expect((await detail(page.request, r.id)).latestRevision.revisionNo).toBe(2);
-  const immutable = await page.request.get(
-    `/api/v1/requirements/${r.id}/revisions/${v1.id}`,
-  );
-  expect(immutable.status()).toBe(200);
-  expect((await immutable.json()).data.content).toBe("已保存的第一版规格");
-});
-
-test("审阅编辑跨临时读取失败保留；切页取消生成；换项目与退出隔离 AI 状态", async ({
-  page,
-  accounts,
-}) => {
-  await login(page, accounts.b);
-  const { p, r } = await setup(page);
-  const sibling = await write(
-    page.request,
-    "post",
-    `/projects/${p.id}/requirements`,
-    {
-      title: "独立需求的审阅",
-      originalText: "另一项需求，需要独立的澄清。",
-    },
-  );
-  await analyze(page);
-  const summary = page.getByRole("textbox", { name: "需求摘要", exact: true });
-  await summary.fill("应保留的本地审阅输入");
-  await page
-    .getByRole("checkbox", { name: "选择需求摘要", exact: true })
-    .check();
-  const projectRoute = `**/api/v1/projects/${p.id}`;
-  await page.route(projectRoute, (route) =>
-    route.fulfill({
-      status: 500,
-      json: { error: { code: "SERVICE_UNAVAILABLE" } },
-    }),
-  );
-  await page.getByRole("button", { name: "刷新项目", exact: true }).click();
-  await expect(summary).toBeHidden();
-  await expect(
-    page.getByText(
-      "暂时无法读取项目，未保存的输入已保留。重新加载成功后可继续操作。",
-    ),
-  ).toBeVisible();
-  await page.unroute(projectRoute);
-  await page.getByRole("button", { name: "重新加载", exact: true }).click();
-  await expect(summary).toHaveValue("应保留的本地审阅输入");
-  await expect(
-    page.getByRole("checkbox", { name: "选择需求摘要", exact: true }),
-  ).toBeChecked();
-  const restored = page.waitForResponse((r) => r.url().endsWith("/api/v1/me"));
-  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
-  expect((await restored).status()).toBe(200);
-  await expect(summary).toHaveValue("应保留的本地审阅输入");
-  await page.getByRole("button", { name: "清空本次建议", exact: true }).click();
-  let release!: () => void;
-  const held = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  let received!: () => void;
-  const captured = new Promise<void>((resolve) => {
-    received = resolve;
-  });
-  await page.route(analysisRoute, async (route) => {
-    const response = await route.fetch();
-    received();
-    await held;
-    await route.fulfill({ response }).catch(() => undefined);
-  });
-  await page.getByRole("button", { name: "分析需求", exact: true }).click();
-  await captured;
-  await page.getByRole("link", { name: "← 项目需求", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/projects/${p.id}/requirements$`));
-  release();
-  await page.goBack();
-  await expect(
-    page.getByRole("button", { name: "分析需求", exact: true }),
-  ).toBeEnabled();
-  await expect(summary).toHaveCount(0);
-  await page.unroute(analysisRoute);
-  const other = await project(page);
-  await page.goto(`/app/projects/${other.id}/requirements/${r.id}`);
-  await expect(page.getByRole("alert", { name: "请求错误" })).toContainText(
-    "内容不存在",
-  );
-  await expect(
-    page.getByRole("region", { name: "AI 需求分析", exact: true }),
-  ).toHaveCount(0);
-  await page.goto(`/app/projects/${p.id}/requirements/${r.id}`);
-  await analyze(page);
-  await summary.fill("退出后必须清除的建议");
-  const firstId = await summary.getAttribute("id");
-  const firstRadio = page.getByRole("radio", {
-    name: "选择澄清问题 1",
+  await setup(page);
+  await clarify(page).getByRole("button", { name: "手动添加问题" }).click();
+  const field = clarify(page).getByRole("textbox", {
+    name: "问题 1",
     exact: true,
   });
-  await firstRadio.check();
-  const firstName = await firstRadio.getAttribute("name");
-  await page.getByRole("link", { name: "← 项目需求", exact: true }).click();
-  await page.locator(`a.requirement-row[href$="/${sibling.id}"]`).click();
-  await analyze(page);
-  expect(await summary.getAttribute("id")).not.toBe(firstId);
-  expect(await firstRadio.getAttribute("name")).not.toBe(firstName);
-  await expect(summary).not.toHaveValue("退出后必须清除的建议");
-  await summary.fill("另一项需求的私有输入");
-  await page
-    .getByRole("radio", { name: "选择澄清问题 2", exact: true })
-    .check();
-  expect(
-    (
-      await page.request.post("/api/v1/auth/logout", { headers: writeHeaders })
-    ).status(),
-  ).toBe(204);
-  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
-  await expect(page).toHaveURL(/\/login/);
-  await expect(page.locator('textarea[id$="-ai-summary-0"]')).toHaveCount(0);
+  await field.fill("会话复核期间保留的个人输入");
+  async function suspend() {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/api/v1/me", async (routed) => {
+      const response = await routed.fetch();
+      await held;
+      await routed.fulfill({ response });
+    });
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await expect(
+      page.getByText("正在恢复会话…", { exact: true }),
+    ).toBeVisible();
+    await expect(field).toBeHidden();
+    release();
+    await expect(field).toBeVisible();
+    await page.unroute("**/api/v1/me");
+  }
+  for (const action of ["ai", "save"] as const) {
+    let release!: () => void, entered!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const ready = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const pattern = action === "ai" ? route : "**/working-drafts/clarify";
+    await page.route(pattern, async (routed) => {
+      const response = await routed.fetch();
+      entered();
+      await held;
+      await routed.fulfill({ response }).catch(() => {});
+    });
+    await page
+      .getByRole("button", {
+        name: action === "ai" ? "生成澄清建议" : "保存个人工作稿",
+        exact: true,
+      })
+      .click();
+    await ready;
+    await suspend();
+    release();
+    await page.unroute(pattern);
+    await expect(field).toHaveValue("会话复核期间保留的个人输入");
+    if (action === "ai") {
+      await expect(
+        page.getByRole("button", { name: "生成澄清建议" }),
+      ).toBeEnabled();
+      await expect(
+        page.getByRole("region", { name: "AI 建议预览" }),
+      ).toHaveCount(0);
+    } else {
+      await page
+        .getByRole("button", { name: "核对已保存工作稿，保留当前输入" })
+        .click();
+      await expect(
+        page.getByRole("heading", { name: "服务端工作稿 v1" }),
+      ).toBeVisible();
+      await page
+        .getByRole("button", { name: "保留我的输入，基于此版本继续" })
+        .click();
+      await expect(
+        page.getByRole("button", { name: "生成澄清建议" }),
+      ).toBeEnabled();
+      await expect(field).toHaveValue("会话复核期间保留的个人输入");
+    }
+  }
 });

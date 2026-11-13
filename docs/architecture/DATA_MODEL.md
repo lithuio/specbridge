@@ -103,6 +103,8 @@ COMMIT;
 
 ## 6. P1 增量实体
 
+2026-11-13工作流A已新增 `requirement_working_drafts`（每作者/需求/类型唯一，独立version/base_requirement_version、受限JSON正文与服务端publication）和 `requirement_publish_receipts`（operationId主键、作者/需求/草稿版本绑定、请求hash与无正文结果，草稿版本唯一消费）。租户从Requirement推导，个人草稿仅本人可读；保存不创建正式Revision。回执不设draft FK，删除个人工作稿不删除已发布历史。**0005已获批并仅应用5434/specbridge_test；A完成时Schema共18表，95项数据库回归PASS。开发/生产未由本轮迁移。** 具体约束及审批范围见 [SQL审核包](../engineering/AI_WORKFLOW_A_SQL_REVIEW.md)。背景资料3表及不可变来源触发器的[0006审核包](../engineering/AI_WORKFLOW_B_SQL_REVIEW.md)随后获批，仅5434隔离应用；当前21表/7迁移、98数据库测试PASS，正式Schema/journal已包含0006。Copilot提案[0007](../engineering/AI_WORKFLOW_C_SQL_REVIEW.md)随后获批并仅在5434应用，当前22表/8迁移、100数据库测试PASS；本地授权表留D另审。
+
 - `ai_analysis_runs`：`id`, `requirement_id`, `requested_by`, `status`, `model`, `input_revision_id`, `output_json`, `error_code`, `created_at`，不存明文密钥；可以在 P1 实施时增加。
 - `api_tokens`：`id`, `user_id`, `project_id`, `token_hash`, `scopes`, `expires_at`, `revoked_at`；仅 MCP 只读 Token，支持撤销与审计。
 - `external_links`：已批准版本与 GitHub Issue URL 对应，**不自动抓取 URL**。
@@ -206,3 +208,9 @@ API每次读取检查Owner资格、ACTIVE项目、过期/撤销和固定scope；
 同 tx 检查 ACCEPTED/SUBMITTED、计算 MAX(delivery_no)+1 并 INSERT；失败不消耗编号。Review 仅 INSERT，Delivery UPDATE 限 id/已验证 Version/status=SUBMITTED，必须命中一行；Review/状态/Audit 同事务，异常完整回滚。CR 与 Requirement 版本不变。
 
 DeliveryReview 沿用数据库不可变触发器；Delivery 本体只有一次终审状态 UPDATE，Repository 不提供正文修改/删除入口，无公开 PATCH/DELETE。任意直接 SQL 修改 Delivery 不在领域保证内；不宣称增加了数据库级 Delivery 内容触发器。历史读取在只读 REPEATABLE READ 中授权并按 CR 的全部 Version 返回分页 Delivery+Review。
+
+## AI工作流C：个人提案和执行回执（0007）
+
+`copilot_proposals`通过requirement_id推导租户，user_id绑定本人；固定kind/目标、独立version、base_requirement_version及可选base_change_version。payload受限96KiB（应用80KiB），sources仅真实ID/版本不含完整工具正文。有效期最多24h，DRAFT可本人删除；EXECUTED必须同时有唯一operation_id、64位request_hash、有限结果及执行时间，之后不可修改/删除。新表触发器禁止直接伪造EXECUTED插入，检查change目标父需求与身份/版本不变规则；原21表不改。
+
+运行时权限仍由API负责；事务持有Workspace/Project/Requirement/可选CR/Proposal锁，取得聚合锁后复核Session并持有共享锁。业务、审计和回执一次提交，同操作同摘要安全返回，冲突全回滚。过期不是自动删除；当前保留已执行提案/回执，无自动清理周期。仅5434获批，开发/生产未应用0005–0007。

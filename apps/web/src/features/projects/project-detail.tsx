@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DocumentUpload } from "@/features/documents/documents";
 import { useParams, usePathname } from "next/navigation";
 import { Activity, createContext, useContext, useState } from "react";
 import { ApiError } from "@/lib/api/client";
@@ -147,6 +148,20 @@ export function ProjectOverview() {
         <div className="scope-content">{project.baselineScope}</div>
       </section>
       <aside className="stack-panels">
+        <section className="surface-panel">
+          <p className="panel-kicker">PROJECT CONTEXT</p>
+          <h2>第二步：补充背景</h2>
+          <p className="muted-copy">
+            项目已经保存，可以继续添加资料，也可以直接开始需求协作。上传失败不会撤销项目。
+          </p>
+          <DocumentUpload />
+          <Link
+            className="text-link"
+            href={`/app/projects/${project.id}/documents`}
+          >
+            查看与管理背景资料 →
+          </Link>
+        </section>
         <section className="surface-panel">
           <h2>协作成员</h2>
           <Link className="text-link" href={`/app?projectId=${project.id}`}>

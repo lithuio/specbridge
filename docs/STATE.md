@@ -1,8 +1,47 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-12。R08 F已由负责人提交922eef1。本轮修复本机AI未启用配置，按新增授权将0004应用到开发库，实际Web/DeepSeek/Token/MCP联通PASS；服务保持运行供人工测试。独立Review与远程CI待办，本轮未Commit/Push/PR/Merge/部署。
+> 更新时间：2026-11-13。AI工作流A/B/C已实现并验证；0005–0007仅在获批5434隔离库应用。D一键Codex安装、E最终全量尚未完成。无自动Commit/Push/PR/Merge/部署。
 
-## R08 本地启用修复 — 真实开发环境可用
+## AI工作流升级 — C完成人工确认提案
+
+负责人“批准并继续”明确批准[0007完整SQL](engineering/AI_WORKFLOW_C_SQL_REVIEW.md)仅用于 `127.0.0.1:5434/specbridge_test` / specbridge_test。SHA-256 `a5a9788072b5caf6366a83f28197340f7709fb4a5c50fd2c181d21407bc66010`复核一致，原字节迁移，旧21表定义/数据保持；当前22表/8迁移。分支`feat/17-ai-agent-integration`、HEAD`6fb81b8`未变，保留A/B全部未提交工作。开发5433/生产未应用0005–0007。
+
+- C已接通Copilot中的真实需求来源入口、个人提案准备/读取/编辑/删除/明确确认和回执。四种白名单仅发布所选问题、创建Revision、创建/更新商业DRAFT；模型工具继续只读，无自动Ready/Submit/审批/验收。
+- 生成问题/规格重新走共享背景上下文，不转用内部聊天/工具正文；可复制本人工作稿并绑定来源版本。商业范围/标准来自真实最新就绪规格或当前草稿，估算与金额需人工核对。100份未执行上限、24h有效期、分页、准备限流；没有完整聊天持久化或自动删除周期。
+- R04/R05事务命令复用，业务/审计/执行回执原子提交；独立提案CAS与原业务版本、来源/共享权限重验，operationId防重复。新增负面测试复现锁等待中退出登录仍执行的问题，已修复为聚合锁后Session复核并持有共享锁，现401且业务不变。
+- PASS：100数据库、158单元、44 AI HTTP（含11提案）；Auth16/RBAC13/R049/R058/reads9；新增浏览器4、原Copilot4、真实DeepSeek1。API/Web类型/Lint/Build、47路径契约、db:check通过。真实模型4请求全200，6497输入/1815输出Tokens，确认前业务不变、人工确认后只新增1问题。详见[工程证据](engineering/evidence/ai-workflow-c/README.md)、[人工范例](engineering/AI_WORKFLOW_C_MANUAL.md)、[截图](ux/evidence/ai-workflow-c/README.md)。
+- Drawer关闭重开保留编辑/未知操作编号，409不重放，网络未知先查本人回执；手机任务展开时收起聊天输入。桌面/手机axe各26规则/0违规，但有焦点/颜色未判定项及补充检查；不替代独立设备、读屏与安全验收。真实模型回答仍偏长且有技术字段文案，待H-18体验核对。
+- NOT RUN：D安装授权、E最终全量、远程CI、新迁移开发/生产启用、本轮MCP Host/Inspector及独立人工验收。B记录的2项既有依赖公告仍待H-17处置，本轮无新增依赖。未改.env、用户Codex配置或执行Git远程操作。建议Commit：`feat(copilot): add private proposals with human-confirmed execution`。
+
+## AI工作流升级 — B完成 / C候选的历史交接
+
+负责人本轮“批准，继续开发”后，复核0006 SHA-256及0005 parent snapshot，将已审SQL原字节激活并仅应用 `127.0.0.1:5434/specbridge_test`（角色specbridge_test）。分支仍 `feat/17-ai-agent-integration` / HEAD `6fb81b8`，保留A未提交改动。当前运行时21表/7项迁移；开发5433/生产未应用0005/0006。
+
+- B已实现项目可选背景上传、PDF/DOCX/MD/TXT受限解析、私有原件、不可变版本/分段、授权列表与分页文字读取。Owner/显式Developer内部读取上传；只有Owner能明确共享某个READY版本、撤回及停用；替换不自动共享，Client不见内部版本/名字/失败/配额。
+- 复用Session/CSRF与项目锁/审计，multipart仅专用上传路径；20身份/100MiB历史与在途预算，单文件10MiB，50用户/60项目每小时上传、每实例2个在途。失败原件清理不影响旧版本；中断由后续上传恢复。Linux子进程CPU/墙钟/heap/RSS监控/解压与输出限制；非完整OS沙箱，见安全限制。
+- 新工作台自动检索shared-only背景并展示真实版本/段落来源；Copilot增加一个授权背景检索工具，后续推理和最终响应复核来源权限。MCP仍只读批准规格，两工具未扩权。AI、解析、Prompt注入均不产生Ready/Submit/审批/验收。
+- PASS：98数据库、155单元（含真实子进程监督）；背景HTTP9、原AI/工作稿/Copilot33；Auth16/RBAC13/R049/Change8/Delivery7/reads9/Token9/MCP6。新增浏览器2、工作台6/Copilot4/Projects2；真实DeepSeek背景1。API/Web类型、Lint、Build、44路径契约、db:check和diff检查通过。[工程证据](engineering/evidence/ai-workflow-b/README.md)。
+- 真实deepseek-flash：4请求全200，9195输入/1640输出Tokens，8192预留；公开澄清2个共享片段，Owner Copilot2次真实工具读取/4来源；Requirement前后不变。[人工范例](engineering/AI_WORKFLOW_B_MANUAL.md)、[截图](ux/evidence/ai-workflow-b/README.md)。密钥未进Web、解析器、日志或证据。
+- 依赖审计实际有2项既有shadcn传递依赖公告（deepmerge low/minimatch moderate），初始HEAD已存在；新增解析依赖无本次命中。没有擅自做无关升级，发布前需H-17处理。手机axe有导航对比度incomplete及补充计算证据；独立设备/读屏/安全Review仍NOT RUN。
+- C已准备[独立0007审核包](engineering/AI_WORKFLOW_C_SQL_REVIEW.md)：一张本人提案/幂等执行回执表，四类白名单、独立CAS/业务版本、24h过期、终态不可改。SHA-256 `a5a9788072b5caf6366a83f28197340f7709fb4a5c50fd2c181d21407bc66010`。未导入运行时、未加入journal、未执行SQL；只完成静态生成/旧21表对照。需H-16明确批准5434隔离验证后继续C，不能沿用0006批准。
+- NOT RUN：C确认执行、D一键Codex、E最终全量、远程CI/独立人工验收；本轮MCP Inspector/Codex付费Host2项按设计skip。没有更改.env或用户Codex配置，没有自动Git写入/部署。建议B Commit：`feat(context): add private project documents and authorized AI retrieval`。
+
+## AI工作流升级 — A完成 / B候选的历史交接
+
+开工 `feat/17-ai-agent-integration` / HEAD `6fb81b8`，工作区最初干净。负责人批准总方案后批准0005的5434/specbridge_test隔离验证；[总计划](engineering/AI_WORKFLOW_PLAN.md)、[CHECKPOINT](engineering/AI_WORKFLOW_CHECKPOINT.md)。D-09/AC-28–34是R08后的增量，原P0不变量未降低。
+
+- A新增clarify/specification授权生成接口，复用Provider/预算/超时/前后授权；生成不写记录。新个人工作稿限本人，Owner也不能代读，Client只用澄清。Web双任务、预览/编辑/选择/删除/个人保存/跨刷新继续；对客发布明确确认。
+- 工作稿独立CAS及draftId防删除重建ABA；发布在原R04业务事务中批量创建问题或单一Revision，expectedVersion/Pending/历史不可变保持；问题、采用标记、回执、审计原子提交。operationId安全重放/查询，未知结果不另建操作；409、AI失败和会话复核保留输入/恢复按钮。无AI Ready/Submit/审批/验收。
+- 0005已按审定SHA-256 `3ef341ab762315d265f03ec32ab40813e32eaeec6b308fb7279297c1f0153e7c` 应用隔离库；原16表不变，当前运行时18表/6迁移。开发5433/生产未由本轮迁移；如未应用0005，新工作台会提示无法加载，原手动主流程保持。
+- PASS：149单元、95数据库、33 AI/工作稿/Copilot HTTP；Auth16/RBAC13/Requirement9/reads9；工作台浏览器6、R04/表单/Copilot浏览器12、真实DeepSeek浏览器1；类型/Lint/Build、41路径OpenAPI、db:check。过程中的环境/构建竞争/测试定位/账号限额失败已修复并重跑。[命令与结果](engineering/evidence/ai-workflow-a/README.md)。
+- 真实deepseek-flash：4模型调用全部200，7146输入/2216输出Tokens，预留8192。人工发布Revision与Copilot真实工具来源通过；只由隔离API子进程加载.env，计数证据无密钥或Prompt，截图仅合成资料。[截图](ux/evidence/ai-workflow-a/README.md)、[人工测试范例](engineering/AI_WORKFLOW_A_MANUAL.md)。
+- 审阅真实回答发现正文中“未保存草案”措辞可能在发布后过时；已收紧规格/Copilot提示，存储状态以真实对象和版本为准。Mock回归通过，措辞改进未再次付费验证，模型准确性仍须人工核对。
+- B已准备[候选审核包](engineering/AI_WORKFLOW_B_SQL_REVIEW.md)：3表与不可变解析版本/分段/安全指针触发器；共享绑定具体版本，替换不自动共享。SQL SHA-256 `6efe3cd862b3167478ce1be8095a791379eae39852801d7f0616c635516272e4`。候选不注册到生产Schema/生效journal；仅静态typecheck/lint/Drizzle/snapshot对照PASS，未执行迁移或实现上传/解析/检索。
+- NOT RUN：B数据库/文件功能、C确认执行、D一键Codex、E最终全量、远程CI与独立人工验收。下一门槛仅申请0006用于5434/specbridge_test，开发/生产及其他SQL不在批准范围。H-14/H-15列出需负责人处理事项；不将整体任务标记完成。
+
+---
+
+## R08 本地启用修复 — 历史交接（后续已提交6fb81b8）
 
 开工分支 `feat/17-ai-agent-integration` / HEAD `922eef1`，工作区干净。负责人报告503且Copilot modelCalls=0，并明确要求应用0004、整体可用及人工测试范例。
 

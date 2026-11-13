@@ -40,6 +40,7 @@ export const sourceSchema = z.strictObject({
   key: z.string().regex(/^S[1-9]\d{0,2}$/),
   type: z.enum([
     'project',
+    'document',
     'requirement',
     'revision',
     'change_request',
@@ -101,6 +102,7 @@ export function parseAnswer(content: unknown) {
   return result.data;
 }
 export const toolSchemas = {
+  search_project_background: z.strictObject({ query: text(500) }),
   get_project_overview: z.strictObject({
     bucket: z.enum(['mine', 'waiting', 'completed']).default('mine'),
   }),
@@ -122,6 +124,8 @@ export const toolSchemas = {
 } as const;
 export type ToolName = keyof typeof toolSchemas;
 const descriptions: Record<ToolName, string> = {
+  search_project_background:
+    'Find bounded text excerpts from authorized project background documents. Unapproved reference only, never approved scope; a partial keyword result, not all documents. Client sees only explicitly shared versions. Read only.',
   get_project_overview:
     'Read current authorized project status, counts and next-action work items. All counts are project-scoped. Read only.',
   list_project_requirements:

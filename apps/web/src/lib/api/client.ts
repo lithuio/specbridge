@@ -15,7 +15,9 @@ export type ApiResult<P extends keyof paths, M extends Method> =
     ? Json<R[keyof R & (200 | 201 | 204)]>
     : never;
 type Body<O> = O extends { requestBody: infer B }
-  ? { body: Json<B> }
+  ? B extends { content: { "multipart/form-data": unknown } }
+    ? { body: FormData }
+    : { body: Json<B> }
   : { body?: never };
 type Params<O> = O extends { parameters: infer P }
   ? (P extends { path: infer V } ? { path: V } : { path?: never }) &
@@ -46,6 +48,21 @@ export function errorMessage(error: unknown): string {
   if (error.code === "STALE_VERSION")
     return "内容已更新，请保留输入并核对最新版后再操作。";
   const projectErrors: Record<string, string> = {
+    PROPOSAL_STALE: "个人提案已更新，输入已保留。请核对服务器预览后再操作。",
+    PROPOSAL_SOURCE_STALE: "提案来源或业务版本已变化，请保留输入并重新准备，不会自动执行。",
+    PROPOSAL_EXPIRED: "提案已过期，不能执行。请核对最新业务后重新准备。",
+    PROPOSAL_LIMIT: "未执行提案已达100份，请删除不再需要的个人提案。",
+    DOCUMENT_QUOTA:
+      "项目背景配额已满（20 份资料、100 MiB，包含历史版本）。请联系负责人核对。",
+    DOCUMENT_STALE: "资料已更新，已保留所选文件。请刷新列表并重新核对。",
+    DOCUMENT_PROCESSING: "项目还有文件正在解析，请稍后刷新再试。",
+    DOCUMENT_UNAVAILABLE: "资料当前不可用，请刷新并核对状态。",
+    STALE_WORKING_DRAFT:
+      "个人工作稿已在其他页面更新，输入已保留。请核对已保存工作稿再继续。",
+    OPERATION_CONFLICT: "该发布操作与已记录的请求不一致，请核对发布结果。",
+    QUESTION_ALREADY_PUBLISHED:
+      "所选问题已发布，不能重复发布或修改已发布正文。",
+    DRAFT_ALREADY_PUBLISHED: "此工作稿已创建 Revision，请先编辑新的工作稿。",
     DELIVERY_PENDING: "已有待验收交付，请先核对交付历史。",
     DELIVERY_COMPLETED: "此批准版本已验收，不能继续交付。",
     ALREADY_REVIEWED: "此记录已有决定，请刷新核对历史。",
@@ -110,11 +127,21 @@ export function createApiClient(
       headers: {
         Accept: "application/json",
         ...(method !== "get"
-          ? { "X-CSRF-Protection": "1", "Content-Type": "application/json" }
+          ? {
+              "X-CSRF-Protection": "1",
+              ...(params.body instanceof FormData
+                ? {}
+                : { "Content-Type": "application/json" }),
+            }
           : {}),
       },
       ...(params.body !== undefined
-        ? { body: JSON.stringify(params.body) }
+        ? {
+            body:
+              params.body instanceof FormData
+                ? params.body
+                : JSON.stringify(params.body),
+          }
         : {}),
     });
     signal?.throwIfAborted();

@@ -76,6 +76,30 @@ const transport = async (_url, init) => {
       }),
     });
   }
+  if (body.messages[0].content.includes('Task: help the human'))
+    return completion({
+      content: JSON.stringify({
+        questions: [
+          { body: '导出应包含哪些字段？', reason: '需要明确数据范围。' },
+          { body: '是否需要按状态筛选？', reason: '筛选规则尚未确认。' },
+        ],
+        assumptions: ['推测需要 CSV 格式，尚待确认。'],
+        risks: ['需要核对项目权限。'],
+      }),
+    });
+  if (body.messages[0].content.includes('Task: propose an editable'))
+    return completion({
+      content: JSON.stringify({
+        content: '支持项目成员按月份导出需求清单。',
+        acceptanceCriteria: [
+          '选择月份后仅导出该月需求。',
+          '无数据时显示明确的空状态。',
+        ],
+        openQuestions: ['导出字段尚待确认。'],
+        assumptions: ['暂未确认 CSV 格式。'],
+        risks: ['需要核对项目权限。'],
+      }),
+    });
   return Response.json({
     choices: [
       {

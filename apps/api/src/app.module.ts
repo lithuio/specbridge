@@ -1,3 +1,4 @@
+import { DocumentsModule } from './documents/documents.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { AiModule } from './ai/ai.module.js';
 import { ApiTokensModule } from './api-tokens/api-tokens.module.js';
@@ -21,6 +22,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
 
 @Module({
   imports: [
+    DocumentsModule,
     ApiTokensModule,
     AiModule,
     DashboardModule,
@@ -45,8 +47,8 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
       http: {
         capture: false,
         ignore: [
-          /^\/api\/v1\/(?:api-tokens(?:\/|$|\?)|projects\/[^/]+\/(?:api-tokens|approved-specs)(?:\/|$|\?))/i,
-          /^\/api\/v1\/(?:auth(?:\/|$)|me(?:\/|$|\?)|requirements\/[^/]+\/ai-analysis(?:\/|$|\?)|projects\/[^/]+\/copilot\/messages(?:\/|$|\?))/i,
+          /^\/api\/v1\/(?:api-tokens(?:\/|$|\?)|projects\/[^/]+\/(?:documents|api-tokens|approved-specs)(?:\/|$|\?))/i,
+          /^\/api\/v1\/(?:auth(?:\/|$)|me(?:\/|$|\?)|requirements\/[^/]+\/(?:ai-(?:analysis|assistance)|working-drafts|working-draft-publications|copilot-proposals)(?:\/|$|\?)|projects\/[^/]+\/copilot\/messages(?:\/|$|\?))/i,
         ],
       },
       redaction: {

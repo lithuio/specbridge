@@ -1,3 +1,4 @@
+import { DocumentsService } from '../documents/documents.service.js';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ProjectsService } from '../projects/projects.service.js';
 import { RequirementsService } from '../requirements/requirements.service.js';
@@ -16,6 +17,7 @@ type ReadResult = { data: unknown; sources: Evidence[] };
 @Injectable()
 export class CopilotTools {
   constructor(
+    @Inject(DocumentsService) private readonly documents: DocumentsService,
     @Inject(ProjectsService)
     private readonly projects: Pick<ProjectsService, 'detail'>,
     @Inject(RequirementsService)
@@ -33,6 +35,20 @@ export class CopilotTools {
     @Inject(DashboardService)
     private readonly dashboard: Pick<DashboardService, 'read'>,
   ) {}
+  async reauthorizeSources(
+    actor: string,
+    projectId: string,
+    sources: Source[],
+  ) {
+    for (const s of sources) {
+      if (s.type !== 'document') continue;
+      const versionId = s.href.split('/').at(-1)!;
+      await this.documents.read(actor, projectId, s.id, versionId, {
+        limit: 1,
+        offset: 0,
+      });
+    }
+  }
   private parent(actual: string, projectId: string) {
     if (actual !== projectId) throw new NotFoundException();
   }
@@ -75,6 +91,41 @@ export class CopilotTools {
     });
     // Each branch calls the existing authorized read service. No dynamic property invocation.
     switch (name) {
+      case 'search_project_background': {
+        const { query } = toolSchemas[name].parse(input);
+        const excerpts = await this.documents.retrieve(
+          actor,
+          projectId,
+          query,
+          false,
+        );
+        return {
+          data: {
+            classification: 'UNAPPROVED_BACKGROUND',
+            partial: true,
+            excerpts,
+          },
+          sources: excerpts.length
+            ? excerpts.map((e) =>
+                source(
+                  'document',
+                  e.documentId,
+                  e.title,
+                  `背景 v${e.versionNo} · ${e.locatorKind === 'page' ? '页' : '段'} ${e.locatorStart}–${e.locatorEnd}`,
+                  `/documents/${e.documentId}/versions/${e.versionId}`,
+                ),
+              )
+            : [
+                source(
+                  'project',
+                  projectId,
+                  '背景检索',
+                  '没有可用片段',
+                  '/documents',
+                ),
+              ],
+        };
+      }
       case 'get_project_overview': {
         const { bucket } = toolSchemas[name].parse(input);
         const p = await this.projects.detail(actor, projectId);

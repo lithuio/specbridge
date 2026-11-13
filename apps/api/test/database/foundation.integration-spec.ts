@@ -24,7 +24,7 @@ describe('PostgreSQL foundation (structural guarantees, not business APIs)', () 
     await pool?.end();
   });
 
-  it('migrates all 16 tables and preserves data when migrations run again', async () => {
+  it('migrates all 22 tables and preserves data when migrations run again', async () => {
     const tables = await pool.query(
       "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename",
     );
@@ -37,11 +37,17 @@ describe('PostgreSQL foundation (structural guarantees, not business APIs)', () 
       'change_request_versions',
       'change_requests',
       'clarifications',
+      'copilot_proposals',
       'deliveries',
       'delivery_reviews',
+      'project_document_chunks',
+      'project_document_versions',
+      'project_documents',
       'project_members',
       'projects',
+      'requirement_publish_receipts',
       'requirement_revisions',
+      'requirement_working_drafts',
       'requirements',
       'sessions',
       'users',
@@ -67,7 +73,11 @@ describe('PostgreSQL foundation (structural guarantees, not business APIs)', () 
     expect(triggers.rows.map((row: { tgname: string }) => row.tgname)).toEqual([
       'approvals_immutable',
       'change_request_versions_immutable',
+      'copilot_proposals_guard',
       'delivery_reviews_immutable',
+      'project_document_chunks_guard',
+      'project_document_versions_guard',
+      'project_documents_pointer_guard',
       'projects_baseline_scope_immutable',
       'requirement_revisions_immutable',
     ]);
@@ -83,16 +93,22 @@ describe('PostgreSQL foundation (structural guarantees, not business APIs)', () 
     const primaryKeys = await pool.query(
       "SELECT count(*)::int AS count FROM pg_constraint WHERE contype='p' AND connamespace='public'::regnamespace",
     );
-    expect(primaryKeys.rows[0].count).toBe(16);
+    expect(primaryKeys.rows[0].count).toBe(22);
     const ids = await pool.query(
-      "SELECT udt_name, column_default FROM information_schema.columns WHERE table_schema='public' AND column_name='id'",
+      "SELECT table_name, udt_name, column_default FROM information_schema.columns WHERE table_schema='public' AND column_name='id'",
     );
-    expect(ids.rows).toHaveLength(16);
+    expect(ids.rows).toHaveLength(22);
     expect(
       ids.rows.every(
-        (row: { udt_name: string; column_default: string }) =>
+        (row: {
+          table_name: string;
+          udt_name: string;
+          column_default: string | null;
+        }) =>
           row.udt_name === 'uuid' &&
-          row.column_default.includes('gen_random_uuid()'),
+          (row.table_name === 'requirement_publish_receipts'
+            ? row.column_default === null
+            : row.column_default?.includes('gen_random_uuid()')),
       ),
     ).toBe(true);
   });

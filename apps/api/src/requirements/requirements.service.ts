@@ -182,26 +182,34 @@ export class RequirementsService {
   ) {
     userId = userId.toLowerCase();
     return this.repository.database.transaction(async (tx) => {
-      const visible = await this.repository.get(tx, id.toLowerCase());
-      const project = await this.authorization.projectWrite(
-        userId,
-        visible.projectId,
-        tx,
-      );
-      const row = await this.repository.get(tx, visible.id, true);
-      if (row.projectId !== project.id) throw new NotFoundException();
+      const { row, project } = await this.lockForWrite(tx, userId, id);
       if (!allow(row, project.projectRole, userId))
         throw new ForbiddenException();
-      if (
-        !Number.isInteger(expectedVersion) ||
-        expectedVersion < 1 ||
-        expectedVersion > 2147483647
-      )
-        throw new BadRequestException();
-      if (expectedVersion !== row.draftVersion) conflict('STALE_VERSION');
-      if (row.draftVersion === 2147483647) business();
+      this.assertVersion(row, expectedVersion);
       return work(tx, row, project, userId);
     });
+  }
+  // Internal transaction commands: callers retain the authorization/aggregate locks.
+  async lockForWrite(tx: DatabaseTransaction, userId: string, id: string) {
+    const visible = await this.repository.get(tx, id.toLowerCase());
+    const project = await this.authorization.projectWrite(
+      userId,
+      visible.projectId,
+      tx,
+    );
+    const row = await this.repository.get(tx, visible.id, true);
+    if (row.projectId !== project.id) throw new NotFoundException();
+    return { row, project };
+  }
+  assertVersion(row: Requirement, expectedVersion: number) {
+    if (
+      !Number.isInteger(expectedVersion) ||
+      expectedVersion < 1 ||
+      expectedVersion > 2147483647
+    )
+      throw new BadRequestException();
+    if (expectedVersion !== row.draftVersion) conflict('STALE_VERSION');
+    if (row.draftVersion === 2147483647) business();
   }
   patch(userId: string, id: string, input: PatchRequirementDto) {
     if (input.title === undefined && input.originalText === undefined)
@@ -240,53 +248,62 @@ export class RequirementsService {
       id,
       input.expectedVersion,
       () => true,
-      async (tx, row, project, actor) => {
-        if (
-          row.status === 'READY' ||
-          (input.kind === 'ANSWER' && row.status !== 'CLARIFYING')
-        )
-          conflict('INVALID_TRANSITION');
-        if (input.kind === 'QUESTION') {
-          if (input.parentId != null) business();
-        } else if (
-          !input.parentId ||
-          !(await this.repository.question(
-            tx,
-            row.id,
-            input.parentId.toLowerCase(),
-          ))
-        )
-          business();
-        const clarification = await this.repository.addClarification(
-          tx,
-          row.id,
-          actor,
-          input,
-        );
-        const updated = await this.repository.advance(tx, row, {
-          status: 'CLARIFYING',
-        });
-        await this.audit.write(tx, {
-          workspaceId: project.workspaceId,
-          projectId: project.id,
-          actorId: actor,
-          eventType:
-            input.kind === 'QUESTION'
-              ? 'clarification.question_added'
-              : 'clarification.answer_added',
-          entityType: 'clarification',
-          entityId: clarification.id,
-          entityVersion: updated.draftVersion,
-          metadata: {
-            requirementId: row.id,
-            parentId: clarification.parentId,
-            fromStatus: row.status,
-            toStatus: updated.status,
-          },
-        });
-        return { ...clarification, ...this.aggregate(updated) };
-      },
+      (tx, row, project, actor) =>
+        this.clarifyInTransaction(tx, row, project, actor, input),
     );
+  }
+  async clarifyInTransaction(
+    tx: DatabaseTransaction,
+    row: Requirement,
+    project: Project,
+    actor: string,
+    input: ClarificationDto,
+  ) {
+    this.assertVersion(row, input.expectedVersion);
+    if (
+      row.status === 'READY' ||
+      (input.kind === 'ANSWER' && row.status !== 'CLARIFYING')
+    )
+      conflict('INVALID_TRANSITION');
+    if (input.kind === 'QUESTION') {
+      if (input.parentId != null) business();
+    } else if (
+      !input.parentId ||
+      !(await this.repository.question(
+        tx,
+        row.id,
+        input.parentId.toLowerCase(),
+      ))
+    )
+      business();
+    const clarification = await this.repository.addClarification(
+      tx,
+      row.id,
+      actor,
+      input,
+    );
+    const updated = await this.repository.advance(tx, row, {
+      status: 'CLARIFYING',
+    });
+    await this.audit.write(tx, {
+      workspaceId: project.workspaceId,
+      projectId: project.id,
+      actorId: actor,
+      eventType:
+        input.kind === 'QUESTION'
+          ? 'clarification.question_added'
+          : 'clarification.answer_added',
+      entityType: 'clarification',
+      entityId: clarification.id,
+      entityVersion: updated.draftVersion,
+      metadata: {
+        requirementId: row.id,
+        parentId: clarification.parentId,
+        fromStatus: row.status,
+        toStatus: updated.status,
+      },
+    });
+    return { ...clarification, ...this.aggregate(updated) };
   }
   revision(userId: string, id: string, input: RevisionDto) {
     return this.write(
@@ -294,40 +311,50 @@ export class RequirementsService {
       id,
       input.expectedVersion,
       (_row, role) => role !== 'CLIENT',
-      async (tx, row, project, actor) => {
-        if (await this.repository.pending(tx, row.id))
-          conflict('REVIEW_IN_PROGRESS');
-        const last = await this.repository.latest(tx, row.id);
-        if (last?.revisionNo === 2147483647) business();
-        const revision = await this.repository.addRevision(
-          tx,
-          row.id,
-          actor,
-          (last?.revisionNo ?? 0) + 1,
-          input,
-        );
-        const updated = await this.repository.advance(tx, row, {
-          status: 'CLARIFYING',
-          latestRevisionId: revision.id,
-        });
-        await this.audit.write(tx, {
-          workspaceId: project.workspaceId,
-          projectId: project.id,
-          actorId: actor,
-          eventType: 'requirement.revision_created',
-          entityType: 'requirement_revision',
-          entityId: revision.id,
-          entityVersion: revision.revisionNo,
-          metadata: {
-            requirementId: row.id,
-            draftVersion: updated.draftVersion,
-            fromStatus: row.status,
-            toStatus: updated.status,
-          },
-        });
-        return { ...revision, ...this.aggregate(updated) };
-      },
+      (tx, row, project, actor) =>
+        this.revisionInTransaction(tx, row, project, actor, input),
     );
+  }
+  async revisionInTransaction(
+    tx: DatabaseTransaction,
+    row: Requirement,
+    project: Project,
+    actor: string,
+    input: RevisionDto,
+  ) {
+    this.assertVersion(row, input.expectedVersion);
+    if (project.projectRole === 'CLIENT') throw new ForbiddenException();
+    if (await this.repository.pending(tx, row.id))
+      conflict('REVIEW_IN_PROGRESS');
+    const last = await this.repository.latest(tx, row.id);
+    if (last?.revisionNo === 2147483647) business();
+    const revision = await this.repository.addRevision(
+      tx,
+      row.id,
+      actor,
+      (last?.revisionNo ?? 0) + 1,
+      input,
+    );
+    const updated = await this.repository.advance(tx, row, {
+      status: 'CLARIFYING',
+      latestRevisionId: revision.id,
+    });
+    await this.audit.write(tx, {
+      workspaceId: project.workspaceId,
+      projectId: project.id,
+      actorId: actor,
+      eventType: 'requirement.revision_created',
+      entityType: 'requirement_revision',
+      entityId: revision.id,
+      entityVersion: revision.revisionNo,
+      metadata: {
+        requirementId: row.id,
+        draftVersion: updated.draftVersion,
+        fromStatus: row.status,
+        toStatus: updated.status,
+      },
+    });
+    return { ...revision, ...this.aggregate(updated) };
   }
   ready(userId: string, id: string, input: VersionDto) {
     return this.write(

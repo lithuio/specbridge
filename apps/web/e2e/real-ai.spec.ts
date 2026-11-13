@@ -58,83 +58,68 @@ test("真实 DeepSeek：Draft 分析 → 人工审阅保存 → Copilot 工具�
     ).data;
   const before = await read(),
     auditBefore = await audit();
+  await page.getByRole("button", { name: "帮我整理规格", exact: true }).click();
   const response = page.waitForResponse(
-    (r) => r.url().endsWith("/ai-analysis"),
+    (r) => r.url().endsWith("/ai-assistance"),
     { timeout: 40_000 },
   );
-  await page.getByRole("button", { name: "分析需求", exact: true }).click();
+  await page.getByRole("button", { name: "生成规格建议", exact: true }).click();
   const analysisResponse = await response;
   expect(analysisResponse.status()).toBe(200);
   const analysis = (await analysisResponse.json()).data;
+  expect(analysis.mode).toBe("specification");
   expect(Object.keys(analysis.result).sort()).toEqual([
     "acceptanceCriteria",
     "assumptions",
+    "content",
     "openQuestions",
     "risks",
-    "summary",
   ]);
   expect(analysis.source.requirementId).toBe(id);
   expect(await read()).toEqual(before);
   expect(await audit()).toEqual(auditBefore);
-  const panel = page.getByRole("region", { name: "AI 需求分析", exact: true });
-  for (const name of [
-    "需求摘要",
-    "澄清问题",
-    "验收标准",
-    "待确认假设",
-    "风险提示",
-  ])
-    await expect(panel.getByRole("group", { name, exact: true })).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "确认采用，填写 Revision 草稿" }),
-  ).toBeDisabled();
+  const panel = page.getByRole("region", { name: "需求工作台", exact: true });
+  await expect(page.getByRole("region", { name: "AI 建议预览" })).toBeVisible();
   const checks = [await accessibility(page, "real-analysis-desktop")];
   await panel.scrollIntoViewIfNeeded();
   await page.screenshot({
     path: resolve(evidence, "analysis-desktop.png"),
     fullPage: true,
   });
-  const reviewed = `${analysis.result.summary}\n人工确认：只处理当前项目可见待办；默认状态由负责人确认。`;
+  await page.getByRole("button", { name: "采用到当前工作稿" }).click();
+  const reviewed = `${analysis.result.content}\n人工确认：只处理当前项目可见待办；默认状态由负责人确认。`;
   await panel
-    .getByRole("textbox", { name: "需求摘要", exact: true })
+    .getByRole("textbox", { name: "规格工作稿正文", exact: true })
     .fill(reviewed);
-  await panel
-    .getByRole("checkbox", { name: "选择需求摘要", exact: true })
-    .check();
-  if (analysis.result.acceptanceCriteria.length)
-    await panel
-      .getByRole("checkbox", { name: "选择验收标准 1", exact: true })
-      .check();
-  await page
-    .getByRole("button", { name: "确认采用，填写 Revision 草稿" })
-    .click();
-  const editor = page.getByRole("region", { name: "需求操作表单" });
-  await expect(editor.getByRole("textbox", { name: "规格正文" })).toHaveValue(
-    reviewed,
-  );
   if (!analysis.result.acceptanceCriteria.length)
-    await editor.getByRole("button", { name: "添加验收标准" }).click();
-  await editor
+    await panel.getByRole("button", { name: "添加验收标准" }).click();
+  await panel
     .getByRole("textbox", { name: "验收标准 1", exact: true })
     .fill("按所选状态过滤当前项目可见待办；无匹配项显示空状态。");
+  await panel.getByRole("button", { name: "保存个人工作稿" }).click();
+  await expect(
+    page.getByText("个人工作稿已保存。项目问答、Revision 和业务状态未改变。"),
+  ).toBeVisible();
   expect(await read()).toEqual(before);
   await page.setViewportSize({ width: 390, height: 844 });
+  await panel.getByRole("button", { name: "预览创建 Revision" }).click();
   checks.push(await accessibility(page, "real-human-review-mobile"));
-  await editor.evaluate((el) =>
-    el.scrollIntoView({ block: "end", behavior: "instant" }),
-  );
-  await expect(
-    editor.getByRole("button", { name: "保存为新 Revision" }),
-  ).toBeInViewport();
+  await page
+    .getByRole("region", { name: "人工发布确认" })
+    .scrollIntoViewIfNeeded();
   await page.screenshot({ path: resolve(evidence, "human-review-mobile.png") });
   const saved = page.waitForRequest(
-    (r) => r.method() === "POST" && r.url().endsWith("/revisions"),
+    (r) =>
+      r.method() === "POST" &&
+      r.url().endsWith("/working-drafts/specification/publish"),
   );
-  await editor.getByRole("button", { name: "保存为新 Revision" }).click();
+  await panel.getByRole("button", { name: "确认创建 Revision" }).click();
   expect((await saved).postDataJSON().expectedVersion).toBe(
     before.draftVersion,
   );
-  await expect(editor).toHaveCount(0);
+  await expect(
+    page.getByText("已由你确认创建正式 Revision。仍需在原流程中人工标记就绪。"),
+  ).toBeVisible();
   const after = await read();
   expect(after.originalText).toBe(original);
   expect(after.latestRevision.content).toBe(reviewed);

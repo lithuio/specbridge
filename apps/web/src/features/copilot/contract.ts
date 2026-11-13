@@ -87,6 +87,7 @@ const responseSchema = z.object({
         projectId: z.uuid(),
         type: z.enum([
           "project",
+          "document",
           "requirement",
           "revision",
           "change_request",

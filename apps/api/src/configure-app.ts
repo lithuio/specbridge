@@ -66,7 +66,7 @@ export function configureApp(app: INestApplication): void {
   // Only AI endpoints have a larger body budget. Existing routes keep Nest's default limit.
   app.use((req: AuthRequest, res: Response, next: NextFunction) => {
     if (
-      /^\/api\/v1\/(?:api-tokens\/[^/]+|projects\/[^/]+\/(?:api-tokens|approved-specs(?:\/[^/]+)?)|requirements\/[^/]+\/ai-analysis|projects\/[^/]+\/copilot\/messages)\/*$/i.test(
+      /^\/api\/v1\/(?:requirements\/[^/]+\/(?:copilot-proposals(?:\/[^/]+(?:\/execute)?)?|working-drafts(?:\/[^/]+(?:\/publish)?)?|working-draft-publications\/[^/]+)|api-tokens\/[^/]+|projects\/[^/]+\/(?:documents(?:\/[^/]+(?:\/versions\/[^/]+)?)?|api-tokens|approved-specs(?:\/[^/]+)?)|requirements\/[^/]+\/ai-(?:analysis|assistance)|projects\/[^/]+\/copilot\/messages)\/*$/i.test(
         req.path,
       )
     ) {
@@ -78,7 +78,7 @@ export function configureApp(app: INestApplication): void {
   adapter.useBodyParser('json', false, {
     limit: '256kb',
     type: (req) =>
-      /^\/api\/v1\/(?:requirements\/[^/]+\/ai-analysis|projects\/[^/]+\/copilot\/messages)\/*$/i.test(
+      /^\/api\/v1\/(?:requirements\/[^/]+\/ai-(?:analysis|assistance)|projects\/[^/]+\/copilot\/messages)\/*$/i.test(
         (req.url ?? '').split('?')[0],
       ) && /^application\/json(?:;|$)/i.test(req.headers['content-type'] ?? ''),
   });

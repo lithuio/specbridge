@@ -163,20 +163,30 @@ export class ChangesService {
         true,
       );
       if (requirement.projectId !== project.id) throw new NotFoundException();
-      if (project.projectRole === 'CLIENT') throw new ForbiddenException();
-      const revision = await this.ready(tx, requirement);
-      const row = await this.repository.create(
-        tx,
-        requirement.id,
-        revision.id,
-        actor,
-      );
-      await this.event(tx, row, project, actor, 'change_request.created', {
-        requirementId: requirement.id,
-        revisionId: revision.id,
-      });
-      return { ...summary(row, project.id), draft: draft(row) };
+      return this.createInTransaction(tx, requirement, project, actor);
     });
+  }
+  // Internal commands require the caller to retain Workspace/Project/Requirement locks.
+  async createInTransaction(
+    tx: DatabaseTransaction,
+    requirement: Requirement,
+    project: Project,
+    actor: string,
+  ) {
+    if (requirement.projectId !== project.id) throw new NotFoundException();
+    if (project.projectRole === 'CLIENT') throw new ForbiddenException();
+    const revision = await this.ready(tx, requirement);
+    const row = await this.repository.create(
+      tx,
+      requirement.id,
+      revision.id,
+      actor,
+    );
+    await this.event(tx, row, project, actor, 'change_request.created', {
+      requirementId: requirement.id,
+      revisionId: revision.id,
+    });
+    return { ...summary(row, project.id), draft: draft(row) };
   }
   private write<T>(
     actor: string,
@@ -235,62 +245,87 @@ export class ChangesService {
       id,
       input.expectedVersion,
       ['OWNER', 'DEVELOPER'],
-      async (tx, row, requirement, project, actor) => {
-        if (row.status !== 'DRAFT') conflict('INVALID_TRANSITION');
-        if (input.requirementRevisionId !== undefined)
-          await this.ready(
-            tx,
-            requirement,
-            input.requirementRevisionId.toLowerCase(),
-          );
-        const hours = input.estimateHours;
-        const updated = await this.repository.advance(tx, row, {
-          ...(input.requirementRevisionId !== undefined
-            ? {
-                draftRequirementRevisionId:
-                  input.requirementRevisionId.toLowerCase(),
-              }
-            : {}),
-          ...(input.scopeSummary !== undefined
-            ? { draftScopeSummary: input.scopeSummary }
-            : {}),
-          ...(hours !== undefined
-            ? {
-                draftEstimateHours:
-                  hours === null
-                    ? null
-                    : `${hours.split('.')[0]}.${(hours.split('.')[1] ?? '').padEnd(2, '0')}`,
-              }
-            : {}),
-          ...(input.costDeltaMinor !== undefined
-            ? {
-                draftCostDeltaMinor:
-                  input.costDeltaMinor === null
-                    ? null
-                    : BigInt(input.costDeltaMinor),
-              }
-            : {}),
-          ...(input.currency !== undefined
-            ? { draftCurrency: input.currency }
-            : {}),
-          ...(input.scheduleDeltaDays !== undefined
-            ? { draftScheduleDeltaDays: input.scheduleDeltaDays }
-            : {}),
-          ...(input.acceptanceCriteria !== undefined
-            ? { draftAcceptanceCriteria: input.acceptanceCriteria }
-            : {}),
-        });
-        await this.event(
-          tx,
-          updated,
-          project,
-          actor,
-          'change_request.draft_updated',
-          { fields },
-        );
-        return { ...summary(updated, project.id), draft: draft(updated) };
-      },
+      (tx, row, requirement, project, actor) =>
+        this.patchInTransaction(tx, row, requirement, project, actor, input),
     );
+  }
+  async patchInTransaction(
+    tx: DatabaseTransaction,
+    row: Change,
+    requirement: Requirement,
+    project: Project,
+    actor: string,
+    input: PatchChangeDto,
+  ) {
+    input = validate(PatchChangeDto, input);
+    if (project.projectRole === 'CLIENT') throw new ForbiddenException();
+    if (
+      requirement.projectId !== project.id ||
+      row.requirementId !== requirement.id
+    )
+      throw new NotFoundException();
+    if (input.expectedVersion !== row.lockVersion) conflict('STALE_VERSION');
+    if (row.lockVersion === max) business();
+    const fields = Object.keys(input).filter(
+      (k) =>
+        k !== 'expectedVersion' &&
+        input[k as keyof PatchChangeDto] !== undefined,
+    );
+    if (!fields.length) throw new BadRequestException();
+
+    if (row.status !== 'DRAFT') conflict('INVALID_TRANSITION');
+    if (input.requirementRevisionId !== undefined)
+      await this.ready(
+        tx,
+        requirement,
+        input.requirementRevisionId.toLowerCase(),
+      );
+    const hours = input.estimateHours;
+    const updated = await this.repository.advance(tx, row, {
+      ...(input.requirementRevisionId !== undefined
+        ? {
+            draftRequirementRevisionId:
+              input.requirementRevisionId.toLowerCase(),
+          }
+        : {}),
+      ...(input.scopeSummary !== undefined
+        ? { draftScopeSummary: input.scopeSummary }
+        : {}),
+      ...(hours !== undefined
+        ? {
+            draftEstimateHours:
+              hours === null
+                ? null
+                : `${hours.split('.')[0]}.${(hours.split('.')[1] ?? '').padEnd(2, '0')}`,
+          }
+        : {}),
+      ...(input.costDeltaMinor !== undefined
+        ? {
+            draftCostDeltaMinor:
+              input.costDeltaMinor === null
+                ? null
+                : BigInt(input.costDeltaMinor),
+          }
+        : {}),
+      ...(input.currency !== undefined
+        ? { draftCurrency: input.currency }
+        : {}),
+      ...(input.scheduleDeltaDays !== undefined
+        ? { draftScheduleDeltaDays: input.scheduleDeltaDays }
+        : {}),
+      ...(input.acceptanceCriteria !== undefined
+        ? { draftAcceptanceCriteria: input.acceptanceCriteria }
+        : {}),
+    });
+    await this.event(
+      tx,
+      updated,
+      project,
+      actor,
+      'change_request.draft_updated',
+      { fields },
+    );
+    return { ...summary(updated, project.id), draft: draft(updated) };
   }
   submit(actor: string, id: string, input: ChangeVersionDto) {
     return this.write(

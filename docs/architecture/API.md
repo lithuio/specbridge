@@ -375,3 +375,65 @@ API-28～30 使用既有 Schema，无新增 Migration。负责人批准方案 A�
 OpenAPI 覆盖 R07 使用的 R02–R06 API 和七 GET，共 30 paths / 38 operations；日期为标准 UTC ISO、工时为十进制字符串、金额为 JSON 安全整数，null/optional 显式定义。为满足已有日期契约，R03 Workspace 列表/成员（含重复添加返回值）和 Project 列表/详情已规范化原生 SQL 日期文本；没有修改权限或状态转换。
 
 离线生成 `pnpm --filter specbridge-api openapi:generate`，漂移验证 `pnpm --filter specbridge-api openapi:check`。不加载 .env、连接数据库或启动 Observe/Swagger UI。真实 HTTP 响应验证与运行证据见 STATE；不替代后续浏览器验收。
+
+
+## AI工作流 A：两任务与个人工作稿
+
+旧 `POST /requirements/{id}/ai-analysis` 保持兼容。以下均位于 `/api/v1`，要求有效Session；写请求要求原CSRF检查，Project API Token不授权这些接口。所有响应no-store，文本不进日志/Observe。
+
+| 路由 | 契约与效果 |
+|---|---|
+| `POST /requirements/{id}/ai-assistance` | `{mode: clarify\|specification, expectedVersion, instruction?, draft?}`。复用DeepSeek限额/JSON/Zod与前后授权；Client不能生成规格。响应含analysisId、mode、source和对应result，完全不写业务或工作稿 |
+| `GET /requirements/{id}/working-drafts` | 仅本人；Owner也不能代读。Client仅clarify；不使用前端持久缓存 |
+| `PUT /requirements/{id}/working-drafts/{kind}` | `{kind,draftId,expectedDraftVersion,baseRequirementVersion,body}`；创建必须draftId=null、expectedDraftVersion=0，更新必须真实ID与正版本。保存仅增加私有工作稿版本；可保存尚未完成或基于旧需求的内容 |
+| `DELETE /requirements/{id}/working-drafts/{kind}` | `{draftId,expectedDraftVersion}`；仅删除本人工作稿，保留发布回执/问题/Revision |
+| `POST /requirements/{id}/working-drafts/{kind}/publish` | `{kind,draftId,operationId,expectedDraftVersion,expectedVersion,questionIds?}`；clarify显式选择1–10条。根据服务端工作稿发布，body/publication等伪造字段400；必须工作稿base与当前需求一致 |
+| `GET /requirements/{id}/working-draft-publications/{operationId}` | 当前作者和项目重新授权后读取最小回执；不存在/非本人404；规格回执对Client403 |
+
+ID+版本同时比较，防止删除重建后的旧请求覆盖新工作稿。`STALE_WORKING_DRAFT`、`STALE_VERSION`、`OPERATION_CONFLICT`均409；已发布条目不可再次发布或改写正文（`QUESTION_ALREADY_PUBLISHED`），移除工作稿条目不删除正式问题。同一规格工作稿版本不重复创建Revision（`DRAFT_ALREADY_PUBLISHED`）。替换客户端操作ID不能消费同一草稿版本两次。
+
+Workspace→Project→Requirement→WorkingDraft锁序；批量问题复用原Clarification事务命令，每条仍增加业务版本及审计，所有条目/采用标记/回执一并提交或回滚。规格复用原Revision命令、Pending限制与不可变历史，创建后为CLARIFYING；不执行Ready/Submit/审批/验收。归档项目禁止新的保存/发布，允许授权查询历史与删除自己的工作稿。
+
+发布网络结果未知时先查询operationId；未查到时可由用户重试**相同**请求，不自动生成新操作。Web个人正文仅在组件内存与私有表；刷新恢复服务端版本，未保存输入需要离开前手动保存。错误/409留在当前页时保留输入，明确核对最新需求或远端工作稿才采用新版本。工作稿保存/删除审计只含作者、对象和版本，无正文，并不进入现有项目公开活动白名单。
+
+Schema及完整返回结构以[OpenAPI](openapi.json)为准；96KiB保存总量、100KiB普通JSON路由限制保持；AI专用256KiB入口仍受Provider组合上下文/输出与用户项目预算约束。
+
+## 项目背景资料（AI工作流B）
+
+所有入口为Session认证；写入需要可信Origin、X-CSRF-Protection:1。只有上传使用multipart，其余写JSON；Project API Token不能调用。成功和错误均no-store，错误遵循统一安全信封。
+
+| 方法/路径（/api/v1） | 输入与响应 |
+|---|---|
+| GET `/projects/{projectId}/documents` | 最多20个身份。内部角色见current/shared指针、CAS版本、最近50条历史及必要指针版本；historyTruncated标注。Client只见ACTIVE且明确共享的版本元信息 |
+| POST `/projects/{projectId}/documents` | multipart：file必填；替换时documentId和expectedVersion字符串必须同时提供。201返回documentId/versionId/status READY或FAILED/errorCode；解析失败保留最小失败记录，不回滚项目 |
+| PUT `/projects/{projectId}/documents/{documentId}` | Owner，expectedVersion与status ACTIVE/INACTIVE或sharedVersionId UUID/null；每次更新CAS，停用自动撤回共享，重新启用不恢复共享 |
+| GET `/projects/{projectId}/documents/{documentId}/versions/{versionId}` | limit默认20、1..50；offset默认0、0..1000。真实version及纯文本chunks（id/ordinal/页段定位/content）、hasMore；每次校验完整父链与当前可见性 |
+
+文档独立CAS不改变Requirement版本。新增安全码409 DOCUMENT_STALE/DOCUMENT_PROCESSING/DOCUMENT_UNAVAILABLE、422 DOCUMENT_QUOTA；格式/字段400、文件超限413、限流429。解析固定码UNSUPPORTED_FILE/INVALID_FILE/NO_TEXT/PARSE_LIMIT/PARSE_TIMEOUT/PARSE_FAILED/INTERRUPTED，通过201结果或版本列表显示，不返回原始异常。
+
+新 `ai-assistance` 的source增加background数组：documentId/versionId/chunkId/versionNo/title/locatorKind/locatorStart/locatorEnd/href，不回传额外正文。共享片段进入untrustedMaterial，最多4×1000字符。旧ai-analysis原响应保持兼容。
+
+Copilot白名单增加 `search_project_background({query:string[1..500]})`，不接受projectId；返回授权片段和服务器真实文档来源，source.type可为document。仍受总4工具/2轮及Token预算；最终来源重新授权。MCP保持原两个批准规格工具。
+
+## AI工作流C：Copilot本人提案与人工确认
+
+所有入口使用Session；写请求要求可信Origin与X-CSRF-Protection。Bearer不适用，成功/错误响应均no-store，正文不进入Observe。权限由Requirement父链推导Project/Workspace；Owner不能代读其他人的提案，Client仅`publish_questions`。
+
+| 路径（前缀 `/api/v1`） | 方法 | 请求与行为 |
+|---|---|---|
+| `/requirements/{id}/copilot-proposals` | GET | 本人分页，limit默认20最大50、offset≤10000；DRAFT优先，其后时间/ID倒序；data含items/hasMore |
+| 同上 | POST | kind、expectedVersion、source；生成或复制参考后只保存个人提案，返回201，不写业务 |
+| `/requirements/{id}/copilot-proposals/{proposalId}` | GET | 本人当前提案/执行回执，用于网络未知结果核对 |
+| 同上 | PUT | expectedProposalVersion、content={kind,payload}；独立CAS，只编辑允许的正文/评估字段，不能改目标/来源/基线 |
+| 同上 | DELETE | expectedProposalVersion；只删除本人DRAFT（允许过期），已执行不可删除 |
+| `/requirements/{id}/copilot-proposals/{proposalId}/execute` | POST | operationId、expectedProposalVersion、expectedVersion；更新商业草稿另需expectedChangeVersion；显式确认，业务/审计/回执原子提交 |
+
+kind固定`publish_questions | create_revision | create_change_draft | update_change_draft`。前两种source为`generate`（可选instruction≤2000；重新走共享资料上下文，不收历史聊天/工具正文）或`working_draft`（本人draftId+expectedDraftVersion）；后两种source只允许`current`。更新商业草稿必须给changeRequestId+expectedChangeVersion并验证同需求；所有多余字段拒绝。
+
+问题payload最多10条，包含服务器分配/已有工作稿条目id、body、reason、selected；用户可编辑/删除/取消，确认只发布selected项且至少1项。规格沿用A工作稿content/acceptanceCriteria/openQuestions/assumptions/risks。商业payload固定requirementRevisionId（编辑不可变）及scopeSummary/estimateHours/costDeltaMinor/currency/scheduleDeltaDays/acceptanceCriteria，评估可空，金额为安全整数的最小货币单位；复用R05全部校验。总载荷80KiB，未知字段/非法金额/来源组合400，超长413。
+
+响应固定id/requirementId/userId/kind/payload/sources/version/baseRequirementVersion/可空changeRequestId及baseChangeVersion/status/operationId/result/createdAt/updatedAt/expiresAt/executedAt；不返回requestHash。sources只包含Requirement业务版本、Revision、共享文档版本/段、本人工作稿版本及商业草稿版本的真实服务端标识，不持久化完整Prompt/工具正文。
+
+确认时重新验证当前授权、ACTIVE项目、Session、有效期、全部业务及来源版本；取得业务聚合锁后持有Session共享锁，退出登录先发生则拒绝执行。同operationId同规范请求返回原回执；换参数/第二编号消费同提案409，不自动重放。发布问题/Revision仍受R04状态与Pending规则；商业操作仍仅DRAFT，不自动Mark Ready、Submit、批准或验收。
+
+新增409：`PROPOSAL_STALE`、`PROPOSAL_SOURCE_STALE`、`PROPOSAL_EXPIRED`；另沿用STALE_VERSION/INVALID_TRANSITION/REVIEW_IN_PROGRESS/OPERATION_CONFLICT。本人每需求100份未执行提案（含过期），满额422 `PROPOSAL_LIMIT`；准备30次/用户/小时、60次/项目/小时，模型另受既有AI预算限制。提案24h有效，不自动删除；已执行提案/回执保留不可变。精确Schema以生成OpenAPI为准。

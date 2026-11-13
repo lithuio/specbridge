@@ -3,6 +3,9 @@
 // opt-in loads .env only inside the dedicated API child, never in Web or tests.
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { testDatabaseUrl } from "../apps/api/src/database/database.config.ts";
 
@@ -10,6 +13,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const apiDir = `${root}apps/api`;
 const webDir = `${root}apps/web`;
 const database = testDatabaseUrl(process.env.TEST_DATABASE_URL);
+const documentStorage = await mkdtemp(join(tmpdir(), "specbridge-browser-documents-"));
 const common = {
   PATH: process.env.PATH,
   HOME: process.env.HOME,
@@ -31,6 +35,7 @@ async function stop(code = 0) {
       child.kill("SIGTERM");
     });
   }
+  await rm(documentStorage, { recursive: true, force: true });
   process.exit(code);
 }
 process.on("SIGTERM", () => void stop());
@@ -101,6 +106,7 @@ try {
       NODE_ENV: "test",
       PORT: "4000",
       DATABASE_URL: database,
+      DOCUMENT_STORAGE_DIR: documentStorage,
       AUTH_TRUSTED_ORIGINS: "http://127.0.0.1:3000",
       AUTH_TRUSTED_PROXIES: "loopback",
       ...(realProvider ? { R08_REAL_PROVIDER: "1" } : {}),

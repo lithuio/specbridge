@@ -1,3 +1,6 @@
+import { ProposalsController } from '../proposals/proposals.controller.js';
+import { proposalOperations } from './proposals.js';
+import { RateLimitService } from '../auth/rate-limit.service.js';
 import 'reflect-metadata';
 import { Module, type Type } from '@nestjs/common';
 import {
@@ -9,6 +12,7 @@ import {
 import { NestFactory } from '@nestjs/core';
 import {
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -25,6 +29,17 @@ import { DeliveriesController } from '../deliveries/deliveries.controller.js';
 import { AuditReadController } from '../audit/audit-read.module.js';
 import { DashboardController } from '../dashboard/dashboard.module.js';
 import { AiController } from '../ai/ai.controller.js';
+import { WorkingDraftsController } from '../requirements/working-drafts.controller.js';
+import {
+  DocumentsController,
+  DocumentUploadAdmission,
+} from '../documents/documents.controller.js';
+import { documentOperations } from './documents.js';
+import {
+  assistanceOperation,
+  workingDraftOperations,
+  workingDraftKindParam,
+} from './working-drafts.js';
 import { CopilotController } from '../ai/copilot.controller.js';
 import { copilotInput, copilotResponse } from '../ai/copilot.contract.js';
 import { z } from 'zod';
@@ -86,6 +101,7 @@ const deliveryInput = {
   },
 };
 type Operation = {
+  multipart?: boolean;
   response?: Schema;
   paged?: boolean;
   dashboard?: boolean;
@@ -101,6 +117,8 @@ const list = (
   query?: Record<string, Schema>,
 ): Operation => ({ response: arr(ref(name)), paged: true, query });
 const definitions: [Type, Record<string, Operation>][] = [
+  [ProposalsController, proposalOperations],
+  [DocumentsController, documentOperations],
   [
     ApiTokensController,
     {
@@ -154,9 +172,11 @@ const definitions: [Type, Record<string, Operation>][] = [
       },
     },
   ],
+  [WorkingDraftsController, workingDraftOperations],
   [
     AiController,
     {
+      assist: assistanceOperation,
       analyze: {
         body: obj(
           {
@@ -444,7 +464,15 @@ export async function createDocument() {
       );
       const path = `${Reflect.getMetadata(PATH_METADATA, controller)}/${Reflect.getMetadata(PATH_METADATA, descriptor.value)}`;
       for (const match of path.matchAll(/:([a-zA-Z]+)/g))
-        decorate(ApiParam({ name: match[1], schema: uuid }));
+        decorate(
+          ApiParam({
+            name: match[1],
+            schema:
+              controller === WorkingDraftsController && match[1] === 'kind'
+                ? workingDraftKindParam
+                : uuid,
+          }),
+        );
       const query = {
         ...(spec.paged
           ? {
@@ -457,6 +485,7 @@ export async function createDocument() {
       for (const [name, schema] of Object.entries(query))
         decorate(ApiQuery({ name, required: false, schema }));
       if (spec.body) decorate(ApiBody({ schema: spec.body }));
+      if (spec.multipart) decorate(ApiConsumes('multipart/form-data'));
       const status =
         Reflect.getMetadata(HTTP_CODE_METADATA, descriptor.value) ??
         (Reflect.getMetadata(METHOD_METADATA, descriptor.value) === 1
@@ -481,7 +510,9 @@ export async function createDocument() {
         422,
         429,
         500,
-        ...(controller === AiController || controller === CopilotController
+        ...(controller === AiController ||
+        controller === CopilotController ||
+        controller === DocumentsController
           ? [413, 503]
           : []),
       ])
@@ -501,7 +532,9 @@ export async function createDocument() {
   class OfflineModule {}
   Module({
     controllers: definitions.map(([controller]) => controller),
-    providers: [...providers].map((provide) => ({ provide, useValue: {} })),
+    providers: [...providers, DocumentUploadAdmission, RateLimitService].map(
+      (provide) => ({ provide, useValue: {} }),
+    ),
   })(OfflineModule);
   const app = await NestFactory.create(OfflineModule, { logger: false });
   try {

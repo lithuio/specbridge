@@ -1,3 +1,8 @@
+import { AuthModule } from '../auth/auth.module.js';
+import { AuditModule } from '../audit/audit.module.js';
+import { ProposalsController } from '../proposals/proposals.controller.js';
+import { ProposalsService } from '../proposals/proposals.service.js';
+import { DocumentsModule } from '../documents/documents.module.js';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../database/database.module.js';
 import { AuthorizationModule } from '../authorization/authorization.module.js';
@@ -17,6 +22,9 @@ import { CopilotTools } from './copilot.tools.js';
 import { CopilotService } from './copilot.service.js';
 @Module({
   imports: [
+    AuthModule,
+    AuditModule,
+    DocumentsModule,
     DatabaseModule,
     AuthorizationModule,
     ProjectsModule,
@@ -25,8 +33,9 @@ import { CopilotService } from './copilot.service.js';
     DeliveriesModule,
     DashboardModule,
   ],
-  controllers: [AiController, CopilotController],
+  controllers: [AiController, CopilotController, ProposalsController],
   providers: [
+    ProposalsService,
     AiConfig,
     AiLimits,
     AiRepository,

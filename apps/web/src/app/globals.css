@@ -1600,3 +1600,40 @@ textarea.form-control {
   .dashboard-content .workspace-picker .form-control { max-width: 100%; }
   .dashboard-content .project-nav button { padding-inline: 10px; font-size: 12px; }
 }
+
+/* Task-specific personal drafts reuse the existing R07 panel and form system. */
+.ai-workbench .form-actions { flex-wrap: wrap; }
+.working-pane { padding-top: 20px; }
+.work-fields { display: grid; gap: 16px; min-width: 0; border: 0; padding: 0; margin: 20px 0; }
+.work-fields .form-field { display: grid; gap: 8px; min-width: 0; }
+.ai-workbench textarea, .ai-workbench input.form-control { width: 100%; }
+.ai-workbench .check-label { display: flex; gap: 8px; align-items: center; min-height: 44px; }
+.ai-workbench .check-label input { width: 18px; height: 18px; }
+.work-preview { overflow-wrap: anywhere; }
+.work-preview ul { padding-left: 20px; list-style: disc; }
+.work-preview h4:focus { outline: 2px solid var(--brand); outline-offset: 4px; }
+@media (max-width: 640px) {
+  .ai-workbench .criterion-editor { flex-direction: column; align-items: stretch; gap: 4px; margin-bottom: 12px; }
+  .ai-workbench .criterion-editor > button { align-self: flex-start; }
+}
+
+/* Project documents reuse R07 surfaces, spacing and typography. */
+.document-upload { display: grid; gap: .75rem; margin-block: 1rem; min-width: 0; }
+.document-upload input[type="file"] { display: block; width: 100%; max-width: 100%; margin-top: .5rem; font: inherit; font-size: .875rem; }
+.document-card h3, .document-version p, .document-text h3 { overflow-wrap: anywhere; }
+.document-version, .document-excerpt { border-top: 1px solid var(--border); margin-top: 1rem; padding-top: 1rem; }
+.document-page .form-actions { flex-wrap: wrap; }
+.document-excerpt .scope-content { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.document-upload input[type="file"]::file-selector-button { border: 1px solid var(--border); border-radius: .5rem; background: var(--background); color: inherit; padding: .6rem .8rem; margin-right: .6rem; cursor: pointer; }
+.document-upload input[type="file"]:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; border-radius: .5rem; }
+
+/* Copilot task previews reuse the existing drawer, controls and color tokens. */
+.copilot-proposals { border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1rem; }
+.copilot-proposals label { display: grid; gap: .35rem; margin-block: .75rem; font-size: .875rem; }
+.copilot-proposals input:not([type="checkbox"]), .copilot-proposals select, .copilot-proposals textarea { width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: .5rem; padding: .5rem .65rem; background: var(--background); color: var(--foreground); }
+.copilot-proposals input[type="checkbox"] { width: 1rem; height: 1rem; accent-color: var(--primary); }
+.copilot-proposals input:focus-visible, .copilot-proposals select:focus-visible, .copilot-proposals textarea:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.copilot-proposals .copilot-actions { flex-wrap: wrap; }
+.proposal-question, .proposal-confirm, .proposal-notes { padding: .75rem; border: 1px solid var(--border); border-radius: .5rem; margin-block: .75rem; overflow-wrap: anywhere; }
+.proposal-history { width: 100%; justify-content: flex-start; white-space: normal; height: auto; margin-block: .25rem; }

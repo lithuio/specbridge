@@ -1,0 +1,44 @@
+{
+  "status": "PASS",
+  "copilotToolCalls": 1,
+  "sourceTypes": [
+    "requirement"
+  ],
+  "result": {
+    "answer": "已用 get_requirement 只读读取当前需求「按月导出清单」（S1）。观察到的状态：该需求当前为 DRAFT（草稿），草稿版本为 1；澄清问题列表为空；尚无任何 Revision，revisionIsLatest 为 false。原文仅有：“我们希望按月导出项目需求，但导出字段和格式尚未确认。”据此，最重要的待澄清问题是：①按哪些字段导出、字段清单与取值范围；②导出格式（如 CSV/Excel 等）与文件命名、编码约定；③“按月”的口径——是按需求创建月、更新月还是截止月，时区与月份边界如何处理；④数据范围与权限，包含哪些项目或状态的需求，跨项目导出是否允许；⑤导出量级、是否需要定时/权限控制与失败重试等非功能要求。以上均为基于原文的推测性建议，不是已确认的业务事实。下一步建议：在“准备操作与个人提案”工作区中，由人工准备澄清问题或 Revision 草稿，核对后再决定后续流程。当前能力显示可编辑草稿（editDraft）、提交问题（askQuestion）、创建 Revision（createRevision）；暂不可标为 READY（原因码 REVISION_NOT_READY），也不可由我执行任何变更。",
+    "blockers": [
+      "导出字段清单与格式尚未确认，需求原文即指出此点（S1）。",
+      "需求为草稿版本1，尚无 Revision，因此当前不可标为 READY（原因码 REVISION_NOT_READY），此能力状态仅为当前资格判断，不代表批准。",
+      "当前无澄清记录（clarifications 为空），问题尚未被记录。",
+      "“按月”的时间口径、数据范围与权限均未在原文中说明，属推断性缺口。"
+    ],
+    "nextSteps": [
+      {
+        "text": "在需求详情页打开“为此需求准备操作”，人工起草澄清问题（字段、格式、月份口径、数据范围与权限），确认后再提交；预览不会自动生效。",
+        "sourceIds": [
+          "S1"
+        ]
+      },
+      {
+        "text": "核对需求原始描述与草稿版本号，判断是否需要先补齐字段与格式再创建 Revision。",
+        "sourceIds": [
+          "S1"
+        ]
+      },
+      {
+        "text": "查看能力区显示的原因码 REVISION_NOT_READY，仅作为当前资格信息，由人工评估推进节奏。",
+        "sourceIds": [
+          "S1"
+        ]
+      }
+    ],
+    "sourceIds": [
+      "S1"
+    ]
+  },
+  "generatedQuestionCount": 5,
+  "unchangedBeforeConfirmation": true,
+  "publishedQuestionCount": 1,
+  "revisionCreated": false,
+  "requirementVersion": 2
+}

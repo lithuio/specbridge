@@ -33,12 +33,13 @@ export class AiRepository {
       accessMode: 'read only',
     });
   }
-  private async session(
+  async assertSession(
     tx: DatabaseTransaction,
     actor: string,
     sessionId: string,
+    lock = false,
   ) {
-    const [valid] = await tx
+    const query = tx
       .select({ id: sessions.id })
       .from(sessions)
       .where(
@@ -53,24 +54,29 @@ export class AiRepository {
           ),
         ),
       );
+    const [valid] = await (lock ? query.for('share') : query);
     if (!valid) throw new UnauthorizedException();
   }
   reauthorize(actor: string, sessionId: string, projectId: string) {
     return this.read(async (tx) => {
-      await this.session(tx, actor, sessionId);
+      await this.assertSession(tx, actor, sessionId);
       return (await this.authorization.project(actor, projectId, tx))
         .projectRole;
     });
   }
   context(actor: string, sessionId: string, id: string, input: AnalysisInput) {
     return this.read(async (tx) => {
-      await this.session(tx, actor, sessionId);
+      await this.assertSession(tx, actor, sessionId);
       const [row] = await tx
         .select()
         .from(requirements)
         .where(eq(requirements.id, id));
       if (!row) throw new NotFoundException();
-      await this.authorization.project(actor, row.projectId, tx);
+      const project = await this.authorization.project(
+        actor,
+        row.projectId,
+        tx,
+      );
       if (row.draftVersion !== input.expectedVersion)
         throw new ConflictException({ code: 'STALE_VERSION' });
       const revisionId = input.revisionId ?? row.latestRevisionId;
@@ -106,6 +112,11 @@ export class AiRepository {
       if (questions.length > 500) throw new PayloadTooLargeException();
       return {
         projectId: row.projectId,
+        projectRole: project.projectRole,
+        projectReference: {
+          name: project.name,
+          baselineScope: project.baselineScope,
+        },
         source: {
           requirementId: row.id,
           draftVersion: row.draftVersion,
