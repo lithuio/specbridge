@@ -16,7 +16,9 @@ test("真实 DeepSeek：Draft 分析 → 人工审阅保存 → Copilot 工具�
   accounts,
 }) => {
   test.setTimeout(150_000);
-  const evidence = resolve("../../test-results/r08-f/browser-real");
+  const evidence = process.env.R07_EVIDENCE_ROOT
+    ? resolve(process.cwd(), process.env.R07_EVIDENCE_ROOT, "ai-workflow-a")
+    : resolve("../../test-results/r08-f/browser-real");
   await mkdir(evidence, { recursive: true });
   await login(page, accounts.a);
   const create = async (path: string, data: object) => {

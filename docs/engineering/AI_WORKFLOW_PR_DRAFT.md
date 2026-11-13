@@ -1,34 +1,31 @@
-# 人工Commit与PR摘要草案
+# 人工Commit与最终PR草案
 
-本轮不创建Commit或PR。A/B/C/D已实现并完成受影响验证，E未开始；最终PR需E之后定稿。2026-11-13 D延续HEAD`c0960b0`及已有准备改动，0008获批仅隔离5434应用。
+2026-11-13。A–D已由负责人本地提交至e9e5efd，E完成最终本地验证，以下供人工审阅；本轮未Commit/Push/创建PR/Merge/部署。Issue [#17](https://github.com/lithuio/specbridge/issues/17)；新增工作流范围依据已确认D-09与[执行计划](AI_WORKFLOW_PLAN.md)，原R08只读工具边界保持。
 
-D建议本地Commit：`feat(agent): add owner-authorized local Codex connection installer`。
+建议E Commit：`test(ai): verify integrated AI workflows and agent connections`
 
-D审阅摘要：
+建议最终PR标题：`feat(ai): add project context, human-reviewed workflows and secure Codex onboarding`
 
-> Owner可从项目访问凭据页生成不含秘密的连接命令，并在浏览器核对项目/指纹/期限后确认。安装器通过PKCE与固定loopback一次性交换只读Token，保存到仓库外私有文件，诊断真实MCP后保留原设置安装项目配置与Skill；支持重复检查/卸载和未知结果核对。后端重验当前Owner/原Session，Token、消费、审计同事务，外部仍只有批准规格读取工具。
->
-> 0008已审哈希原字节只应用5434，旧22表/数据保持。102数据库、161单元、连接HTTP10、Auth16/RBAC13/Token9、MCP28、真实MCP6+Codex Host1、浏览器2+4通过；类型/Lint/Build、51路径契约通过。Host用生成表CLI覆盖隔离验证，不冒称实际用户信任自动加载已验收。当前依赖审计27条与开工基线相同，无新增ID，仍需专项处理；开发/生产0005–0008、E全量/远程CI/独立人工验收未执行。
+## 建议PR正文
 
-建议负责人分阶段本地Commit：
+需求分析原先把澄清和规格保存放在一次交互中，项目背景和本地Agent接入也需要人工反复传递。现在提供独立的“问清楚/整理规格”任务和本人工作稿：只保存问题不会创建Revision，选定、编辑和明确预览确认后才写入正式业务。PDF/DOCX/Markdown/TXT可作为项目背景，默认内部，Owner明确共享指定版本；公开需求辅助仅检索共享资料，Copilot按当前权限读取并附真实版本来源。
 
-- A：`feat(ai): separate clarification and specification work drafts`
-- B：`feat(context): add private project documents and authorized AI retrieval`
-- C：`feat(copilot): add private proposals with human-confirmed execution`
-- D：`feat(agent): add owner-authorized local Codex connection installer`
+Copilot可以围绕真实需求准备个人提案，人工确认后发布问题、创建Revision或创建/更新商业草稿。确认重新验证作者、会话、项目、来源及expectedVersion，通过既有R04/R05事务命令将业务、审计与幂等回执原子提交。未知结果先查回执，409保留输入；原Ready、Submit、串行Owner/Client审批和交付验收保持人工入口。模型只有白名单只读工具，不保存敏感聊天正文。
 
-A–C历史PR摘要（D增量以上方为准，E后统一重写）：
+Owner可从网页生成无秘密的本地Codex连接命令，在浏览器核对项目、指纹和期限后授权。Linux/WSL安装器通过PKCE与loopback一次性交换项目只读Token，存于仓库外0700/0600私有文件；验证真实MCP后保留原设置合并项目配置/Skill，支持检查和安全卸载。Token不进入提示词、URL、配置或日志，撤销/过期/项目权限变化后立即拒绝。MCP仍只有列批准版本与读取指定批准规格两个工具，不直连数据库。
 
-原PR标题：`feat(ai): add project context, private work drafts and human-confirmed copilot proposals`
+### 验证
 
-原PR正文：
+- API161+MCP28单元、102真实数据库、141 HTTP、5公共路由、4付费CI保护、14套件44真实浏览器通过。类型/Lint/完整Build、51路径OpenAPI/Web类型与迁移元数据、Skill格式通过。常规CI的AI使用Mock，新增连接Token→真实stdio→批准规格→撤销链路已纳入。
+- 真实DeepSeek三场景最终通过：需求稿人工Revision、共享背景检索、Copilot准备提案并明确确认仅发布一个问题。记录14次上游HTTP200、26624预留输出；已知输入26083/输出6219，1次失败响应usage未知，不作为完整计费总量。
+- 独立真实MCP8项通过，包括Codex0.167.1 Host、Inspector2.15.0和安装Skill；业务快照不变、专用Token撤销。Host用实际生成MCP表的隔离CLI覆盖，**实际用户信任后的自动加载尚未验收**。
+- 桌面/320/390px、键盘和48个axe状态0自动违规；26个状态仍含未判定项，保留补充计算及人工验收边界。[工程证据](evidence/ai-workflow-e/README.md)、[截图](../ux/evidence/ai-workflow-e/README.md)。
 
-> 需求AI辅助分为澄清与整理规格，支持保存本人工作稿和选择、编辑后明确发布问题/创建Revision。项目可附带PDF/DOCX/Markdown/TXT背景，默认内部，Owner明确共享指定版本后Client才能读取。需求辅助只使用共享背景，Copilot按角色检索并返回真实业务版本来源。
->
-> Copilot提供独立个人提案工作区，可准备问题、Revision或商业草稿，预览阶段不写业务。确认重新验证本人、来源和版本，复用R04/R05事务命令，将业务、审计和执行回执一次提交。CAS、operationId及未知结果查询防止覆盖与重复；取得聚合锁后复核并共享锁定Session，修复等待锁时退出登录仍可能执行的竞态。模型没有执行工具，Ready、Submit、审批和验收继续从原人工入口完成。
->
-> 0005–0007只在已批准的隔离数据库应用。C验证通过100项数据库、158项单元、44项AI HTTP，Auth/RBAC/Requirement/Change/读取共55项受影响回归；新增浏览器4项及原Copilot4项通过。独立真实DeepSeek浏览器1场景、4模型请求全部200，6497输入/1815输出Tokens；确认前业务不变，人工确认后仅发布1个问题。类型、Lint、Build、47路径契约和迁移静态检查通过；常规CI只用Mock模型。
->
-> D一键Codex安装授权、E最终全量、开发/生产新增迁移、远程CI与独立人工验收未执行。提案24h有效但不自动清理，已执行提案与回执不可变保留；B解析限制不等于完整OS沙箱，原有shadcn链low/moderate公告各1仍待处理。真实模型回答的准确性、长度和技术字段文案需人工核对。
+### 已知风险与发布前事项
 
-审核重点：本人提案/草稿隔离；共享资料与内部对话边界；R04/R05状态不变量和事务锁序；锁等待后Session复核；operationId/回执原子性；409和未知结果保留输入；解析资源与数据保留边界。精确命令及修复记录见[A证据](evidence/ai-workflow-a/README.md)、[B证据](evidence/ai-workflow-b/README.md)、[C证据](evidence/ai-workflow-c/README.md)。
+- 依赖审计FAIL：27既有公告（8high/13moderate/6low）；production口径2条，无本轮新增ID。H-17需要专项修复和复验。
+- 首次独立真实提案场景出现上游200但Provider校验失败；一次有界诊断复验通过，原失败根因未确定。失败统计保留，不能承诺模型输出稳定全绿。另一个Playwright文件正则误选导致预算拒绝已修；没有放松生产输出验证。
+- 0005–0008只应用已批准5434隔离库；开发5433/生产目标尚未授权。真实用户Codex信任自动加载、独立安全/设备/读屏、远程CI尚未完成。没有自动Git或部署操作。
+- 解析器资源限制不是完整OS沙箱，私有文件不防同UID/root，安装跨文件崩溃不保证事务，一目录一托管连接；单实例配额重启清零，提案24h到期但无自动清理。模型长答复与业务术语仍需人工核对。
+
+人工验收入口：[综合范例](AI_WORKFLOW_E_ACCEPTANCE.md)、[H-15/H-17/H-18/H-20/H-21](../HUMAN_TASKS.md)。审核重点：项目/作者/共享版本隔离、锁后Session复核、R04–R06不变量、业务/审计/回执原子性、未知响应恢复、Token/PKCE兑换与本地安装边界。

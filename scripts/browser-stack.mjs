@@ -13,7 +13,9 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const apiDir = `${root}apps/api`;
 const webDir = `${root}apps/web`;
 const database = testDatabaseUrl(process.env.TEST_DATABASE_URL);
-const documentStorage = await mkdtemp(join(tmpdir(), "specbridge-browser-documents-"));
+const documentStorage = await mkdtemp(
+  join(tmpdir(), "specbridge-browser-documents-"),
+);
 const common = {
   PATH: process.env.PATH,
   HOME: process.env.HOME,
@@ -109,7 +111,14 @@ try {
       DOCUMENT_STORAGE_DIR: documentStorage,
       AUTH_TRUSTED_ORIGINS: "http://127.0.0.1:3000",
       AUTH_TRUSTED_PROXIES: "loopback",
-      ...(realProvider ? { R08_REAL_PROVIDER: "1" } : {}),
+      ...(realProvider
+        ? {
+            R08_REAL_PROVIDER: "1",
+            ...(process.env.R08_REAL_EVIDENCE_DIR
+              ? { R08_REAL_EVIDENCE_DIR: process.env.R08_REAL_EVIDENCE_DIR }
+              : {}),
+          }
+        : {}),
     },
   );
   await ready(api, "http://127.0.0.1:4000/api/v1/health");

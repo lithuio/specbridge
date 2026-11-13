@@ -19,6 +19,7 @@
 | R08 AI/Agent 总计划与 A–F 交接 | `engineering/R08_PLAN.md` |
 | R08后续AI工作流、A/B/C人工测试与迁移审核 | `engineering/AI_WORKFLOW_PLAN.md`, `engineering/AI_WORKFLOW_CHECKPOINT.md`, `engineering/AI_WORKFLOW_A_MANUAL.md`, `engineering/AI_WORKFLOW_B_SQL_REVIEW.md`, `engineering/AI_WORKFLOW_B_MANUAL.md`, `engineering/AI_WORKFLOW_C_SQL_REVIEW.md`, `engineering/AI_WORKFLOW_C_MANUAL.md` |
 | AI工作流D本地Codex安装授权、已审0008与联调证据 | `engineering/AI_WORKFLOW_D_DESIGN.md`, `engineering/AI_WORKFLOW_D_MANUAL.md`, `engineering/AI_WORKFLOW_D_SQL_REVIEW.md`, `engineering/evidence/ai-workflow-d/README.md` |
+| AI工作流E最终回归、真实模型/Host、综合人工验收与PR草案 | `engineering/evidence/ai-workflow-e/README.md`, `ux/evidence/ai-workflow-e/README.md`, `engineering/AI_WORKFLOW_E_ACCEPTANCE.md`, `engineering/AI_WORKFLOW_PR_DRAFT.md` |
 | R08 本地真实启用、AI503排查与全功能人工测试范例 | `engineering/R08_MANUAL_TEST.md`, `engineering/evidence/r08-local/README.md` |
 | R08 F 最终回归、安全自查、真实Provider/MCP/Host与PR草案 | `engineering/evidence/r08-f/README.md`, `engineering/R08_PR_DRAFT.md` |
 | R08 F 真实AI浏览器、Token桌面/手机与键盘检查 | `ux/evidence/r08-f/README.md` |

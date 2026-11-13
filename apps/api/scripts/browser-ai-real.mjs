@@ -2,6 +2,7 @@
 import { loadEnvFile } from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { resolve, join } from 'node:path';
 import { testDatabaseUrl } from '../dist/database/database.config.js';
 
 if (
@@ -15,9 +16,10 @@ if (
   process.exit(1);
 }
 const database = testDatabaseUrl(process.env.DATABASE_URL);
-const evidence = fileURLToPath(
-  new URL('../../../test-results/r08-f/real-provider.json', import.meta.url),
-);
+const evidenceDirectory = process.env.R08_REAL_EVIDENCE_DIR
+  ? resolve(process.env.R08_REAL_EVIDENCE_DIR)
+  : fileURLToPath(new URL('../../../test-results/r08-f', import.meta.url));
+const evidence = join(evidenceDirectory, 'real-provider.json');
 const stats = {
   status: 'STARTING',
   model: '',
@@ -27,13 +29,11 @@ const stats = {
   completionTokens: 0,
   usageMissing: 0,
   upstreamStatuses: [],
+  upstreamMetadata: [],
   results: [],
 };
 const save = async () => {
-  await mkdir(
-    fileURLToPath(new URL('../../../test-results/r08-f', import.meta.url)),
-    { recursive: true },
-  );
+  await mkdir(evidenceDirectory, { recursive: true });
   await writeFile(evidence, JSON.stringify(stats, null, 2) + '\n');
 };
 let app;
@@ -77,6 +77,54 @@ try {
     stats.reservedOutputTokens += maxTokens;
     const response = await fetch(url, options);
     stats.upstreamStatuses.push(response.status);
+    // Bounded smoke diagnostics only: never retain message/tool bodies or raw errors.
+    const reader = response.clone().body?.getReader();
+    if (reader) {
+      const chunks = [];
+      let bytes = 0;
+      try {
+        while (bytes <= 256 * 1024) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          bytes += chunk.value.byteLength;
+          if (bytes <= 256 * 1024) chunks.push(chunk.value);
+        }
+        const envelope =
+          bytes <= 256 * 1024
+            ? JSON.parse(Buffer.concat(chunks).toString('utf8'))
+            : null;
+        const choice = envelope?.choices?.[0];
+        const count = (value) =>
+          Number.isSafeInteger(value) && value >= 0 ? value : null;
+        stats.upstreamMetadata.push({
+          status: response.status,
+          bytes,
+          requestedOutputTokens: maxTokens,
+          toolsEnabled: Array.isArray(body.tools),
+          finishReason: [
+            'stop',
+            'length',
+            'tool_calls',
+            'content_filter',
+          ].includes(choice?.finish_reason)
+            ? choice.finish_reason
+            : 'unknown',
+          toolCalls: Array.isArray(choice?.message?.tool_calls)
+            ? choice.message.tool_calls.length
+            : 0,
+          promptTokens: count(envelope?.usage?.prompt_tokens),
+          completionTokens: count(envelope?.usage?.completion_tokens),
+        });
+      } catch {
+        stats.upstreamMetadata.push({
+          status: response.status,
+          envelope: 'unreadable',
+        });
+      } finally {
+        // Do not await cancellation of a tee while the original awaits its consumer.
+        void reader.cancel().catch(() => undefined);
+      }
+    }
     return response;
   };
   const module = await Test.createTestingModule({ imports: [AppModule] })
@@ -102,8 +150,17 @@ try {
       stats.status = 'CALLS_COMPLETED';
       return response;
     } catch (error) {
+      const response = error?.getResponse?.();
+      const code = [
+        'AI_INVALID_RESPONSE',
+        'AI_UNAVAILABLE',
+        'RATE_LIMITED',
+      ].includes(response?.code)
+        ? response.code
+        : 'OTHER';
       stats.results.push({
         status: 'FAIL',
+        code,
         durationMs: Math.round(performance.now() - start),
       });
       stats.status = 'CALL_FAILED';

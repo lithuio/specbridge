@@ -11,7 +11,11 @@ import request from 'supertest';
 import { AppModule } from '../../src/app.module.js';
 import { configureApp } from '../../src/configure-app.js';
 import { openTestDatabase } from '../database/helpers.js';
-import { setup } from '../deliveries/helpers.js';
+import { setup, snapshot } from '../deliveries/helpers.js';
+import { resolve } from 'node:path';
+import { Client } from '@modelcontextprotocol/client';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
+import { z } from 'zod';
 import { assertContract } from '../reads/contract.js';
 import { waitForLock } from '../rbac/helpers.js';
 import { AuditWriter } from '../../src/audit/audit.module.js';
@@ -378,6 +382,125 @@ it('rejects a former Owner and serializes cancellation against exchange', async 
   expect(await countTokens(f.project.id)).toBe(
     exchanged.status === 200 ? 1 : 0,
   );
+});
+it('uses a newly exchanged credential in a real stdio client, reads exact approved sources and refuses cross-project access and revocation', async () => {
+  const f = await fixture(),
+    other = await fixture();
+  const body = await authorize(f);
+  const issued = await exchange(body).expect(200);
+  const token = issued.body.data.token as string;
+  const client = new Client({
+    name: 'workflow-final-integration',
+    version: '1.0.0',
+  });
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: [resolve('../mcp/dist/main.js')],
+    env: {
+      SPECBRIDGE_API_BASE_URL: await app.getUrl(),
+      SPECBRIDGE_PROJECT_ID: f.project.id,
+      SPECBRIDGE_API_TOKEN: token,
+    },
+    stderr: 'pipe',
+  });
+  let stderr = '';
+  transport.stderr?.on('data', (chunk: Buffer) => {
+    if (stderr.length < 8192) stderr += chunk.toString();
+  });
+  const business = async () => ({
+    ...(await snapshot(pool, f.project.id)),
+    audit: [],
+  });
+  const before = await business();
+  try {
+    await client.connect(transport);
+    expect((await client.listTools()).tools.map((t) => t.name).sort()).toEqual([
+      'get_approved_spec',
+      'list_project_requirements',
+    ]);
+    const listed = await client.callTool({
+      name: 'list_project_requirements',
+      arguments: { limit: 10, offset: 0 },
+    });
+    expect(listed.isError).not.toBe(true);
+    const list = z
+      .object({
+        projectId: z.uuid(),
+        items: z.array(z.object({ versionId: z.uuid(), revisionId: z.uuid() })),
+      })
+      .parse(listed.structuredContent);
+    expect(list.projectId).toBe(f.project.id);
+    expect(list.items).toEqual([
+      {
+        versionId: f.version.changeRequestVersionId,
+        revisionId: f.revision.id,
+      },
+    ]);
+    const detail = await client.callTool({
+      name: 'get_approved_spec',
+      arguments: { versionId: f.version.changeRequestVersionId },
+    });
+    expect(detail.isError).not.toBe(true);
+    expect(JSON.stringify(detail).includes(token)).toBe(false);
+    expect(detail.structuredContent).toMatchObject({
+      specification: {
+        projectId: f.project.id,
+        versionId: f.version.changeRequestVersionId,
+        approvedScope: { summary: 'Commercial scope' },
+        referencedRequirement: {
+          revisionId: f.revision.id,
+          content: 'Frozen specification',
+        },
+      },
+      source: {
+        apiPath: `/api/v1/projects/${f.project.id}/approved-specs/${f.version.changeRequestVersionId}`,
+      },
+    });
+    expect(
+      (
+        await client.callTool({
+          name: 'get_approved_spec',
+          arguments: { versionId: other.version.changeRequestVersionId },
+        })
+      ).isError,
+    ).toBe(true);
+    expect(
+      (
+        await client.callTool({
+          name: 'list_project_requirements',
+          arguments: { projectId: other.project.id },
+        })
+      ).isError,
+    ).toBe(true);
+    await call('delete', `/api-tokens/${issued.body.data.id}`, f.owner).expect(
+      204,
+    );
+    expect(
+      (
+        await client.callTool({
+          name: 'get_approved_spec',
+          arguments: { versionId: f.version.changeRequestVersionId },
+        })
+      ).isError,
+    ).toBe(true);
+    expect(await business()).toEqual(before);
+    expect(
+      (
+        await call(
+          'get',
+          path(f.project.id) + `/${body.grantId}`,
+          f.owner,
+        ).expect(200)
+      ).body.data.status,
+    ).toBe('EXCHANGED');
+  } finally {
+    await client.close();
+    await call('delete', `/api-tokens/${issued.body.data.id}`, f.owner).expect(
+      204,
+    );
+    expect(stderr.includes(token)).toBe(false);
+    expect(stderr.length).toBe(0);
+  }
 });
 it('applies Owner/project/hour and native peer limits without creating grants on rejection', async () => {
   const f = await fixture(),

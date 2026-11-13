@@ -19,9 +19,9 @@
 | B 项目背景 | 私有文件、解析版本、角色可见性、检索及引用 | PASS：0006已获批隔离应用，文件/共享/检索/Web及真实DeepSeek验证完成 |
 | C Copilot执行预览 | 工作稿衔接、白名单提案、确认与幂等执行 | PASS：0007获批隔离应用，四类本人提案/确认事务、Web与真实DeepSeek验证 |
 | D Codex接入 | 本地安装器、浏览器授权、安全配置与真实Host | 实现完成：0008获批隔离应用，Owner/CLI/Web/MCP联通与受影响验证；Host结果和人工信任边界见D证据 |
-| E 最终验证 | 真Provider/浏览器/Host、负面测试、完整回归与人工验收 | NOT STARTED |
+| E 最终验证 | 真Provider/浏览器/Host、负面测试、完整回归与人工验收 | 本地验证完成：44浏览器、141 HTTP、102数据库、真实DeepSeek三场景与Host/Inspector；保留真实响应单次失败风险、依赖审计FAIL及人工NOT RUN，见E证据 |
 
-0005已获明确批准并通过5434/specbridge_test迁移、约束/业务回归。阶段A的新API/Web已接通，旧ai-analysis兼容；开发5433/生产未由本轮迁移。B的[0006审核包](AI_WORKFLOW_B_SQL_REVIEW.md)随后获批并在同一隔离目标应用。C的[0007审核包](AI_WORKFLOW_C_SQL_REVIEW.md)随后获明确批准，现仅在5434应用；C功能及受影响验证完成。整体A–E尚未完成。
+0005已获明确批准并通过5434/specbridge_test迁移、约束/业务回归。阶段A的新API/Web已接通，旧ai-analysis兼容；开发5433/生产未由本轮迁移。B的[0006审核包](AI_WORKFLOW_B_SQL_REVIEW.md)、C的[0007审核包](AI_WORKFLOW_C_SQL_REVIEW.md)及D的0008随后获批且仅5434应用。A–D已由负责人本地提交至e9e5efd，E本地集成验证完成；独立人工验收、依赖处置、开发启用和远程CI尚未完成。
 
 ## A：已实现契约与行为
 
@@ -73,7 +73,17 @@ Owner网页确认后才创建5分钟连接授权，绑定原Session/项目/PKCE/
 
 CLI仅本机Linux/WSL、Node22与本仓库已构建产物。预检后打开loopback浏览器入口，人工确认，原生HTTP限时限长兑换，仓库外0700/0600凭据，真实MCP诊断，再保留原配置合并自有MCP/Skill。重复执行/--status只诊断，--uninstall只移除未改的自有配置与凭据，远端撤销仍在网页。新增smol-toml1.9.1完整解析；原SDK Client转运行依赖；没有新工具或scope。
 
-单文件原子替换/普通失败回滚不保证跨文件崩溃一致性；中断残留需先撤销再人工恢复。项目配置仍受Codex原有信任控制，安装器不改用户信任；隔离Host以生成配置表作为CLI覆盖，真实用户信任后的自动加载单列H-20。D结束不自动进入E。
+单文件原子替换/普通失败回滚不保证跨文件崩溃一致性；中断残留需先撤销再人工恢复。项目配置仍受Codex原有信任控制，安装器不改用户信任；隔离Host以生成配置表作为CLI覆盖，真实用户信任后的自动加载单列H-20。D结束后，负责人另Session明确继续E，结果如下。
+
+## E：最终本地验证与交接
+
+开工HEAD e9e5efd、工作区干净。本轮无业务功能/依赖/Schema变更。新增连接Token贯穿真实stdio批准规格读取与撤销的第11项集成测试；HTTP全量脚本纳入AI44项，连接脚本显式构建MCP。真实AI文件选择修为精确正则，避免误选3文件共用Smoke预算；截图与安全计数支持独立E目录，保留历史证据。常规CI仍不用付费模型。
+
+PASS：API161+MCP28单元、102数据库、141 HTTP（默认外部2项SKIP）、公共路由5/CI保护4、44浏览器、独立MCP8（含Codex Host/Inspector）、类型/Lint/Build、51路径契约/迁移元数据/Skill格式。真实DeepSeek三场景最终通过；14次上游请求均200，26624预留输出，已知输入26083/输出6219，但一次被拒绝响应usage未记录，不是完整账单。首次独立提案场景Provider校验失败，未改生产验证/提示词，仅增加安全元数据并一次有界复验通过；根因未确定，H-21保留可靠性风险。另一次文件选择导致本地预算拒绝已修，所有失败记录保留。
+
+48个自动可访问性状态/0违规/26个含incomplete；桌面、手机、键盘与真实AI来源截图已抽查。长模型答复/技术字段与“私有预览持久化/正式业务写入”的措辞需人工核对。依赖审计FAIL：27条既有公告，生产口径2条，无本轮新增ID；H-17处理。H-15开发目标授权、H-20真实用户Codex信任加载、H-21综合安全/设备/模型验收及远程CI均未完成。
+
+[E完整命令与失败证据](evidence/ai-workflow-e/README.md)、[综合人工范例](AI_WORKFLOW_E_ACCEPTANCE.md)、[截图](../ux/evidence/ai-workflow-e/README.md)、[最终PR草案](AI_WORKFLOW_PR_DRAFT.md)。停在E，不Commit/Push/PR/Merge/部署；0005–0008仍仅获批5434隔离验证。
 
 ## 验证与迁移门槛
 
@@ -87,4 +97,4 @@ SQL分阶段审核：0005哈希 `3ef341ab762315d265f03ec32ab40813e32eaeec6b308fb
 
 C实际PASS：100数据库、158单元、44 AI HTTP；Auth16/RBAC13/R049/R058/reads9；新增浏览器4、原Copilot4；真实DeepSeek1场景（4模型请求全200，6497输入/1815输出）。类型/Lint/Build、47路径契约及db:check通过。会话撤销与锁等待竞态已复现并修复。
 
-D验证与当前风险以[D工程证据](evidence/ai-workflow-d/README.md)为准。E最终全量、远程CI、独立人工信任/安全/设备验收未运行。新审计27条公告（8high/13moderate/6low）与开工c0960b0基线完全相同、无新增ID；不能沿用B当时2条结果称当前审计干净，H-17已扩充待处置。详见[CHECKPOINT](AI_WORKFLOW_CHECKPOINT.md)与[Commit/PR草案](AI_WORKFLOW_PR_DRAFT.md)。无自动Commit/Push/PR/Merge/部署。
+D历史验证见[D工程证据](evidence/ai-workflow-d/README.md)，当前以[E工程证据](evidence/ai-workflow-e/README.md)为准。E本地全量已执行；远程CI和独立人工信任/安全/设备验收未运行。当前审计27条公告（8high/13moderate/6low）与已提交D记录相同、无新增ID，production口径为2条；H-17待处置。详见[CHECKPOINT](AI_WORKFLOW_CHECKPOINT.md)与[Commit/PR草案](AI_WORKFLOW_PR_DRAFT.md)。无自动Commit/Push/PR/Merge/部署。

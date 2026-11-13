@@ -113,7 +113,7 @@ jobs:
       - name: Project API token authorization and transactions
         run: pnpm --filter specbridge-api test:e2e:tokens
 
-      - name: Owner connection grants, PKCE exchange, races and secret isolation
+      - name: Owner grants, PKCE exchange, real stdio credential lifecycle and secret isolation
         run: pnpm --filter specbridge-api test:e2e:connections
 
       - name: Real stdio MCP Client to authorized API and PostgreSQL
@@ -125,7 +125,7 @@ jobs:
       - name: Build production Web for browser acceptance
         run: pnpm --filter web build
 
-      - name: R01–R08 browser regression, AI/Copilot mocks and token lifecycle
+      - name: Full browser regression, AI workflow mocks, documents, proposals and local connections
         run: |
           cp .env.test.example .env.test
           pnpm run test:browser:run

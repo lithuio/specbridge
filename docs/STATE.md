@@ -1,8 +1,21 @@
 # SpecBridge — Current Project State
 
-> 更新时间：2026-11-13。AI工作流A/B/C/D实现及受影响验证完成；0005–0008仅在获批5434隔离库应用。D真实浏览器与隔离Codex Host通过，实际用户信任后的自动加载另待人工验收；E未开始。当前依赖审计有27条既有公告，不是全绿。无自动Commit/Push/PR/Merge/部署。
+> 更新时间：2026-11-13。AI工作流A–D已由负责人提交至e9e5efd，E本地最终验证完成、改动未提交。44浏览器、141 HTTP、102数据库通过，三种真实DeepSeek场景及真实Codex Host/Inspector有成功证据；单次真实响应校验失败与27条依赖公告保留为风险。0005–0008仍仅获批5434隔离应用；开发启用、独立人工/真实信任加载/远程CI未完成。无自动Commit/Push/PR/Merge/部署。
 
-## AI工作流升级 — D完成本地Codex安装授权
+## AI工作流升级 — E完成最终本地集成验证
+
+负责人“继续阶段E”，开工分支`feat/17-ai-agent-integration`、HEAD`e9e5efd`、工作区干净。读取AGENTS、Issue #17、AC-28–34与A–D交接后，仅补测试/编排/证据与文档，无业务功能/Schema/依赖变更。[全部命令与结果](engineering/evidence/ai-workflow-e/README.md)、[综合人工范例](engineering/AI_WORKFLOW_E_ACCEPTANCE.md)、[截图](ux/evidence/ai-workflow-e/README.md)。
+
+- 新增Owner授权兑换Token→真实stdio→指定批准版本/Revision→跨项目拒绝→撤销拒绝的第11项连接HTTP测试。聚合HTTP脚本纳入AI44项；连接套件显式构建MCP；CI自动包含新增测试，仍不依赖真实Key。真实AI脚本改精确文件正则，统计和截图使用本轮独立目录；增加仅Smoke可用的有界白名单响应元数据。
+- PASS：API161/MCP28单元、13文件102数据库、141 HTTP（Auth16/RBAC13/R049/R058/R067/reads9/Token9/MCP6/资料9/连接11/AI44）、公共路由5、CI保护4、14套件44真实浏览器。API/Web/MCP类型、Lint、Build，51路径OpenAPI与Web类型、迁移元数据、Skill格式通过。普通MCP跳过Host/Inspector两项；显式独立真实运行8项全部通过，含这两项，不重复累加原6项。
+- 真实DeepSeek三场景最终通过：人工Revision、共享背景检索与来源、Copilot提案确认只发布1问题。共14次上游HTTP200、26624预留输出；已知输入26083/输出6219，另1被拒绝响应usage未记录，不能当完整账单。首次提案响应校验失败；有界诊断复验成功，未改生产验证/提示词，原失败根因未确定。初次文件选择误选3场景触发本地预算拒绝已修，保留失败证据；另一次并发build造成契约检查失败，串行复验51路径通过。
+- 安全自查和负面测试涵盖Client/Developer/作者/租户隔离、shared-only公开生成、Prompt Injection、未注册工具/伪造参数、Session撤销及锁等待、审计回滚、CAS/幂等、不可变历史和凭据生命周期。本轮无新增业务安全缺陷发现，不代替独立人工Review。真实Host使用生成MCP表的隔离CLI覆盖，实际用户信任自动发现仍NOT RUN，真实Codex配置未修改。
+- 代表性桌面/320/390px截图已打开抽查；48个axe状态0违规、26状态有incomplete，保留对比度补充与键盘检查。模型答案长且有技术字段，私有预览持久化与正式写入措辞需要人工核对；真实设备/读屏/视觉签字NOT RUN。
+- FAIL：依赖全量27公告（8high/13moderate/6low）、production口径2条（deepmerge low/minimatch moderate），与已提交D无新增ID；H-17待处理。H-21记录最终验收和实测模型可靠性风险。0005–0008哈希不变、数据库仍23表/9迁移/10触发器，开发5433/生产未应用；H-15目标授权未扩大。远程CI、独立安全验收与H-20实际信任加载NOT RUN。
+
+停在E，无自动Git或部署操作。API构建缓存已恢复开工字节，临时浏览器/宿主/凭据由测试清理，专用外部Token撤销；未停止开发服务或清空数据库。建议本地Commit：`test(ai): verify integrated AI workflows and agent connections`；[最终PR草案](engineering/AI_WORKFLOW_PR_DRAFT.md)已按A–E现状重写。
+
+## AI工作流升级 — D完成本地Codex安装授权（历史交接，后续已提交e9e5efd）
 
 负责人“批准，继续任务”明确批准[0008完整SQL](engineering/AI_WORKFLOW_D_SQL_REVIEW.md)仅用于127.0.0.1:5434/specbridge_test / specbridge_test。SHA-256 `2fa26bd9bee6c4f420d9cdd3f8adb9b231fa2c2a2ad5ab77f1edfb087364d74b`复核一致、原字节激活；23表/9迁移/10触发器、旧22表和数据保持。分支`feat/17-ai-agent-integration`、HEAD`c0960b0`保持，延续上轮未提交D准备改动；开发5433/生产未应用0005–0008。
 

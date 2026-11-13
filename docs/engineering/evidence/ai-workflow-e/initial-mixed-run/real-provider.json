@@ -1,0 +1,37 @@
+{
+  "status": "CALL_FAILED",
+  "model": "deepseek-flash",
+  "modelCalls": 4,
+  "reservedOutputTokens": 8192,
+  "promptTokens": 9456,
+  "completionTokens": 1915,
+  "usageMissing": 0,
+  "upstreamStatuses": [
+    200,
+    200,
+    200,
+    200
+  ],
+  "results": [
+    {
+      "status": "PASS",
+      "durationMs": 1891
+    },
+    {
+      "status": "PASS",
+      "durationMs": 1119
+    },
+    {
+      "status": "PASS",
+      "durationMs": 5616
+    },
+    {
+      "status": "PASS",
+      "durationMs": 4996
+    },
+    {
+      "status": "FAIL",
+      "durationMs": 1
+    }
+  ]
+}

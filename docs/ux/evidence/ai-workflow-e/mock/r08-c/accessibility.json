@@ -1,0 +1,178 @@
+[
+  {
+    "name": "copilot-desktop",
+    "violations": [],
+    "passedRules": 25,
+    "supplementalComputedContrast": [
+      {
+        "target": [
+          ".copilot-sources > li:nth-child(1) > a"
+        ],
+        "ratio": 7.9,
+        "threshold": 4.5
+      },
+      {
+        "target": [
+          "li:nth-child(2) > a"
+        ],
+        "ratio": 7.9,
+        "threshold": 4.5
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "aria-hidden-focus",
+        "nodes": [
+          {
+            "target": [
+              "div[data-base-ui-inert=\"\"][aria-hidden=\"true\"]:nth-child(9)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(3)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(5)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          }
+        ]
+      },
+      {
+        "id": "color-contrast",
+        "nodes": [
+          {
+            "target": [
+              ".copilot-sources > li:nth-child(1) > a"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > a"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "copilot-mobile",
+    "violations": [],
+    "passedRules": 26,
+    "supplementalComputedContrast": [
+      {
+        "target": [
+          ".copilot-context > span"
+        ],
+        "ratio": 5.94,
+        "threshold": 4.5
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "aria-hidden-focus",
+        "nodes": [
+          {
+            "target": [
+              "div[data-base-ui-inert=\"\"][aria-hidden=\"true\"]:nth-child(9)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(3)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(5)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          }
+        ]
+      },
+      {
+        "id": "color-contrast",
+        "nodes": [
+          {
+            "target": [
+              ".copilot-context > span"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "copilot-320",
+    "violations": [],
+    "passedRules": 26,
+    "supplementalComputedContrast": [
+      {
+        "target": [
+          "#base-ui-_r_d_"
+        ],
+        "ratio": 6.31,
+        "threshold": 4.5
+      },
+      {
+        "target": [
+          ".copilot-actions > .field-hint"
+        ],
+        "ratio": 6.31,
+        "threshold": 4.5
+      }
+    ],
+    "incomplete": [
+      {
+        "id": "aria-hidden-focus",
+        "nodes": [
+          {
+            "target": [
+              "div[data-base-ui-inert=\"\"][aria-hidden=\"true\"]:nth-child(9)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(3)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          },
+          {
+            "target": [
+              "span[data-type=\"inside\"][data-base-ui-focus-guard=\"\"][data-base-ui-inert=\"\"]:nth-child(5)"
+            ],
+            "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state"
+          }
+        ]
+      },
+      {
+        "id": "color-contrast",
+        "nodes": [
+          {
+            "target": [
+              "#base-ui-_r_d_"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          },
+          {
+            "target": [
+              ".copilot-actions > .field-hint"
+            ],
+            "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          }
+        ]
+      }
+    ]
+  }
+]

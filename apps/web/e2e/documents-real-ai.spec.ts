@@ -1,7 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { test, expect, login, writeHeaders } from "./fixtures";
-const evidence = resolve(process.cwd(), "../../docs/ux/evidence/ai-workflow-b");
+const evidence = resolve(
+  process.cwd(),
+  process.env.R07_EVIDENCE_ROOT ?? "../../docs/ux/evidence",
+  "ai-workflow-b",
+);
 test.skip(
   process.env.R08_REAL_PROVIDER !== "1" || !!process.env.CI,
   "Explicit isolated paid smoke only",
